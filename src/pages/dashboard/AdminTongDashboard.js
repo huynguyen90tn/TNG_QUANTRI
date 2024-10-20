@@ -1,23 +1,30 @@
 import React from 'react';
-import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Flex,
-  Heading,
   SimpleGrid,
   Stat,
   StatLabel,
   StatNumber,
   Icon,
   Text,
-  Button,
+  Heading,
+  useColorModeValue,
   VStack,
   HStack,
-  Link,
-  useColorModeValue,
+  Button,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
 } from '@chakra-ui/react';
-import { FaUsers, FaProjectDiagram, FaMoneyBillWave, FaChartPie, FaHome, FaCog, FaSignOutAlt } from 'react-icons/fa';
+import { FaUsers, FaProjectDiagram, FaMoneyBillWave, FaChartPie, FaChevronDown } from 'react-icons/fa';
 import { Pie, Bar, ResponsiveContainer, PieChart, BarChart, Cell, XAxis, YAxis, Tooltip, Legend } from 'recharts';
+import { motion } from 'framer-motion';
+import { useAuth } from '../../hooks/useAuth';
+
+const MotionBox = motion(Box);
 
 const memberData = [
   { name: 'Thành viên mới', value: 400 },
@@ -35,98 +42,44 @@ const projectData = [
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
 const StatCard = ({ icon, label, value, color }) => (
-  <Stat
-    px={{ base: 2, md: 4 }}
-    py={'5'}
-    shadow={'xl'}
-    border={'1px solid'}
-    borderColor={useColorModeValue('gray.800', 'gray.500')}
-    rounded={'lg'}
-    bg={useColorModeValue('gray.700', 'gray.900')}
+  <MotionBox
+    whileHover={{ scale: 1.05 }}
+    whileTap={{ scale: 0.95 }}
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.3 }}
   >
-    <Flex justifyContent={'space-between'}>
-      <Box pl={{ base: 2, md: 4 }}>
-        <StatLabel fontWeight={'medium'} isTruncated color="gray.400">
-          {label}
-        </StatLabel>
-        <StatNumber fontSize={'2xl'} fontWeight={'medium'} color={color}>
-          {value}
-        </StatNumber>
-      </Box>
-      <Box
-        my={'auto'}
-        color={color}
-        alignContent={'center'}
-      >
-        <Icon as={icon} w={8} h={8} />
-      </Box>
-    </Flex>
-  </Stat>
-);
-
-const NavItem = ({ icon, children, to }) => (
-  <Link as={RouterLink} to={to} style={{ textDecoration: 'none' }} _focus={{ boxShadow: 'none' }}>
-    <Flex
-      align="center"
-      p="4"
-      mx="4"
-      borderRadius="lg"
-      role="group"
-      cursor="pointer"
-      _hover={{
-        bg: 'blue.400',
-        color: 'white',
-      }}
+    <Stat
+      px={4}
+      py={5}
+      shadow="xl"
+      border="1px solid"
+      borderColor={useColorModeValue('gray.800', 'gray.500')}
+      rounded="lg"
+      bg={useColorModeValue('white', 'gray.700')}
     >
-      {icon && (
-        <Icon
-          mr="4"
-          fontSize="16"
-          _groupHover={{
-            color: 'white',
-          }}
-          as={icon}
-        />
-      )}
-      <Text fontSize="md" fontWeight="medium">{children}</Text>
-    </Flex>
-  </Link>
-);
-
-const Sidebar = () => {
-  return (
-    <Box
-      bg={useColorModeValue('gray.900', 'gray.900')}
-      borderRight="1px"
-      borderRightColor={useColorModeValue('gray.700', 'gray.700')}
-      w={{ base: 'full', md: 60 }}
-      pos="fixed"
-      h="full"
-    >
-      <Flex h="20" alignItems="center" mx="8" justifyContent="space-between">
-        <Text fontSize="2xl" fontFamily="monospace" fontWeight="bold" color="white">
-          Logo
-        </Text>
-      </Flex>
-      <VStack align="stretch" spacing={0}>
-        <Box bg="blue.500" p={4}>
-          <Text color="white" fontWeight="bold" fontSize="lg">Admin Tổng</Text>
+      <Flex justifyContent="space-between">
+        <Box pl={2}>
+          <StatLabel fontWeight="medium" isTruncated color={useColorModeValue('gray.500', 'gray.400')}>
+            {label}
+          </StatLabel>
+          <StatNumber fontSize="2xl" fontWeight="medium" color={color}>
+            {value}
+          </StatNumber>
         </Box>
-        <NavItem icon={FaHome} to="/admin-tong">Dashboard</NavItem>
-        <NavItem icon={FaUsers} to="/quan-ly-thanh-vien">Quản lý thành viên</NavItem>
-        <NavItem icon={FaProjectDiagram} to="/quan-ly-du-an">Quản lý dự án</NavItem>
-        <NavItem icon={FaCog} to="/cai-dat">Cài đặt</NavItem>
-        <Flex flex={1} />
-        <NavItem icon={FaSignOutAlt} to="/logout">Đăng xuất</NavItem>
-      </VStack>
-    </Box>
-  );
-};
+        <Box my="auto" color={color} alignContent="center">
+          <Icon as={icon} w={8} h={8} />
+        </Box>
+      </Flex>
+    </Stat>
+  </MotionBox>
+);
 
 const AdminTongDashboard = () => {
   const navigate = useNavigate();
-  const bgColor = useColorModeValue('gray.800', 'gray.900');
-  const textColor = useColorModeValue('gray.100', 'gray.50');
+  const { logout } = useAuth();
+  const bgColor = useColorModeValue('gray.50', 'gray.800');
+  const boxBg = useColorModeValue('white', 'gray.700');
 
   const handleRegisterMember = () => {
     navigate('/tao-thanh-vien');
@@ -136,71 +89,120 @@ const AdminTongDashboard = () => {
     navigate('/tao-quan-tri');
   };
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+
   return (
-    <Flex>
-      <Sidebar />
-      <Box ml={{ base: 0, md: 60 }} p="5" bg={bgColor} color={textColor} w="calc(100% - 240px)" minH="100vh">
-        <Flex justifyContent="space-between" alignItems="center" mb={5}>
-          <Heading size="lg">Dashboard Admin Tổng</Heading>
-          <HStack>
-            <Button leftIcon={<FaUsers />} colorScheme="blue" onClick={handleRegisterMember}>
-              Đăng ký Thành viên
-            </Button>
-            <Button leftIcon={<FaUsers />} colorScheme="green" onClick={handleRegisterAdmin}>
-              Đăng ký Quản trị
-            </Button>
-          </HStack>
+    <Box minH="100vh" bg={bgColor}>
+      <Flex
+        as="nav"
+        align="center"
+        justify="space-between"
+        wrap="wrap"
+        padding="1.5rem"
+        bg={useColorModeValue('white', 'gray.800')}
+        color={useColorModeValue('gray.600', 'white')}
+        boxShadow="md"
+      >
+        <Flex align="center" mr={5}>
+          <Heading as="h1" size="lg" letterSpacing={'tighter'}>
+            TNG Admin
+          </Heading>
         </Flex>
-        
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={5} mb={5}>
-          <StatCard icon={FaUsers} label="Tổng số thành viên" value="1,000" color="blue.400" />
-          <StatCard icon={FaProjectDiagram} label="Số lượng dự án" value="50" color="green.400" />
-          <StatCard icon={FaMoneyBillWave} label="Tổng doanh thu" value="$500,000" color="purple.400" />
-          <StatCard icon={FaChartPie} label="KPI đạt được" value="85%" color="orange.400" />
-        </SimpleGrid>
-        
-        <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={5}>
-          <Box bg={useColorModeValue('gray.700', 'gray.800')} p={5} borderRadius="lg" height="400px">
-            <Heading size="md" mb={4}>Phân bổ thành viên</Heading>
-            <ResponsiveContainer width="100%" height="90%">
-              <PieChart>
-                <Pie
-                  data={memberData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  outerRadius={150}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {memberData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </Box>
-          <Box bg={useColorModeValue('gray.700', 'gray.800')} p={5} borderRadius="lg" height="400px">
-            <Heading size="md" mb={4}>Doanh thu theo dự án</Heading>
-            <ResponsiveContainer width="100%" height="90%">
-              <BarChart data={projectData}>
-                <XAxis dataKey="name" stroke="#888" />
-                <YAxis stroke="#888" />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="value" fill="#8884d8">
-                  {projectData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </Box>
-        </SimpleGrid>
+
+        <HStack spacing={4}>
+          <Menu>
+            <MenuButton as={Button} rightIcon={<FaChevronDown />}>
+              Thao tác
+            </MenuButton>
+            <MenuList>
+              <MenuItem onClick={handleRegisterMember}>Đăng ký Thành viên</MenuItem>
+              <MenuItem onClick={handleRegisterAdmin}>Đăng ký Quản trị</MenuItem>
+            </MenuList>
+          </Menu>
+          <Button colorScheme="blue" onClick={handleLogout}>Đăng xuất</Button>
+        </HStack>
+      </Flex>
+
+      <Box p={8}>
+        <VStack spacing={8} align="stretch">
+          <Heading size="xl" mb={6}>
+            Dashboard Admin Tổng
+          </Heading>
+
+          <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={6}>
+            <StatCard icon={FaUsers} label="Tổng số thành viên" value="1,000" color="blue.500" />
+            <StatCard icon={FaProjectDiagram} label="Số lượng dự án" value="50" color="green.500" />
+            <StatCard icon={FaMoneyBillWave} label="Tổng doanh thu" value="$500,000" color="purple.500" />
+            <StatCard icon={FaChartPie} label="KPI đạt được" value="85%" color="orange.500" />
+          </SimpleGrid>
+
+          <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={8}>
+            <MotionBox
+              bg={boxBg}
+              p={6}
+              borderRadius="lg"
+              boxShadow="xl"
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <Heading size="md" mb={4}>Phân bổ thành viên</Heading>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={memberData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {memberData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </MotionBox>
+
+            <MotionBox
+              bg={boxBg}
+              p={6}
+              borderRadius="lg"
+              boxShadow="xl"
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <Heading size="md" mb={4}>Doanh thu theo dự án</Heading>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={projectData}>
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="value" fill="#8884d8">
+                    {projectData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </MotionBox>
+          </SimpleGrid>
+        </VStack>
       </Box>
-    </Flex>
+    </Box>
   );
 };
 

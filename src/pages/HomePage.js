@@ -15,13 +15,13 @@ const HomePage = () => {
           boxShadow="xl"
           borderRadius="md"
           align="stretch"
-          opacity={0.9}
+          opacity={0.8}
         >
-          <Heading as="h1" size="xl" textAlign="center" color="black">
-            TNG Company Management
+          <Heading as="h1" size="xl" textAlign="center" color="blue.500">
+            TNG Company
           </Heading>
           <Text fontSize="lg" textAlign="center" color="gray.700">
-            Kết nối và quản lý hiệu quả
+            Công ty Công nghệ, truyền thông và trí tuệ nhân tạo
           </Text>
           <LoginForm />
         </VStack>

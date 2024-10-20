@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -17,12 +17,15 @@ import {
   Container,
   Flex,
   Icon,
-  useColorModeValue
+  useColorModeValue,
+  Radio,
+  RadioGroup
 } from '@chakra-ui/react';
 import { useAuth } from '../../hooks/useAuth';
-import { storage, db } from '../../services/firebase';
+import { storage, db, auth } from '../../services/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { FaUser, FaIdCard, FaBuilding, FaShieldAlt, FaUpload } from 'react-icons/fa';
 
 const TaoTaiKhoanQuanTri = () => {
@@ -32,15 +35,30 @@ const TaoTaiKhoanQuanTri = () => {
     memberCode: '',
     idNumber: '',
     department: '',
-    permissions: []
+    permissions: [],
+    email: '',
+    password: '',
+    adminType: 'admin-con'
   });
   const [imagePreview, setImagePreview] = useState(null);
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const toast = useToast();
+  const [isAdminTong, setIsAdminTong] = useState(false);
 
   const bgColor = useColorModeValue('gray.800', 'gray.900');
   const textColor = useColorModeValue('white', 'gray.100');
   const inputBgColor = useColorModeValue('gray.700', 'gray.800');
+
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (user) {
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        const userData = userDoc.data();
+        setIsAdminTong(userData?.role === 'admin-tong');
+      }
+    };
+    checkAdminStatus();
+  }, [user]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -65,7 +83,22 @@ const TaoTaiKhoanQuanTri = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!user || user.role !== 'admin-tong') {
+    console.log("Form submitted. Current user:", user);
+
+    if (loading) {
+      console.log("Authentication is still loading");
+      toast({
+        title: "Đang tải",
+        description: "Vui lòng đợi trong giây lát.",
+        status: "info",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (!user || !isAdminTong) {
+      console.log("User is not an admin tong");
       toast({
         title: "Không có quyền",
         description: "Bạn không có quyền thực hiện hành động này.",
@@ -77,39 +110,57 @@ const TaoTaiKhoanQuanTri = () => {
     }
 
     try {
+      console.log("Starting registration process");
+      
+      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+      const newUser = userCredential.user;
+
       let avatarUrl = '';
       if (formData.avatar) {
-        const avatarRef = ref(storage, `avatars/${formData.memberCode}`);
+        console.log("Uploading avatar");
+        const avatarRef = ref(storage, `avatars/${newUser.uid}`);
         await uploadBytes(avatarRef, formData.avatar);
         avatarUrl = await getDownloadURL(avatarRef);
+        console.log("Avatar uploaded successfully");
       }
 
       const adminData = {
-        ...formData,
+        uid: newUser.uid,
+        email: formData.email,
+        fullName: formData.fullName,
+        memberCode: formData.memberCode,
+        idNumber: formData.idNumber,
+        department: formData.department,
+        permissions: formData.permissions,
         avatar: avatarUrl,
-        role: 'admin-con',
+        role: formData.adminType,
         createdBy: user.uid,
         createdAt: new Date().toISOString()
       };
 
-      await setDoc(doc(db, "users", formData.memberCode), adminData);
+      console.log("Admin data prepared:", adminData);
+
+      await setDoc(doc(db, "users", newUser.uid), adminData);
+      console.log("Document successfully written!");
 
       toast({
         title: "Đăng ký thành công",
-        description: "Tài khoản quản trị đã được tạo.",
+        description: `Tài khoản ${formData.adminType} đã được tạo.`,
         status: "success",
         duration: 5000,
         isClosable: true,
       });
 
-      // Reset form
       setFormData({
         avatar: null,
         fullName: '',
         memberCode: '',
         idNumber: '',
         department: '',
-        permissions: []
+        permissions: [],
+        email: '',
+        password: '',
+        adminType: 'admin-con'
       });
       setImagePreview(null);
     } catch (error) {
@@ -129,6 +180,7 @@ const TaoTaiKhoanQuanTri = () => {
       <Container maxW="container.md">
         <VStack spacing={8} align="stretch">
           <Heading color={textColor} size="2xl" textAlign="center">Đăng ký Quản trị mới</Heading>
+          <Text color={textColor}>Current user: {user ? `${user.email} (${isAdminTong ? 'Admin Tong' : 'Not Admin Tong'})` : 'Not logged in'}</Text>
           <form onSubmit={handleSubmit}>
             <VStack spacing={6} align="stretch" bg={inputBgColor} p={8} borderRadius="xl" boxShadow="xl">
               <Flex justifyContent="center" mb={4}>
@@ -210,7 +262,27 @@ const TaoTaiKhoanQuanTri = () => {
                 </CheckboxGroup>
               </FormControl>
 
-              <Button type="submit" colorScheme="blue" size="lg" leftIcon={<FaShieldAlt />}>
+              <FormControl isRequired>
+                <FormLabel color={textColor}>Email</FormLabel>
+                <Input name="email" type="email" value={formData.email} onChange={handleChange} bg="gray.700" color={textColor} />
+              </FormControl>
+
+              <FormControl isRequired>
+                <FormLabel color={textColor}>Mật khẩu</FormLabel>
+                <Input name="password" type="password" value={formData.password} onChange={handleChange} bg="gray.700" color={textColor} />
+              </FormControl>
+
+              <FormControl isRequired>
+                <FormLabel color={textColor}>Loại Admin</FormLabel>
+                <RadioGroup name="adminType" value={formData.adminType} onChange={(value) => setFormData(prev => ({ ...prev, adminType: value }))}>
+                  <VStack align="start">
+                    <Radio value="admin-con" color={textColor}>Admin Con</Radio>
+                    <Radio value="admin-tong" color={textColor}>Admin Tổng</Radio>
+                  </VStack>
+                </RadioGroup>
+              </FormControl>
+
+              <Button type="submit" colorScheme="blue" size="lg" leftIcon={<FaShieldAlt />} isLoading={loading} isDisabled={!isAdminTong}>
                 Đăng ký Quản trị
               </Button>
             </VStack>
