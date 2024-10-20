@@ -10,7 +10,7 @@ const Layout = ({ children }) => {
     <Flex minHeight="100vh" bg="gray.900" flexDirection="column">
       <Header />
       <Box flex={1} as="main" p={4}>
-        {children}
+        {user && children}
       </Box>
     </Flex>
   );
