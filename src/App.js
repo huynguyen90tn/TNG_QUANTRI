@@ -1,7 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ChakraProvider } from '@chakra-ui/react';
-import { useSelector } from 'react-redux';
 import HomePage from './pages/HomePage';
 import AdminTongDashboard from './pages/dashboard/AdminTongDashboard';
 import AdminConDashboard from './pages/dashboard/AdminConDashboard';
@@ -13,8 +12,6 @@ import Layout from './components/layout/Layout';
 import theme from './styles/theme';
 
 function App() {
-  const darkMode = useSelector((state) => state.theme.darkMode);
-
   return (
     <ChakraProvider theme={theme}>
       <Router>
