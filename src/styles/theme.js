@@ -54,6 +54,22 @@ const theme = extendTheme({
         },
       },
     },
+    Heading: {
+      baseStyle: {
+        fontWeight: 'bold',
+        letterSpacing: 'tight',
+      },
+    },
+    Card: {
+      baseStyle: {
+        p: '6',
+        bg: 'gray.800',
+        borderRadius: 'lg',
+        boxShadow: 'xl',
+        border: '1px',
+        borderColor: 'gray.700',
+      },
+    },
   },
 });
 

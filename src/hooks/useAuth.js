@@ -1,9 +1,20 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext, createContext } from 'react';
 import { auth, db } from '../services/firebase';
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 
+const AuthContext = createContext();
+
+export const AuthProvider = ({ children }) => {
+  const auth = useProvideAuth();
+  return <AuthContext.Provider value={auth}>{children}</AuthContext.Provider>;
+};
+
 export const useAuth = () => {
+  return useContext(AuthContext);
+};
+
+function useProvideAuth() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -33,5 +44,10 @@ export const useAuth = () => {
 
   const logout = () => signOut(auth);
 
-  return { user, loading, login, logout };
-};
+  return {
+    user,
+    loading,
+    login,
+    logout
+  };
+}
