@@ -1,19 +1,23 @@
 import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 
-const ProtectedRoute = ({ allowedRoles }) => {
-  const { user, isAuthenticated } = useSelector((state) => state.auth);
+const ProtectedRoute = ({ children, requiredRole }) => {
+  const { user, loading } = useAuth();
 
-  if (!isAuthenticated) {
-    return <Navigate to="/admin-tong/login" replace />;
+  if (loading) {
+    return <div>Loading...</div>;
   }
 
-  if (!allowedRoles.includes(user.role)) {
-    return <Navigate to="/unauthorized" replace />;
+  if (!user) {
+    return <Navigate to="/" replace />;
   }
 
-  return <Outlet />;
+  if (requiredRole && user.role !== requiredRole) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
 };
 
 export default ProtectedRoute;

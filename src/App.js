@@ -1,35 +1,78 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
-import AdminTongLogin from './pages/auth/AdminTongLogin';
-import AdminConLogin from './pages/auth/AdminConLogin';
-import MemberLogin from './pages/auth/MemberLogin';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { ChakraProvider } from '@chakra-ui/react';
+import { useSelector } from 'react-redux';
+import HomePage from './pages/HomePage';
 import AdminTongDashboard from './pages/dashboard/AdminTongDashboard';
 import AdminConDashboard from './pages/dashboard/AdminConDashboard';
 import MemberDashboard from './pages/dashboard/MemberDashboard';
+import TaoTaiKhoanThanhVien from './pages/auth/TaoTaiKhoanThanhVien';
+import TaoTaiKhoanQuanTri from './pages/auth/TaoTaiKhoanQuanTri';
 import ProtectedRoute from './utils/ProtectedRoute';
-import { Box } from '@chakra-ui/react';
+import Layout from './components/layout/Layout';
+import theme from './styles/theme';
 
 function App() {
+  const darkMode = useSelector((state) => state.theme.darkMode);
+
   return (
-    <Box>
-      <Routes>
-        <Route path="/admin-tong/login" element={<AdminTongLogin />} />
-        <Route path="/admin-con/login" element={<AdminConLogin />} />
-        <Route path="/member/login" element={<MemberLogin />} />
-
-        <Route element={<ProtectedRoute allowedRoles={['adminTong']} />}>
-          <Route path="/admin-tong/dashboard" element={<AdminTongDashboard />} />
-        </Route>
-
-        <Route element={<ProtectedRoute allowedRoles={['adminCon']} />}>
-          <Route path="/admin-con/dashboard" element={<AdminConDashboard />} />
-        </Route>
-
-        <Route element={<ProtectedRoute allowedRoles={['member']} />}>
-          <Route path="/member/dashboard" element={<MemberDashboard />} />
-        </Route>
-      </Routes>
-    </Box>
+    <ChakraProvider theme={theme}>
+      <Router>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route
+            path="/admin-tong"
+            element={
+              <Layout>
+                <ProtectedRoute requiredRole="master-admin">
+                  <AdminTongDashboard />
+                </ProtectedRoute>
+              </Layout>
+            }
+          />
+          <Route
+            path="/admin-con"
+            element={
+              <Layout>
+                <ProtectedRoute requiredRole="admin">
+                  <AdminConDashboard />
+                </ProtectedRoute>
+              </Layout>
+            }
+          />
+          <Route
+            path="/member"
+            element={
+              <Layout>
+                <ProtectedRoute requiredRole="member">
+                  <MemberDashboard />
+                </ProtectedRoute>
+              </Layout>
+            }
+          />
+          <Route
+            path="/tao-thanh-vien"
+            element={
+              <Layout>
+                <ProtectedRoute requiredRole="master-admin">
+                  <TaoTaiKhoanThanhVien />
+                </ProtectedRoute>
+              </Layout>
+            }
+          />
+          <Route
+            path="/tao-quan-tri"
+            element={
+              <Layout>
+                <ProtectedRoute requiredRole="master-admin">
+                  <TaoTaiKhoanQuanTri />
+                </ProtectedRoute>
+              </Layout>
+            }
+          />
+        </Routes>
+      </Router>
+    </ChakraProvider>
   );
 }
 

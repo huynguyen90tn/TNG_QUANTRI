@@ -1,79 +1,61 @@
 import React, { useState } from 'react';
-import {
-  Box,
-  Button,
-  FormControl,
-  FormLabel,
-  Input,
-  VStack,
-  Heading,
-  Text,
-  useColorModeValue,
-} from '@chakra-ui/react';
-import { motion } from 'framer-motion';
+import { VStack, Input, Button, FormControl, FormLabel, Text } from '@chakra-ui/react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 
-const MotionBox = motion(Box);
-
-const LoginForm = ({ title, onSubmit, isLoading }) => {
+const LoginForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const formBackground = useColorModeValue('gray.100', 'gray.700');
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
+  const { login } = useAuth();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSubmit(email, password);
+    setError('');
+    try {
+      const user = await login(email, password);
+      if (user.role === 'master-admin') {
+        navigate('/admin-tong');
+      } else if (user.role === 'admin') {
+        navigate('/admin-con');
+      } else {
+        navigate('/member');
+      }
+    } catch (error) {
+      setError('Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
+    }
   };
 
   return (
-    <MotionBox
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      transition={{ duration: 0.5 }}
-      w="full"
-      maxW="md"
-      p={8}
-      borderWidth={1}
-      borderRadius="lg"
-      boxShadow="lg"
-      bg={formBackground}
-    >
-      <form onSubmit={handleSubmit}>
-        <VStack spacing={4} align="flex-start" w="full">
-          <Heading>{title}</Heading>
-          <FormControl>
-            <FormLabel>Email</FormLabel>
-            <Input 
-              type="email" 
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </FormControl>
-          <FormControl>
-            <FormLabel>Mật khẩu</FormLabel>
-            <Input 
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </FormControl>
-          <Button
-            type="submit"
-            colorScheme="blue"
-            width="full"
-            isLoading={isLoading}
-            loadingText="Đang đăng nhập..."
-          >
-            Đăng nhập
-          </Button>
-          <Text fontSize="sm">
-            Quên mật khẩu? <Button variant="link">Nhấn vào đây</Button>
-          </Text>
-        </VStack>
-      </form>
-    </MotionBox>
+    <form onSubmit={handleSubmit}>
+      <VStack spacing={4}>
+        <FormControl isRequired>
+          <FormLabel color="gray.700">Email</FormLabel>
+          <Input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            bg="white"
+            color="black"
+          />
+        </FormControl>
+        <FormControl isRequired>
+          <FormLabel color="gray.700">Mật khẩu</FormLabel>
+          <Input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            bg="white"
+            color="black"
+          />
+        </FormControl>
+        <Button type="submit" colorScheme="blue" width="full">
+          Đăng nhập
+        </Button>
+        {error && <Text color="red.500">{error}</Text>}
+      </VStack>
+    </form>
   );
 };
 

@@ -1,40 +1,29 @@
 import React from 'react';
 import { Box, Heading, SimpleGrid, Stat, StatLabel, StatNumber, StatHelpText } from '@chakra-ui/react';
-import Header from '../../components/layout/Header';
-import Sidebar from '../../components/layout/Sidebar';
-import AnimatedBox from '../../components/common/AnimatedBox';
 
-const DashboardStat = ({ label, number, helpText }) => (
-  <Stat>
-    <StatLabel>{label}</StatLabel>
-    <StatNumber>{number}</StatNumber>
-    <StatHelpText>{helpText}</StatHelpText>
-  </Stat>
-);
-
-const AdminTongDashboard = () => {
+const MemberDashboard = () => {
   return (
-    <Box display="flex">
-      <Sidebar />
-      <Box flex={1}>
-        <Header />
-        <AnimatedBox
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.5 }}
-          p={8}
-        >
-          <Heading mb={6}>Tổng quan Admin Tổng</Heading>
-          <SimpleGrid columns={3} spacing={10}>
-            <DashboardStat label="Tổng số dự án" number="42" helpText="Tăng 10% so với tháng trước" />
-            <DashboardStat label="Nhân viên hoạt động" number="156" helpText="Tăng 5% so với tháng trước" />
-            <DashboardStat label="Doanh thu" number="1.2M" helpText="Tăng 15% so với tháng trước" />
-          </SimpleGrid>
-        </AnimatedBox>
-      </Box>
+    <Box maxW="container.xl" mx="auto" mt={8}>
+      <Heading mb={6}>Dashboard Thành Viên</Heading>
+      <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6}>
+        <Stat p={4} shadow="md" border="1px" borderColor="gray.200" borderRadius="md">
+          <StatLabel>Dự án đang tham gia</StatLabel>
+          <StatNumber>3</StatNumber>
+          <StatHelpText>1 dự án mới trong tháng này</StatHelpText>
+        </Stat>
+        <Stat p={4} shadow="md" border="1px" borderColor="gray.200" borderRadius="md">
+          <StatLabel>Nhiệm vụ hoàn thành</StatLabel>
+          <StatNumber>25</StatNumber>
+          <StatHelpText>Tăng 5 nhiệm vụ so với tháng trước</StatHelpText>
+        </Stat>
+        <Stat p={4} shadow="md" border="1px" borderColor="gray.200" borderRadius="md">
+          <StatLabel>Điểm thưởng</StatLabel>
+          <StatNumber>150</StatNumber>
+          <StatHelpText>Tăng 30 điểm so với tháng trước</StatHelpText>
+        </Stat>
+      </SimpleGrid>
     </Box>
   );
 };
 
-export default AdminTongDashboard;
+export default MemberDashboard;

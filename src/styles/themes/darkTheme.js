@@ -1,18 +1,71 @@
-import { extendTheme } from "@chakra-ui/react";
+import { createTheme } from '@mui/material/styles';
 
-const darkTheme = extendTheme({
-  config: {
-    initialColorMode: "dark",
-    useSystemColorMode: false,
+const baseTheme = {
+  typography: {
+    fontFamily: [
+      '-apple-system',
+      'BlinkMacSystemFont',
+      '"Segoe UI"',
+      'Roboto',
+      '"Helvetica Neue"',
+      'Arial',
+      'sans-serif',
+      '"Apple Color Emoji"',
+      '"Segoe UI Emoji"',
+      '"Segoe UI Symbol"',
+    ].join(','),
   },
-  styles: {
-    global: {
-      body: {
-        bg: "gray.800",
-        color: "white",
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          textTransform: 'none',
+          borderRadius: '6px',
+        },
       },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          borderRadius: '8px',
+        },
+      },
+    },
+  },
+};
+
+export const darkTheme = createTheme({
+  ...baseTheme,
+  palette: {
+    mode: 'dark',
+    primary: {
+      main: '#1877f2',
+    },
+    background: {
+      default: '#18191a',
+      paper: '#242526',
+    },
+    text: {
+      primary: '#e4e6eb',
+      secondary: '#b0b3b8',
     },
   },
 });
 
-export default darkTheme;
+export const lightTheme = createTheme({
+  ...baseTheme,
+  palette: {
+    mode: 'light',
+    primary: {
+      main: '#1877f2',
+    },
+    background: {
+      default: '#f0f2f5',
+      paper: '#ffffff',
+    },
+    text: {
+      primary: '#050505',
+      secondary: '#65676b',
+    },
+  },
+});

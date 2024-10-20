@@ -1,29 +1,28 @@
 import React from 'react';
-import { Flex, Heading, Button } from '@chakra-ui/react';
+import { Box, Flex, Heading, Button } from '@chakra-ui/react';
 import { useAuth } from '../../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
 const Header = () => {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
+  const handleLogout = async () => {
+    await logout();
+    navigate('/');
   };
 
   return (
-    <Flex as="header" align="center" justify="space-between" wrap="wrap" padding="1.5rem" bg="teal.500" color="white">
-      <Flex align="center" mr={5}>
-        <Heading as="h1" size="lg" letterSpacing={'-.1rem'}>
-          TNG Company Management
-        </Heading>
+    <Box bg="blue.500" px={4}>
+      <Flex h={16} alignItems="center" justifyContent="space-between">
+        <Heading size="md" color="white">TNG Company Management</Heading>
+        {user && (
+          <Button colorScheme="whiteAlpha" onClick={handleLogout}>
+            Đăng xuất
+          </Button>
+        )}
       </Flex>
-
-      <Button onClick={handleLogout} colorScheme="teal" variant="outline">
-        Đăng xuất
-      </Button>
-    </Flex>
+    </Box>
   );
 };
 

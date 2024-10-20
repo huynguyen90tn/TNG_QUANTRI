@@ -1,37 +1,37 @@
-import { useDispatch } from 'react-redux';
-import { loginStart, loginSuccess, loginFailure, logout } from '../store/slices/authSlice';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../services/firebase';
+import { useState, useEffect } from 'react';
+import { auth, db } from '../services/firebase';
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 
 export const useAuth = () => {
-  const dispatch = useDispatch();
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
+        const userData = userDoc.data();
+        setUser({ ...firebaseUser, role: userData?.role });
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const login = async (email, password) => {
-    dispatch(loginStart());
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-      
-      // Kiểm tra email để xác định vai trò
-      let role = 'member';
-      if (email === 'gin@tng.com') {
-        role = 'adminTong';
-      } else if (email.endsWith('@admin.tng.com')) {
-        role = 'adminCon';
-      }
-
-      dispatch(loginSuccess({ ...user, role }));
-      return role;
-    } catch (error) {
-      dispatch(loginFailure(error.message));
-      throw error;
-    }
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
+    const userData = userDoc.data();
+    const userWithRole = { ...userCredential.user, role: userData?.role };
+    setUser(userWithRole);
+    return userWithRole;
   };
 
-  const logoutUser = () => {
-    auth.signOut();
-    dispatch(logout());
-  };
+  const logout = () => signOut(auth);
 
-  return { login, logout: logoutUser };
+  return { user, loading, login, logout };
 };

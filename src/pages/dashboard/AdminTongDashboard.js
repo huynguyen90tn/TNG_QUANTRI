@@ -1,38 +1,58 @@
 import React from 'react';
-import { Box, Heading, SimpleGrid, Stat, StatLabel, StatNumber, StatHelpText } from '@chakra-ui/react';
-import Header from '../../components/layout/Header';
-import Sidebar from '../../components/layout/Sidebar';
-import AnimatedBox from '../../components/common/AnimatedBox';
-
-const DashboardStat = ({ label, number, helpText }) => (
-  <Stat>
-    <StatLabel>{label}</StatLabel>
-    <StatNumber>{number}</StatNumber>
-    <StatHelpText>{helpText}</StatHelpText>
-  </Stat>
-);
+import { Box, Heading, SimpleGrid, Stat, StatLabel, StatNumber, StatHelpText, Icon } from '@chakra-ui/react';
+import { FaUsers, FaProjectDiagram, FaMoneyBillWave } from 'react-icons/fa';
 
 const AdminTongDashboard = () => {
   return (
-    <Box display="flex">
-      <Sidebar />
-      <Box flex={1}>
-        <Header />
-        <AnimatedBox
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.5 }}
-          p={8}
+    <Box maxW="container.xl" mx="auto" mt={8}>
+      <Heading mb={6} color="white">Dashboard Admin Tổng</Heading>
+      <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6}>
+        <Stat
+          p={4}
+          bg="gray.800"
+          borderRadius="lg"
+          boxShadow="md"
+          border="1px"
+          borderColor="gray.700"
         >
-          <Heading mb={6}>Tổng quan Admin Tổng</Heading>
-          <SimpleGrid columns={3} spacing={10}>
-            <DashboardStat label="Tổng số dự án" number="42" helpText="Tăng 10% so với tháng trước" />
-            <DashboardStat label="Nhân viên hoạt động" number="156" helpText="Tăng 5% so với tháng trước" />
-            <DashboardStat label="Doanh thu" number="1.2M" helpText="Tăng 15% so với tháng trước" />
-          </SimpleGrid>
-        </AnimatedBox>
-      </Box>
+          <StatLabel color="gray.400">Tổng số thành viên</StatLabel>
+          <StatNumber color="white" fontSize="3xl">
+            <Icon as={FaUsers} color="blue.400" mr={2} />
+            1,000
+          </StatNumber>
+          <StatHelpText color="green.400">Tăng 5% so với tháng trước</StatHelpText>
+        </Stat>
+        <Stat
+          p={4}
+          bg="gray.800"
+          borderRadius="lg"
+          boxShadow="md"
+          border="1px"
+          borderColor="gray.700"
+        >
+          <StatLabel color="gray.400">Dự án đang hoạt động</StatLabel>
+          <StatNumber color="white" fontSize="3xl">
+            <Icon as={FaProjectDiagram} color="purple.400" mr={2} />
+            50
+          </StatNumber>
+          <StatHelpText color="green.400">Tăng 2 dự án so với tháng trước</StatHelpText>
+        </Stat>
+        <Stat
+          p={4}
+          bg="gray.800"
+          borderRadius="lg"
+          boxShadow="md"
+          border="1px"
+          borderColor="gray.700"
+        >
+          <StatLabel color="gray.400">Doanh thu tháng này</StatLabel>
+          <StatNumber color="white" fontSize="3xl">
+            <Icon as={FaMoneyBillWave} color="green.400" mr={2} />
+            $500,000
+          </StatNumber>
+          <StatHelpText color="green.400">Tăng 10% so với tháng trước</StatHelpText>
+        </Stat>
+      </SimpleGrid>
     </Box>
   );
 };

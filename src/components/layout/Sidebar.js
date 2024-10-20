@@ -1,44 +1,36 @@
 import React from 'react';
-import { Box, VStack, Text, Icon } from '@chakra-ui/react';
-import { FaHome, FaUsers, FaProjectDiagram } from 'react-icons/fa';
-import { Link } from 'react-router-dom';
-import AnimatedBox from '../common/AnimatedBox';
+import { Box, VStack, Link, Icon, Text } from '@chakra-ui/react';
+import { Link as RouterLink } from 'react-router-dom';
+import { FaHome, FaUsers, FaProjectDiagram, FaCog } from 'react-icons/fa';
 
-const SidebarItem = ({ icon, children, to }) => (
-  <Box
-    as={Link}
-    to={to}
-    display="flex"
-    alignItems="center"
-    p={3}
-    borderRadius="md"
-    _hover={{ bg: 'gray.700' }}
-    w="full"
-  >
-    <Icon as={icon} mr={3} />
-    <Text>{children}</Text>
-  </Box>
-);
+const MenuItem = ({ icon, children, to }) => {
+  return (
+    <Link
+      as={RouterLink}
+      to={to}
+      w="full"
+      p={3}
+      borderRadius="md"
+      _hover={{ bg: 'gray.700' }}
+      display="flex"
+      alignItems="center"
+    >
+      <Icon as={icon} boxSize={5} color="blue.400" mr={3} />
+      <Text color="white">{children}</Text>
+    </Link>
+  );
+};
 
 const Sidebar = () => {
   return (
-    <AnimatedBox
-      initial={{ x: -250 }}
-      animate={{ x: 0 }}
-      exit={{ x: -250 }}
-      transition={{ duration: 0.5 }}
-      w="250px"
-      h="100vh"
-      bg="gray.800"
-      color="white"
-      p={5}
-    >
+    <Box w="240px" bg="gray.800" p={4} color="white">
       <VStack spacing={4} align="stretch">
-        <SidebarItem icon={FaHome} to="/dashboard">Tổng quan</SidebarItem>
-        <SidebarItem icon={FaUsers} to="/users">Người dùng</SidebarItem>
-        <SidebarItem icon={FaProjectDiagram} to="/projects">Dự án</SidebarItem>
+        <MenuItem icon={FaHome} to="/dashboard">Dashboard</MenuItem>
+        <MenuItem icon={FaUsers} to="/members">Quản lý thành viên</MenuItem>
+        <MenuItem icon={FaProjectDiagram} to="/projects">Quản lý dự án</MenuItem>
+        <MenuItem icon={FaCog} to="/settings">Cài đặt</MenuItem>
       </VStack>
-    </AnimatedBox>
+    </Box>
   );
 };
 
