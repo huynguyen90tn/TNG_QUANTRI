@@ -1,5 +1,16 @@
 import React from 'react';
-import { Box, VStack, Text, Flex, Icon, Link, Drawer, DrawerContent, useDisclosure, useColorModeValue } from '@chakra-ui/react';
+import {
+  Box,
+  VStack,
+  Text,
+  Flex,
+  Icon,
+  Link,
+  Drawer,
+  DrawerContent,
+  useDisclosure,
+  useColorModeValue
+} from '@chakra-ui/react';
 import { FiHome, FiUsers, FiFolder, FiSettings, FiLogOut } from 'react-icons/fi';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth'; // Đã điều chỉnh đường dẫn
@@ -85,7 +96,7 @@ const SidebarContent = ({ onClose, ...rest }) => {
 };
 
 const Sidebar = () => {
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen, onClose } = useDisclosure();
   const { user } = useAuth();
 
   // Chỉ hiển thị sidebar nếu người dùng là admin tổng
@@ -95,7 +106,7 @@ const Sidebar = () => {
 
   return (
     <Box>
-      <SidebarContent onClose={() => onClose} display={{ base: 'none', md: 'block' }} />
+      <SidebarContent onClose={onClose} display={{ base: 'none', md: 'block' }} />
       <Drawer
         isOpen={isOpen}
         placement="left"
