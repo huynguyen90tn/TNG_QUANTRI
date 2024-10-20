@@ -1,0 +1,14 @@
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDmnu7PdPye-DVJioBj43zU_PBuXZcoRX8",
+  authDomain: "tngcompany11.firebaseapp.com",
+  projectId: "tngcompany11",
+  storageBucket: "tngcompany11.appspot.com",
+  messagingSenderId: "884944093886",
+  appId: "1:884944093886:web:9978c618fc7ececaf954ef"
+};
+
+const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
