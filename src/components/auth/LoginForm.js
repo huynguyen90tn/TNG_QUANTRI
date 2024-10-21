@@ -12,6 +12,7 @@ import {
   InputLeftElement,
   Icon,
   Image,
+  useToast,
 } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
 import { FaUser, FaLock } from 'react-icons/fa';
@@ -25,21 +26,34 @@ const LoginForm = () => {
   const [password, setPassword] = useState('');
   const { login } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
+      console.log('Attempting login with:', email);
       const user = await login(email, password);
+      console.log('Login successful. User role:', user.role);
+      
       if (user.role === 'admin-tong') {
+        console.log('Navigating to /admin-tong');
         navigate('/admin-tong');
       } else if (user.role === 'admin-con') {
+        console.log('Navigating to /admin-con');
         navigate('/admin-con');
       } else {
+        console.log('Navigating to /member');
         navigate('/member');
       }
     } catch (error) {
       console.error('Login error:', error);
-      // Hiển thị thông báo lỗi cho người dùng
+      toast({
+        title: "Đăng nhập thất bại",
+        description: error.message,
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
     }
   };
 

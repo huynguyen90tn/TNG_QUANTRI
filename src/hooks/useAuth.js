@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext, createContext } from 'react';
 import { auth, db } from '../services/firebase';
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 const AuthContext = createContext();
 
@@ -66,10 +66,34 @@ function useProvideAuth() {
 
   const logout = () => signOut(auth);
 
+  const createUser = async (email, password, role) => {
+    try {
+      setLoading(true);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const newUser = userCredential.user;
+      
+      await setDoc(doc(db, "users", newUser.uid), {
+        email: newUser.email,
+        role: role,
+        createdAt: new Date().toISOString()
+      });
+
+      const userWithRole = { ...newUser, role: role };
+      setUser(userWithRole);
+      return userWithRole;
+    } catch (error) {
+      console.error("Create user error:", error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     user,
     loading,
     login,
-    logout
+    logout,
+    createUser
   };
 }
