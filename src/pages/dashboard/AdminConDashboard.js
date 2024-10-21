@@ -29,7 +29,7 @@ import {
   Badge,
 } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
-import { FaUsers, FaProjectDiagram, FaMoneyBillWave, FaChartPie, FaHome, FaCog, FaBell, FaTasks, FaCalendarAlt } from 'react-icons/fa';
+import { FaUsers, FaProjectDiagram, FaMoneyBillWave, FaChartPie, FaBell } from 'react-icons/fa';
 import { Pie, ResponsiveContainer, PieChart, Cell, Tooltip, Legend } from 'recharts';
 
 const MotionBox = motion(Box);

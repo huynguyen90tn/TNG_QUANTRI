@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Heading, Button, VStack, useToast, SimpleGrid } from '@chakra-ui/react';
 import { useAuth } from '../hooks/useAuth';
 import ProjectList from '../components/projects/ProjectList';

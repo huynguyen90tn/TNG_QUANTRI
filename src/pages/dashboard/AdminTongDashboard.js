@@ -10,7 +10,6 @@ import {
   StatNumber,
   Icon,
   Button,
-  VStack,
   HStack,
   useColorModeValue,
   Avatar,
@@ -20,7 +19,7 @@ import {
   MenuItem,
 } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
-import { FaUsers, FaProjectDiagram, FaMoneyBillWave, FaChartPie, FaHome, FaCog, FaBell } from 'react-icons/fa';
+import { FaUsers, FaProjectDiagram, FaMoneyBillWave, FaChartPie, FaBell } from 'react-icons/fa';
 import { Pie, Bar, ResponsiveContainer, PieChart, BarChart, Cell, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 
 const MotionBox = motion(Box);
