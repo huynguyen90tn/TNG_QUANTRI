@@ -20,16 +20,15 @@ import {
   Text
 } from '@chakra-ui/react';
 import { FaUser, FaHome, FaPhone, FaFacebook, FaTelegram, FaUpload, FaIdCard, FaBuilding } from 'react-icons/fa';
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { setDoc, doc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { doc, setDoc } from 'firebase/firestore';
 import { auth, db, storage } from '../../services/firebase';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
 
 const TaoTaiKhoanThanhVien = () => {
   const toast = useToast();
   const navigate = useNavigate();
-  const { createUser } = useAuth();
   const [formData, setFormData] = useState({
     avatar: null,
     fullName: '',
@@ -81,12 +80,13 @@ const TaoTaiKhoanThanhVien = () => {
     e.preventDefault();
     try {
       // Create user with email and password
-      const newUser = await createUser(formData.email, formData.password, "member");
+      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+      const user = userCredential.user;
 
       let avatarUrl = '';
       if (formData.avatar) {
         // Upload avatar to storage
-        const avatarRef = ref(storage, `avatars/${newUser.uid}`);
+        const avatarRef = ref(storage, `avatars/${user.uid}`);
         await uploadBytes(avatarRef, formData.avatar);
         avatarUrl = await getDownloadURL(avatarRef);
       }
@@ -96,7 +96,13 @@ const TaoTaiKhoanThanhVien = () => {
       delete memberData.avatar;
 
       // Add member data to Firestore
-      await setDoc(doc(db, "members", newUser.uid), memberData);
+      await setDoc(doc(db, "members", user.uid), memberData);
+
+      // Add user role to the "users" collection
+      await setDoc(doc(db, "users", user.uid), {
+        email: user.email,
+        role: "member"
+      });
 
       toast({
         title: "Đăng ký thành công!",
