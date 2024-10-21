@@ -13,7 +13,6 @@ import {
   VStack,
   HStack,
   useColorModeValue,
-  Text,
   Avatar,
   Menu,
   MenuButton,
