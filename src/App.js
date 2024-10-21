@@ -10,6 +10,7 @@ import TaoTaiKhoanThanhVien from './pages/auth/TaoTaiKhoanThanhVien';
 import TaoTaiKhoanQuanTri from './pages/auth/TaoTaiKhoanQuanTri';
 import Layout from './components/layout/Layout';
 import theme from './styles/theme';
+import ProjectManagement from './pages/ProjectManagement';
 
 const ProtectedRoute = ({ children, requiredRole }) => {
   const { user, loading } = useAuth();
@@ -22,7 +23,7 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     );
   }
 
-  if (!user || user.role !== requiredRole) {
+  if (!user || (requiredRole && !requiredRole.includes(user.role))) {
     return <Navigate to="/" replace />;
   }
 
@@ -46,7 +47,7 @@ const AppRoutes = () => {
       <Route
         path="/admin-tong"
         element={
-          <ProtectedRoute requiredRole="admin-tong">
+          <ProtectedRoute requiredRole={["admin-tong"]}>
             <Layout>
               <AdminTongDashboard />
             </Layout>
@@ -56,7 +57,7 @@ const AppRoutes = () => {
       <Route
         path="/admin-con"
         element={
-          <ProtectedRoute requiredRole="admin-con">
+          <ProtectedRoute requiredRole={["admin-con"]}>
             <Layout>
               <AdminConDashboard />
             </Layout>
@@ -66,7 +67,7 @@ const AppRoutes = () => {
       <Route
         path="/member"
         element={
-          <ProtectedRoute requiredRole="member">
+          <ProtectedRoute requiredRole={["member"]}>
             <Layout>
               <MemberDashboard />
             </Layout>
@@ -76,7 +77,7 @@ const AppRoutes = () => {
       <Route
         path="/tao-thanh-vien"
         element={
-          <ProtectedRoute requiredRole="admin-tong">
+          <ProtectedRoute requiredRole={["admin-tong"]}>
             <Layout>
               <TaoTaiKhoanThanhVien />
             </Layout>
@@ -86,9 +87,19 @@ const AppRoutes = () => {
       <Route
         path="/tao-quan-tri"
         element={
-          <ProtectedRoute requiredRole="admin-tong">
+          <ProtectedRoute requiredRole={["admin-tong"]}>
             <Layout>
               <TaoTaiKhoanQuanTri />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/quan-ly-du-an"
+        element={
+          <ProtectedRoute requiredRole={["admin-tong", "admin-con", "member"]}>
+            <Layout>
+              <ProjectManagement />
             </Layout>
           </ProtectedRoute>
         }

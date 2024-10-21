@@ -69,19 +69,6 @@ const StatCard = ({ icon, label, value, color }) => (
   </MotionBox>
 );
 
-const SidebarButton = ({ icon, children, onClick }) => (
-  <Button
-    leftIcon={<Icon as={icon} />}
-    justifyContent="flex-start"
-    variant="ghost"
-    size="lg"
-    w="full"
-    onClick={onClick}
-  >
-    {children}
-  </Button>
-);
-
 const AdminConDashboard = () => {
   const navigate = useNavigate();
   const bgColor = useColorModeValue('gray.50', 'gray.900');
@@ -92,23 +79,12 @@ const AdminConDashboard = () => {
     navigate('/quan-ly-thanh-vien');
   };
 
+  const handleProjectManagement = () => {
+    navigate('/quan-ly-du-an');
+  };
+
   return (
     <Flex minH="100vh" bg={bgColor}>
-      {/* Sidebar */}
-      <Box w="250px" bg={useColorModeValue('white', 'gray.800')} shadow="xl" p={5}>
-        <VStack spacing={5} align="stretch">
-          <Heading size="md" textAlign="center" mb={5}>
-            TNG Admin Con
-          </Heading>
-          <SidebarButton icon={FaHome} onClick={() => {}}>Dashboard</SidebarButton>
-          <SidebarButton icon={FaUsers} onClick={handleManageMembers}>Quản lý thành viên</SidebarButton>
-          <SidebarButton icon={FaProjectDiagram} onClick={() => {}}>Quản lý dự án</SidebarButton>
-          <SidebarButton icon={FaTasks} onClick={() => {}}>Nhiệm vụ</SidebarButton>
-          <SidebarButton icon={FaCalendarAlt} onClick={() => {}}>Lịch</SidebarButton>
-          <SidebarButton icon={FaCog} onClick={() => {}}>Cài đặt</SidebarButton>
-        </VStack>
-      </Box>
-
       {/* Main content */}
       <Box flex={1} p={8}>
         <Flex justifyContent="space-between" alignItems="center" mb={8}>
@@ -240,6 +216,10 @@ const AdminConDashboard = () => {
             </Table>
           </Box>
         </Box>
+
+        <Button mt={8} colorScheme="blue" onClick={handleProjectManagement}>
+          Quản lý dự án
+        </Button>
       </Box>
     </Flex>
   );
