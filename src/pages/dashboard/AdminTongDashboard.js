@@ -71,10 +71,6 @@ const AdminTongDashboard = () => {
   const bgColor = useColorModeValue('gray.50', 'gray.900');
   const textColor = useColorModeValue('gray.800', 'gray.100');
 
-  const handleRegisterMember = () => {
-    navigate('/tao-thanh-vien');
-  };
-
   const handleRegisterAdmin = () => {
     navigate('/tao-quan-tri');
   };

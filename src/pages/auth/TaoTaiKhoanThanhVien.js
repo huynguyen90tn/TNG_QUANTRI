@@ -9,8 +9,6 @@ import {
   Heading,
   Select,
   useToast,
-  InputGroup,
-  InputLeftElement,
   Image,
   SimpleGrid,
   Container,

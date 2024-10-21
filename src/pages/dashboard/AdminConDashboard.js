@@ -75,10 +75,6 @@ const AdminConDashboard = () => {
   const textColor = useColorModeValue('gray.800', 'gray.100');
   const boxBg = useColorModeValue('white', 'gray.700');
 
-  const handleManageMembers = () => {
-    navigate('/quan-ly-thanh-vien');
-  };
-
   const handleProjectManagement = () => {
     navigate('/quan-ly-du-an');
   };

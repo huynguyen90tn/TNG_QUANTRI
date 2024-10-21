@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Heading, Button, VStack, useToast, SimpleGrid } from '@chakra-ui/react';
 import { useAuth } from '../hooks/useAuth';
 import ProjectList from '../components/projects/ProjectList';
@@ -82,9 +82,9 @@ const ProjectManagement = () => {
   };
 
   return (
-    <Box p={8}>
-      <Heading mb={6}>Project Management</Heading>
-      <VStack spacing={6} align="stretch">
+    <Box p={5}>
+      <VStack spacing={5} align="stretch">
+        <Heading>Project Management</Heading>
         {user.role === 'admin-tong' && (
           <Button colorScheme="blue" onClick={() => setIsFormOpen(true)}>
             Create New Project
@@ -94,18 +94,14 @@ const ProjectManagement = () => {
           <ProjectForm
             onSubmit={editingProject ? handleUpdateProject : handleCreateProject}
             initialData={editingProject}
-            onCancel={() => {
+            onClose={() => {
               setIsFormOpen(false);
               setEditingProject(null);
             }}
           />
         )}
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-          <ProjectList
-            projects={projects}
-            onEdit={handleEditProject}
-            userRole={user.role}
-          />
+        <SimpleGrid columns={1} spacing={10}>
+          <ProjectList projects={projects} onEdit={handleEditProject} />
         </SimpleGrid>
       </VStack>
     </Box>
