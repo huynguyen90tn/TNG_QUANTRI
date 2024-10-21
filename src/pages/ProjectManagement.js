@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Heading, Button, VStack, useToast, SimpleGrid } from '@chakra-ui/react';
 import { useAuth } from '../hooks/useAuth';
 import ProjectList from '../components/projects/ProjectList';
@@ -12,11 +12,7 @@ const ProjectManagement = () => {
   const { user } = useAuth();
   const toast = useToast();
 
-  useEffect(() => {
-    fetchProjects();
-  }, []);
-
-  const fetchProjects = async () => {
+  const fetchProjects = useCallback(async () => {
     try {
       const fetchedProjects = await getProjects();
       setProjects(fetchedProjects);
@@ -29,7 +25,11 @@ const ProjectManagement = () => {
         isClosable: true,
       });
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
 
   const handleCreateProject = async (projectData) => {
     try {
