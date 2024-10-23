@@ -1,6 +1,6 @@
 // src/components/projects/ProjectForm.js
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import {
   Box,
@@ -180,36 +180,30 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
     name: 'links',
   });
 
-  const tasks = useMemo(() => watch('tasks') || [], [watch('tasks')]);
+  const watchedTasks = watch('tasks') || [];
   const videoUrl = watch('videoUrl');
 
-  // Sử dụng useMemo để tránh tasks thay đổi trên mỗi lần render
-  const tasksMemo = useMemo(() => tasks, [tasks]);
-
-  const calculateTotalProgress = useCallback(() => {
-    if (tasks.length === 0) return 0;
-    const totalProgress = tasks.reduce(
+  const calculateTotalProgress = () => {
+    if (watchedTasks.length === 0) return 0;
+    const totalProgress = watchedTasks.reduce(
       (sum, task) => sum + (Number(task.progress) || 0),
       0
     );
-    return Math.round(totalProgress / tasks.length);
-  }, [tasks]);
+    return Math.round(totalProgress / watchedTasks.length);
+  };
 
-  const getYoutubeVideoId = useCallback((url) => {
+  const getYoutubeVideoId = (url) => {
     if (!url) return null;
     const regExp =
       /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
     const match = url.match(regExp);
     return match && match[2].length === 11 ? match[2] : null;
-  }, []);
+  };
 
-  const validateYoutubeUrl = useCallback(
-    (url) => {
-      if (!url) return true;
-      return !!getYoutubeVideoId(url);
-    },
-    [getYoutubeVideoId]
-  );
+  const validateYoutubeUrl = (url) => {
+    if (!url) return true;
+    return !!getYoutubeVideoId(url);
+  };
 
   const onFormSubmit = async (data) => {
     try {
@@ -234,9 +228,7 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
       );
 
       if (invalidTask) {
-        throw new Error(
-          'Deadline công việc phải nằm trong thời gian dự án'
-        );
+        throw new Error('Deadline công việc phải nằm trong thời gian dự án');
       }
 
       const totalProgress = calculateTotalProgress();
@@ -307,9 +299,7 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
                   placeholder="Nhập tên dự án"
                   bg={inputBgColor}
                 />
-                <FormErrorMessage>
-                  {errors.name?.message}
-                </FormErrorMessage>
+                <FormErrorMessage>{errors.name?.message}</FormErrorMessage>
               </FormControl>
 
               <FormControl isInvalid={errors.description}>
@@ -751,14 +741,14 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
           </FormSection>
 
           {/* Tiến Độ Theo Người Thực Hiện */}
-          {tasks.length > 0 && assignees.length > 0 && (
+          {watchedTasks.length > 0 && assignees.length > 0 && (
             <FormSection
               title="Tiến Độ Theo Người Thực Hiện"
               icon={<CalendarIcon />}
             >
               <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
                 {assignees.map((assignee) => {
-                  const assigneeTasks = tasks.filter(
+                  const assigneeTasks = watchedTasks.filter(
                     (task) => task.assignee === assignee.id
                   );
                   if (assigneeTasks.length === 0) return null;
@@ -798,8 +788,7 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
                           textAlign="right"
                           color={textColor}
                         >
-                          {assigneeTasks.length} công việc -{' '}
-                          {assigneeProgress}%
+                          {assigneeTasks.length} công việc - {assigneeProgress}%
                         </Text>
                       </VStack>
                     </Box>
@@ -892,8 +881,7 @@ ProjectForm.propTypes = {
     ),
   }),
   onCancel: PropTypes.func.isRequired,
-  userRole: PropTypes.oneOf(['admin-tong', 'admin-con', 'member'])
-    .isRequired,
+  userRole: PropTypes.oneOf(['admin-tong', 'admin-con', 'member']).isRequired,
 };
 
 export default ProjectForm;
