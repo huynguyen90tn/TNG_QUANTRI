@@ -1,223 +1,135 @@
+// File: H:\3 NGHIEN CUU\12 TNG WEB\tng-company-management\src\pages\dashboard\AdminConDashboard.js
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
+  Container,
   Flex,
+  Grid,
   Heading,
-  SimpleGrid,
-  Stat,
-  StatLabel,
-  StatNumber,
+  Text,
   Icon,
   Button,
-  VStack,
-  HStack,
   useColorModeValue,
-  Text,
   Avatar,
   Menu,
   MenuButton,
   MenuList,
   MenuItem,
-  Progress,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  Badge,
+  ButtonGroup,
 } from '@chakra-ui/react';
-import { motion } from 'framer-motion';
-import { FaUsers, FaProjectDiagram, FaMoneyBillWave, FaChartPie, FaBell } from 'react-icons/fa';
-import { Pie, ResponsiveContainer, PieChart, Cell, Tooltip, Legend } from 'recharts';
-
-const MotionBox = motion(Box);
-
-const memberData = [
-  { name: 'Đang hoạt động', value: 300 },
-  { name: 'Tạm nghỉ', value: 50 },
-  { name: 'Mới gia nhập', value: 100 },
-];
-
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
-
-const StatCard = ({ icon, label, value, color }) => (
-  <MotionBox
-    whileHover={{ scale: 1.05 }}
-    whileTap={{ scale: 0.95 }}
-    bg={useColorModeValue('white', 'gray.700')}
-    p={5}
-    rounded="xl"
-    shadow="xl"
-    borderWidth="1px"
-    borderColor={useColorModeValue('gray.200', 'gray.700')}
-  >
-    <Stat>
-      <Flex alignItems="center">
-        <Icon as={icon} w={10} h={10} color={color} mr={4} />
-        <Box>
-          <StatLabel fontWeight="medium" isTruncated>
-            {label}
-          </StatLabel>
-          <StatNumber fontSize="3xl" fontWeight="bold">
-            {value}
-          </StatNumber>
-        </Box>
-      </Flex>
-    </Stat>
-  </MotionBox>
-);
+import { FaUsers, FaProjectDiagram, FaClock, FaUserPlus, FaListAlt } from 'react-icons/fa';
 
 const AdminConDashboard = () => {
   const navigate = useNavigate();
   const bgColor = useColorModeValue('gray.50', 'gray.900');
-  const textColor = useColorModeValue('gray.800', 'gray.100');
-  const boxBg = useColorModeValue('white', 'gray.700');
+  const cardBg = useColorModeValue('white', 'gray.800');
 
-  const handleProjectManagement = () => {
-    navigate('/quan-ly-du-an');
-  };
+  const thongKe = [
+    {
+      icon: FaUsers,
+      label: 'Tổng số thành viên',
+      value: '450',
+      color: 'blue.500'
+    },
+    {
+      icon: FaProjectDiagram,
+      label: 'Dự án đang thực hiện',
+      value: '8',
+      color: 'green.500'
+    },
+    {
+      icon: FaClock,
+      label: 'Đi làm hôm nay',
+      value: '42',
+      color: 'purple.500'
+    }
+  ];
 
   return (
-    <Flex minH="100vh" bg={bgColor}>
-      {/* Main content */}
-      <Box flex={1} p={8}>
-        <Flex justifyContent="space-between" alignItems="center" mb={8}>
-          <Heading size="lg" color={textColor}>Dashboard Admin Con</Heading>
-          <HStack>
-            <Button leftIcon={<FaBell />} colorScheme="blue" variant="ghost">
-              Thông báo
-            </Button>
-            <Menu>
-              <MenuButton as={Button} rounded="full" variant="link" cursor="pointer" minW={0}>
-                <Avatar size="sm" src="https://bit.ly/dan-abramov" />
-              </MenuButton>
-              <MenuList>
-                <MenuItem onClick={() => {}}>Hồ sơ</MenuItem>
-                <MenuItem onClick={() => {}}>Cài đặt tài khoản</MenuItem>
-                <MenuItem onClick={() => {}}>Đăng xuất</MenuItem>
-              </MenuList>
-            </Menu>
-          </HStack>
-        </Flex>
-        
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={5} mb={8}>
-          <StatCard icon={FaUsers} label="Tổng số thành viên" value="450" color="blue.500" />
-          <StatCard icon={FaProjectDiagram} label="Dự án đang thực hiện" value="8" color="green.500" />
-          <StatCard icon={FaMoneyBillWave} label="Ngân sách quản lý" value="$200,000" color="purple.500" />
-          <StatCard icon={FaChartPie} label="Hiệu suất team" value="92%" color="orange.500" />
-        </SimpleGrid>
-        
-        <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={8}>
-          <MotionBox
-            whileHover={{ scale: 1.02 }}
-            bg={boxBg}
-            p={6}
-            rounded="xl"
-            shadow="xl"
-            borderWidth="1px"
-            borderColor={useColorModeValue('gray.200', 'gray.700')}
-          >
-            <Heading size="md" mb={4}>Phân bổ thành viên</Heading>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={memberData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {memberData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </MotionBox>
-
-          <MotionBox
-            whileHover={{ scale: 1.02 }}
-            bg={boxBg}
-            p={6}
-            rounded="xl"
-            shadow="xl"
-            borderWidth="1px"
-            borderColor={useColorModeValue('gray.200', 'gray.700')}
-          >
-            <Heading size="md" mb={4}>Tiến độ dự án</Heading>
-            <VStack spacing={4} align="stretch">
-              <Box>
-                <Flex justify="space-between">
-                  <Text>Dự án A</Text>
-                  <Text>75%</Text>
-                </Flex>
-                <Progress colorScheme="green" size="sm" value={75} />
-              </Box>
-              <Box>
-                <Flex justify="space-between">
-                  <Text>Dự án B</Text>
-                  <Text>45%</Text>
-                </Flex>
-                <Progress colorScheme="yellow" size="sm" value={45} />
-              </Box>
-              <Box>
-                <Flex justify="space-between">
-                  <Text>Dự án C</Text>
-                  <Text>90%</Text>
-                </Flex>
-                <Progress colorScheme="blue" size="sm" value={90} />
-              </Box>
-            </VStack>
-          </MotionBox>
-        </SimpleGrid>
-
-        <Box mt={8}>
-          <Heading size="md" mb={4}>Nhiệm vụ gần đây</Heading>
-          <Box bg={boxBg} rounded="xl" shadow="md" overflowX="auto">
-            <Table variant="simple">
-              <Thead>
-                <Tr>
-                  <Th>Nhiệm vụ</Th>
-                  <Th>Người phụ trách</Th>
-                  <Th>Deadline</Th>
-                  <Th>Trạng thái</Th>
-                </Tr>
-              </Thead>
-              <Tbody>
-                <Tr>
-                  <Td>Thiết kế giao diện</Td>
-                  <Td>John Doe</Td>
-                  <Td>20/10/2023</Td>
-                  <Td><Badge colorScheme="green">Hoàn thành</Badge></Td>
-                </Tr>
-                <Tr>
-                  <Td>Phát triển backend</Td>
-                  <Td>Jane Smith</Td>
-                  <Td>25/10/2023</Td>
-                  <Td><Badge colorScheme="yellow">Đang thực hiện</Badge></Td>
-                </Tr>
-                <Tr>
-                  <Td>Kiểm thử hệ thống</Td>
-                  <Td>Bob Johnson</Td>
-                  <Td>30/10/2023</Td>
-                  <Td><Badge colorScheme="red">Chưa bắt đầu</Badge></Td>
-                </Tr>
-              </Tbody>
-            </Table>
+    <Container maxW="1400px">
+      <Box minH="100vh" bg={bgColor} p={8}>
+        {/* Header */}
+        <Flex justify="space-between" align="center" mb={8}>
+          <Box>
+            <Heading size="lg">Bảng Điều Khiển Quản Trị</Heading>
+            <Text color="gray.500">Quản lý và theo dõi hoạt động hệ thống</Text>
           </Box>
-        </Box>
 
-        <Button mt={8} colorScheme="blue" onClick={handleProjectManagement}>
-          Quản lý dự án
-        </Button>
+          <Menu>
+            <MenuButton>
+              <Avatar size="sm" />
+            </MenuButton>
+            <MenuList>
+              <MenuItem>Hồ sơ</MenuItem>
+              <MenuItem>Cài đặt</MenuItem>
+              <MenuItem color="red.500">Đăng xuất</MenuItem>
+            </MenuList>
+          </Menu>
+        </Flex>
+
+        {/* Thống kê */}
+        <Grid 
+          templateColumns={{ 
+            base: '1fr', 
+            md: 'repeat(2, 1fr)', 
+            lg: 'repeat(3, 1fr)' 
+          }} 
+          gap={6} 
+          mb={8}
+        >
+          {thongKe.map((item, index) => (
+            <Box 
+              key={index}
+              p={6} 
+              bg={cardBg} 
+              rounded="xl" 
+              shadow="md"
+              transition="transform 0.2s"
+              _hover={{ transform: 'translateY(-2px)' }}
+            >
+              <Flex align="center">
+                <Icon as={item.icon} w={8} h={8} color={item.color} mr={4} />
+                <Box>
+                  <Text color="gray.500">{item.label}</Text>
+                  <Heading size="lg">{item.value}</Heading>
+                </Box>
+              </Flex>
+            </Box>
+          ))}
+        </Grid>
+
+        {/* Các nút chức năng chính */}
+        <ButtonGroup spacing={4}>
+          <Button
+            leftIcon={<FaUserPlus />}
+            colorScheme="green"
+            onClick={() => navigate('/admin-con/tao-thanh-vien')}
+            size="lg"
+          >
+            Tạo tài khoản thành viên
+          </Button>
+
+          <Button
+            leftIcon={<FaListAlt />}
+            colorScheme="blue"
+            onClick={() => navigate('/admin-con/diem-danh')}
+            size="lg"
+          >
+            Xem điểm danh
+          </Button>
+
+          <Button
+            leftIcon={<FaProjectDiagram />}
+            colorScheme="purple"
+            onClick={() => navigate('/quan-ly-du-an')}
+            size="lg"
+          >
+            Quản lý dự án
+          </Button>
+        </ButtonGroup>
       </Box>
-    </Flex>
+    </Container>
   );
 };
 

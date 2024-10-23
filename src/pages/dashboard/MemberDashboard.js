@@ -1,172 +1,147 @@
-import React from 'react';
+// File: src\pages\dashboard\MemberDashboard.js
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
+  Container,
   Flex,
+  Grid,
   Heading,
-  SimpleGrid,
-  Stat,
-  StatLabel,
-  StatNumber,
+  Text,
   Icon,
   Button,
-  HStack,
   useColorModeValue,
   Avatar,
   Menu,
   MenuButton,
   MenuList,
   MenuItem,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalCloseButton,
 } from '@chakra-ui/react';
-import { motion } from 'framer-motion';
-import { FaTasks, FaProjectDiagram, FaAward, FaChartLine, FaBell } from 'react-icons/fa';
-import { Pie, Bar, ResponsiveContainer, PieChart, BarChart, Cell, XAxis, YAxis, Tooltip, Legend } from 'recharts';
-
-const MotionBox = motion(Box);
-
-const taskData = [
-  { name: 'Đã hoàn thành', value: 30 },
-  { name: 'Đang thực hiện', value: 15 },
-  { name: 'Chưa bắt đầu', value: 5 },
-];
-
-const projectData = [
-  { name: 'Dự án A', value: 40 },
-  { name: 'Dự án B', value: 30 },
-  { name: 'Dự án C', value: 20 },
-  { name: 'Dự án D', value: 10 },
-];
-
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
-
-const StatCard = ({ icon, label, value, color }) => (
-  <MotionBox
-    whileHover={{ scale: 1.05 }}
-    whileTap={{ scale: 0.95 }}
-    bg={useColorModeValue('white', 'gray.700')}
-    p={5}
-    rounded="xl"
-    shadow="xl"
-    borderWidth="1px"
-    borderColor={useColorModeValue('gray.200', 'gray.700')}
-  >
-    <Stat>
-      <Flex alignItems="center">
-        <Icon as={icon} w={10} h={10} color={color} mr={4} />
-        <Box>
-          <StatLabel fontWeight="medium" isTruncated>
-            {label}
-          </StatLabel>
-          <StatNumber fontSize="3xl" fontWeight="bold">
-            {value}
-          </StatNumber>
-        </Box>
-      </Flex>
-    </Stat>
-  </MotionBox>
-);
+import { FaUserClock, FaHistory, FaProjectDiagram } from 'react-icons/fa';
+import AttendanceForm from '../../components/attendance/AttendanceForm';
 
 const MemberDashboard = () => {
   const navigate = useNavigate();
   const bgColor = useColorModeValue('gray.50', 'gray.900');
-  const textColor = useColorModeValue('gray.800', 'gray.100');
+  const cardBg = useColorModeValue('white', 'gray.800');
+  const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
 
-  const handleProjectManagement = () => {
-    navigate('/quan-ly-du-an');
-  };
+  const handleOpenAttendance = () => setIsAttendanceOpen(true);
+  const handleCloseAttendance = () => setIsAttendanceOpen(false);
+
+  const thongKe = [
+    {
+      icon: FaUserClock,
+      label: 'Số ngày đi làm trong tháng',
+      value: '22/23',
+      color: 'blue.500'
+    },
+    {
+      icon: FaProjectDiagram,
+      label: 'Dự án đang tham gia',
+      value: '4',
+      color: 'green.500'
+    }
+  ];
 
   return (
-    <Flex minH="100vh" bg={bgColor}>
-      {/* Main content */}
-      <Box flex={1} p={8}>
-        <Flex justifyContent="space-between" alignItems="center" mb={8}>
-          <Heading size="lg" color={textColor}>Dashboard Thành viên</Heading>
-          <HStack>
-            <Button leftIcon={<FaBell />} colorScheme="blue" variant="ghost">
-              Thông báo
+    <Container maxW="1400px">
+      <Box minH="100vh" bg={bgColor} p={8}>
+        {/* Header */}
+        <Flex justify="space-between" align="center" mb={8}>
+          <Box>
+            <Heading size="lg">Bảng Điều Khiển Thành Viên</Heading>
+            <Text color="gray.500">Chúc bạn một ngày làm việc hiệu quả!</Text>
+          </Box>
+
+          <Flex gap={4} align="center">
+            <Button
+              leftIcon={<FaUserClock />}
+              colorScheme="blue"
+              onClick={handleOpenAttendance}
+            >
+              Điểm danh
             </Button>
+
             <Menu>
-              <MenuButton as={Button} rounded="full" variant="link" cursor="pointer" minW={0}>
-                <Avatar size="sm" src="https://bit.ly/dan-abramov" />
+              <MenuButton>
+                <Avatar size="sm" />
               </MenuButton>
               <MenuList>
-                <MenuItem onClick={() => {}}>Thông tin cá nhân</MenuItem>
-                <MenuItem onClick={() => {}}>Cài đặt tài khoản</MenuItem>
+                <MenuItem>Thông tin cá nhân</MenuItem>
+                <MenuItem color="red.500">Đăng xuất</MenuItem>
               </MenuList>
             </Menu>
-          </HStack>
+          </Flex>
         </Flex>
-        
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={5} mb={8}>
-          <StatCard icon={FaTasks} label="Nhiệm vụ hoàn thành" value="30" color="blue.500" />
-          <StatCard icon={FaProjectDiagram} label="Dự án tham gia" value="4" color="green.500" />
-          <StatCard icon={FaAward} label="Điểm thưởng" value="150" color="purple.500" />
-          <StatCard icon={FaChartLine} label="Hiệu suất" value="85%" color="orange.500" />
-        </SimpleGrid>
-        
-        <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={8}>
-          <MotionBox
-            whileHover={{ scale: 1.02 }}
-            bg={useColorModeValue('white', 'gray.700')}
-            p={6}
-            rounded="xl"
-            shadow="xl"
-            borderWidth="1px"
-            borderColor={useColorModeValue('gray.200', 'gray.700')}
-          >
-            <Heading size="md" mb={4}>Phân bổ nhiệm vụ</Heading>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={taskData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {taskData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </MotionBox>
 
-          <MotionBox
-            whileHover={{ scale: 1.02 }}
-            bg={useColorModeValue('white', 'gray.700')}
-            p={6}
-            rounded="xl"
-            shadow="xl"
-            borderWidth="1px"
-            borderColor={useColorModeValue('gray.200', 'gray.700')}
-          >
-            <Heading size="md" mb={4}>Đóng góp theo dự án</Heading>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={projectData}>
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="value" fill="#8884d8">
-                  {projectData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </MotionBox>
-        </SimpleGrid>
+        {/* Thống kê */}
+        <Grid 
+          templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)' }} 
+          gap={6} 
+          mb={8}
+        >
+          {thongKe.map((item, index) => (
+            <Box 
+              key={index}
+              p={6} 
+              bg={cardBg} 
+              rounded="xl" 
+              shadow="md"
+              transition="transform 0.2s"
+              _hover={{ transform: 'translateY(-2px)' }}
+            >
+              <Flex align="center">
+                <Icon as={item.icon} w={8} h={8} color={item.color} mr={4} />
+                <Box>
+                  <Text color="gray.500">{item.label}</Text>
+                  <Heading size="lg">{item.value}</Heading>
+                </Box>
+              </Flex>
+            </Box>
+          ))}
+        </Grid>
 
-        <Button mt={8} colorScheme="blue" onClick={handleProjectManagement}>
-          Xem dự án
-        </Button>
+        {/* Các nút chức năng */}
+        <Flex gap={4}>
+          <Button
+            leftIcon={<FaHistory />}
+            colorScheme="blue"
+            onClick={() => navigate('/member/lich-su-diem-danh')}
+            size="lg"
+          >
+            Xem lịch sử điểm danh
+          </Button>
+
+          <Button
+            leftIcon={<FaProjectDiagram />}
+            colorScheme="green"
+            onClick={() => navigate('/quan-ly-du-an')}
+            size="lg"
+          >
+            Quản lý dự án
+          </Button>
+        </Flex>
+
+        {/* Modal Điểm danh */}
+        <Modal isOpen={isAttendanceOpen} onClose={handleCloseAttendance} size="xl">
+          <ModalOverlay />
+          <ModalContent>
+            <ModalHeader>Điểm Danh</ModalHeader>
+            <ModalCloseButton />
+            <ModalBody pb={6}>
+              <AttendanceForm onClose={handleCloseAttendance} />
+            </ModalBody>
+          </ModalContent>
+        </Modal>
       </Box>
-    </Flex>
+    </Container>
   );
 };
 
