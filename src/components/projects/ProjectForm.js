@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+// src/components/projects/ProjectForm.js
+import React, { useState, useCallback, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import {
   Box,
   Button,
@@ -19,18 +21,29 @@ import {
   AccordionPanel,
   AccordionIcon,
   IconButton,
-  Text,
   useColorModeValue,
-  AspectRatio,
   InputGroup,
   InputRightElement,
   Collapse,
-  useBreakpointValue,
   Stack,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+  NumberInput,
+  NumberInputField,
+  NumberInputStepper,
+  NumberIncrementStepper,
+  NumberDecrementStepper,
+  Badge,
+  AspectRatio,
   Container,
   Divider,
+  Text,
 } from '@chakra-ui/react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import {
   AddIcon,
   LinkIcon,
@@ -41,122 +54,21 @@ import {
   ViewOffIcon,
 } from '@chakra-ui/icons';
 import { FiYoutube } from 'react-icons/fi';
+import { getUserList } from '../../services/api/userApi';
 
-const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
-  const toast = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showVideoPreview, setShowVideoPreview] = useState(false);
+const PROJECT_STATUSES = [
+  { value: 'đang-chờ', label: 'Đang Chờ' },
+  { value: 'đang-thực-hiện', label: 'Đang Thực Hiện' },
+  { value: 'hoàn-thành', label: 'Hoàn Thành' },
+  { value: 'tạm-dừng', label: 'Tạm Dừng' },
+];
 
-  // Responsive values
-  const spacing = useBreakpointValue({ base: 4, md: 6 });
-  const padding = useBreakpointValue({ base: 3, md: 6 });
-  const columns = useBreakpointValue({ base: 1, md: 2 });
-  const buttonSize = useBreakpointValue({ base: 'md', md: 'lg' });
+const FormSection = ({ title, icon, children }) => {
+  const bgColor = useColorModeValue('gray.700', 'gray.800');
+  const borderColor = useColorModeValue('gray.600', 'gray.700');
 
-  // Theme colors
-  const bgColor = useColorModeValue('white', 'gray.800');
-  const borderColor = useColorModeValue('gray.200', 'gray.600');
-  const headingColor = useColorModeValue('blue.600', 'blue.300');
-
-  const {
-    register,
-    control,
-    handleSubmit,
-    watch,
-    reset,
-    formState: { errors }
-  } = useForm({
-    defaultValues: initialData || {
-      name: '',
-      description: '',
-      startDate: '',
-      endDate: '',
-      imageUrl: '',
-      videoUrl: '',
-      milestones: [],
-      links: [],
-      departmentLinks: {
-        coding: '',
-        design2D: '',
-        design3D: '',
-        filmProduction: '',
-        marketing: '',
-        gameDesign: '',
-        story: ''
-      },
-      progress: 0,
-      status: 'đang-chờ',
-      tasks: []
-    }
-  });
-
-  const { fields: milestoneFields, append: appendMilestone, remove: removeMilestone } = useFieldArray({
-    control,
-    name: 'milestones'
-  });
-
-  const { fields: linkFields, append: appendLink, remove: removeLink } = useFieldArray({
-    control,
-    name: 'links'
-  });
-
-  const { fields: taskFields, append: appendTask, remove: removeTask } = useFieldArray({
-    control,
-    name: 'tasks'
-  });
-
-  const watchVideoUrl = watch('videoUrl');
-
-  const getYoutubeVideoId = useCallback((url) => {
-    if (!url) return null;
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
-  }, []);
-
-  const onFormSubmit = async (data) => {
-    try {
-      setIsSubmitting(true);
-      
-      if (data.videoUrl) {
-        const videoId = getYoutubeVideoId(data.videoUrl);
-        if (!videoId) {
-          toast({
-            title: 'Lỗi',
-            description: 'URL YouTube không hợp lệ',
-            status: 'error',
-            duration: 3000,
-            isClosable: true
-          });
-          return;
-        }
-      }
-
-      await onSubmit(data);
-      if (!initialData) {
-        reset();
-      }
-      
-    } catch (error) {
-      toast({
-        title: 'Có lỗi xảy ra',
-        description: error.message,
-        status: 'error',
-        duration: 3000,
-        isClosable: true
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Custom section components
-  const FormSection = ({ title, icon, children }) => (
-    <Box
-      borderWidth="1px"
-      borderRadius="md"
-      p={padding}
-    >
+  return (
+    <Box borderWidth="1px" borderRadius="md" p={4} bg={bgColor} borderColor={borderColor}>
       <Stack direction="row" align="center" mb={4}>
         {icon}
         <Heading size="sm">{title}</Heading>
@@ -164,6 +76,165 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
       {children}
     </Box>
   );
+};
+
+FormSection.propTypes = {
+  title: PropTypes.string.isRequired,
+  icon: PropTypes.node,
+  children: PropTypes.node.isRequired,
+};
+
+const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showVideoPreview, setShowVideoPreview] = useState(false);
+  const [assignees, setAssignees] = useState([]);
+  const [isLoadingAssignees, setIsLoadingAssignees] = useState(false);
+  const toast = useToast();
+
+  const bgColor = useColorModeValue('gray.800', 'gray.900');
+  const inputBgColor = useColorModeValue('gray.700', 'gray.800');
+  const textColor = useColorModeValue('gray.100', 'gray.200');
+  const borderColor = useColorModeValue('gray.600', 'gray.700');
+
+  // Fetch danh sách admin con
+  useEffect(() => {
+    const fetchAssignees = async () => {
+      try {
+        setIsLoadingAssignees(true);
+        const response = await getUserList({ role: 'admin-con' });
+        if (response && response.data) {
+          setAssignees(response.data);
+        }
+      } catch (error) {
+        toast({
+          title: 'Lỗi tải danh sách người thực hiện',
+          description: error.message,
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+      } finally {
+        setIsLoadingAssignees(false);
+      }
+    };
+
+    fetchAssignees();
+  }, [toast]);
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm({
+    defaultValues: initialData || {
+      name: '',
+      description: '',
+      startDate: '',
+      endDate: '',
+      videoUrl: '',
+      imageUrl: '',
+      status: 'đang-chờ',
+      progress: 0,
+      tasks: [],
+      departmentLinks: {
+        coding: '',
+        design2D: '',
+        design3D: '',
+        filmProduction: '',
+        marketing: '',
+        gameDesign: '',
+        story: '',
+      },
+      milestones: [],
+      links: [],
+    },
+  });
+
+  const { fields: taskFields, append: appendTask, remove: removeTask } = useFieldArray({
+    control,
+    name: 'tasks',
+  });
+
+  const { fields: milestoneFields, append: appendMilestone, remove: removeMilestone } =
+    useFieldArray({
+      control,
+      name: 'milestones',
+    });
+
+  const { fields: linkFields, append: appendLink, remove: removeLink } = useFieldArray({
+    control,
+    name: 'links',
+  });
+
+  const tasks = watch('tasks') || [];
+  const videoUrl = watch('videoUrl');
+
+  const calculateTotalProgress = useCallback(() => {
+    if (tasks.length === 0) return 0;
+    const totalProgress = tasks.reduce((sum, task) => sum + (Number(task.progress) || 0), 0);
+    return Math.round(totalProgress / tasks.length);
+  }, [tasks]);
+
+  const getYoutubeVideoId = useCallback((url) => {
+    if (!url) return null;
+    const regExp =
+      /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return match && match[2].length === 11 ? match[2] : null;
+  }, []);
+
+  const validateYoutubeUrl = useCallback(
+    (url) => {
+      if (!url) return true;
+      return !!getYoutubeVideoId(url);
+    },
+    [getYoutubeVideoId]
+  );
+
+  const onFormSubmit = async (data) => {
+    try {
+      setIsSubmitting(true);
+
+      const startDate = new Date(data.startDate);
+      const endDate = new Date(data.endDate);
+
+      if (endDate < startDate) {
+        throw new Error('Ngày kết thúc phải sau ngày bắt đầu');
+      }
+
+      if (data.videoUrl && !validateYoutubeUrl(data.videoUrl)) {
+        throw new Error('Link YouTube không hợp lệ');
+      }
+
+      const invalidTask = data.tasks?.find(
+        (task) =>
+          task.deadline &&
+          (new Date(task.deadline) < startDate || new Date(task.deadline) > endDate)
+      );
+
+      if (invalidTask) {
+        throw new Error('Deadline công việc phải nằm trong thời gian dự án');
+      }
+
+      const totalProgress = calculateTotalProgress();
+      data.progress = totalProgress;
+
+      await onSubmit(data);
+    } catch (error) {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <Container maxW="full" p={0}>
@@ -171,72 +242,79 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
         as="form"
         onSubmit={handleSubmit(onFormSubmit)}
         bg={bgColor}
-        p={padding}
+        p={6}
         borderRadius="lg"
         width="100%"
         mx="auto"
         position="relative"
         height="auto"
         overflowY="auto"
+        color={textColor}
+        borderWidth="1px"
+        borderColor={borderColor}
         sx={{
           '&::-webkit-scrollbar': {
             width: '4px',
           },
           '&::-webkit-scrollbar-track': {
             width: '6px',
+            bg: 'gray.700',
           },
           '&::-webkit-scrollbar-thumb': {
-            background: 'gray.300',
+            background: 'gray.500',
             borderRadius: '24px',
           },
         }}
       >
-        <VStack spacing={spacing} align="stretch">
-          <Heading size="lg" color={headingColor}>
+        <VStack spacing={6} align="stretch">
+          <Heading size="lg" color="blue.300">
             {initialData ? 'Cập Nhật Dự Án' : 'Tạo Dự Án Mới'}
           </Heading>
 
-          {/* Basic Information */}
-          <SimpleGrid columns={columns} spacing={spacing}>
-            <FormControl isInvalid={errors.name} isRequired>
-              <FormLabel>Tên Dự Án</FormLabel>
-              <Input
-                {...register('name', {
-                  required: 'Vui lòng nhập tên dự án',
-                  minLength: {
-                    value: 3,
-                    message: 'Tên dự án phải có ít nhất 3 ký tự'
-                  }
-                })}
-                placeholder="Nhập tên dự án"
-              />
-              <FormErrorMessage>
-                {errors.name?.message}
-              </FormErrorMessage>
-            </FormControl>
+          {/* Thông Tin Cơ Bản */}
+          <FormSection title="Thông Tin Cơ Bản">
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+              <FormControl isInvalid={errors.name} isRequired>
+                <FormLabel>Tên Dự Án</FormLabel>
+                <Input
+                  {...register('name', {
+                    required: 'Vui lòng nhập tên dự án',
+                    minLength: {
+                      value: 3,
+                      message: 'Tên dự án phải có ít nhất 3 ký tự',
+                    },
+                  })}
+                  placeholder="Nhập tên dự án"
+                  bg={inputBgColor}
+                />
+                <FormErrorMessage>{errors.name?.message}</FormErrorMessage>
+              </FormControl>
 
-            <FormControl isInvalid={errors.description}>
-              <FormLabel>Mô Tả</FormLabel>
-              <Textarea
-                {...register('description')}
-                placeholder="Nhập mô tả dự án"
-                rows={3}
-              />
-              <FormErrorMessage>
-                {errors.description?.message}
-              </FormErrorMessage>
-            </FormControl>
-          </SimpleGrid>
+              <FormControl isInvalid={errors.description}>
+                <FormLabel>Mô Tả</FormLabel>
+                <Textarea
+                  {...register('description')}
+                  placeholder="Nhập mô tả dự án"
+                  rows={3}
+                  bg={inputBgColor}
+                />
+                <FormErrorMessage>{errors.description?.message}</FormErrorMessage>
+              </FormControl>
+            </SimpleGrid>
+          </FormSection>
 
-          {/* Media Section */}
+          {/* Video và Hình Ảnh */}
           <FormSection title="Video và Hình Ảnh" icon={<FiYoutube />}>
-            <SimpleGrid columns={columns} spacing={spacing}>
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
               <FormControl>
                 <FormLabel>URL Video YouTube</FormLabel>
                 <InputGroup>
                   <Input
-                    {...register('videoUrl')}
+                    {...register('videoUrl', {
+                      validate: validateYoutubeUrl,
+                    })}
                     placeholder="https://youtube.com/watch?v=..."
+                    bg={inputBgColor}
                   />
                   <InputRightElement>
                     <IconButton
@@ -254,15 +332,16 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
                 <Input
                   {...register('imageUrl')}
                   placeholder="https://example.com/image.jpg"
+                  bg={inputBgColor}
                 />
               </FormControl>
             </SimpleGrid>
 
-            <Collapse in={showVideoPreview && watchVideoUrl && getYoutubeVideoId(watchVideoUrl)}>
+            <Collapse in={showVideoPreview && videoUrl && getYoutubeVideoId(videoUrl)}>
               <Box mt={4}>
                 <AspectRatio ratio={16 / 9}>
                   <iframe
-                    src={`https://www.youtube.com/embed/${getYoutubeVideoId(watchVideoUrl)}`}
+                    src={`https://www.youtube.com/embed/${getYoutubeVideoId(videoUrl)}`}
                     title="YouTube video preview"
                     allowFullScreen
                   />
@@ -271,41 +350,145 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
             </Collapse>
           </FormSection>
 
-          {/* Project Timeline */}
-          <FormSection title="Thời Gian Dự Án" icon={<CalendarIcon />}>
-            <SimpleGrid columns={columns} spacing={spacing}>
-              <FormControl isInvalid={errors.startDate} isRequired>
-                <FormLabel>Ngày Bắt Đầu</FormLabel>
-                <Input
-                  {...register('startDate', {
-                    required: 'Vui lòng chọn ngày bắt đầu'
-                  })}
-                  type="date"
-                />
-                <FormErrorMessage>
-                  {errors.startDate?.message}
-                </FormErrorMessage>
-              </FormControl>
+          {/* Danh Sách Công Việc */}
+          <FormSection title="Danh Sách Công Việc" icon={<CalendarIcon />}>
+            <VStack spacing={4} align="stretch">
+              <Box overflowX="auto">
+                <Table variant="simple">
+                  <Thead>
+                    <Tr>
+                      <Th color={textColor}>Tên Công Việc</Th>
+                      <Th color={textColor}>Người Thực Hiện</Th>
+                      <Th color={textColor}>Deadline</Th>
+                      <Th color={textColor}>Tiến Độ (%)</Th>
+                      <Th color={textColor}></Th>
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    {taskFields.map((field, index) => (
+                      <Tr key={field.id}>
+                        <Td>
+                          <Input
+                            {...register(`tasks.${index}.title`, {
+                              required: 'Vui lòng nhập tên công việc',
+                            })}
+                            placeholder="Tên công việc"
+                            bg={inputBgColor}
+                          />
+                        </Td>
+                        <Td>
+                          <Controller
+                            name={`tasks.${index}.assignee`}
+                            control={control}
+                            render={({ field: selectField }) => (
+                              <Select
+                                {...selectField}
+                                placeholder="Chọn người thực hiện"
+                                bg={inputBgColor}
+                                isDisabled={isLoadingAssignees}
+                              >
+                                {isLoadingAssignees ? (
+                                  <option value="">Đang tải...</option>
+                                ) : (
+                                  assignees.map((assignee) => (
+                                    <option key={assignee.id} value={assignee.id}>
+                                      {assignee.fullName} ({assignee.email})
+                                    </option>
+                                  ))
+                                )}
+                              </Select>
+                            )}
+                          />
+                        </Td>
+                        <Td>
+                          <Input
+                            {...register(`tasks.${index}.deadline`)}
+                            type="date"
+                            bg={inputBgColor}
+                          />
+                        </Td>
+                        <Td>
+                          <Controller
+                            name={`tasks.${index}.progress`}
+                            control={control}
+                            render={({ field: numberField }) => (
+                              <NumberInput
+                                {...numberField}
+                                min={0}
+                                max={100}
+                                bg={inputBgColor}
+                                value={numberField.value || 0}
+                                onChange={(value) => {
+                                  numberField.onChange(Number(value));
+                                  setValue('progress', calculateTotalProgress());
+                                }}
+                              >
+                                <NumberInputField />
+                                <NumberInputStepper>
+                                  <NumberIncrementStepper />
+                                  <NumberDecrementStepper />
+                                </NumberInputStepper>
+                              </NumberInput>
+                            )}
+                          />
+                        </Td>
+                        <Td>
+                          <IconButton
+                            icon={<DeleteIcon />}
+                            colorScheme="red"
+                            variant="ghost"
+                            onClick={() => removeTask(index)}
+                            aria-label="Xóa công việc"
+                          />
+                        </Td>
+                      </Tr>
+                    ))}
+                  </Tbody>
+                </Table>
+              </Box>
 
-              <FormControl isInvalid={errors.endDate} isRequired>
-                <FormLabel>Ngày Kết Thúc (Dự Kiến)</FormLabel>
-                <Input
-                  {...register('endDate', {
-                    required: 'Vui lòng chọn ngày kết thúc'
-                  })}
-                  type="date"
+              <Button
+                leftIcon={<AddIcon />}
+                onClick={() =>
+                  appendTask({
+                    title: '',
+                    assignee: '',
+                    deadline: '',
+                    progress: 0,
+                  })
+                }
+                colorScheme="blue"
+                width="full"
+              >
+                Thêm Công Việc
+              </Button>
+
+              <Box mt={4}>
+                <FormLabel>Tiến Độ Tổng Thể</FormLabel>
+                <Progress
+                  value={calculateTotalProgress()}
+                  size="lg"
+                  colorScheme="blue"
+                  hasStripe
+                  isAnimated
+                  borderRadius="full"
+                  mb={2}
                 />
-                <FormErrorMessage>
-                  {errors.endDate?.message}
-                </FormErrorMessage>
-              </FormControl>
-            </SimpleGrid>
+                <Badge colorScheme="blue" fontSize="sm">
+                  {calculateTotalProgress()}%
+                </Badge>
+              </Box>
+            </VStack>
           </FormSection>
 
-          {/* Department Links */}
+          {/* Đường Dẫn Các Bộ Phận */}
           <Accordion defaultIndex={[0]} allowMultiple>
             <AccordionItem border="none">
-              <AccordionButton px={0}>
+              <AccordionButton
+                bg={inputBgColor}
+                borderRadius="md"
+                _hover={{ bg: 'gray.600' }}
+              >
                 <Box flex="1">
                   <Stack direction="row" align="center">
                     <LinkIcon />
@@ -314,13 +497,14 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
                 </Box>
                 <AccordionIcon />
               </AccordionButton>
-              <AccordionPanel pb={4} px={0}>
-                <SimpleGrid columns={columns} spacing={spacing}>
+              <AccordionPanel py={4}>
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
                   <FormControl>
                     <FormLabel>Code Repository</FormLabel>
                     <Input
                       {...register('departmentLinks.coding')}
                       placeholder="https://github.com/your-project"
+                      bg={inputBgColor}
                     />
                   </FormControl>
 
@@ -329,6 +513,7 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
                     <Input
                       {...register('departmentLinks.design2D')}
                       placeholder="Link thiết kế 2D"
+                      bg={inputBgColor}
                     />
                   </FormControl>
 
@@ -337,6 +522,7 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
                     <Input
                       {...register('departmentLinks.design3D')}
                       placeholder="Link thiết kế 3D"
+                      bg={inputBgColor}
                     />
                   </FormControl>
 
@@ -345,6 +531,7 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
                     <Input
                       {...register('departmentLinks.filmProduction')}
                       placeholder="Link sản xuất phim"
+                      bg={inputBgColor}
                     />
                   </FormControl>
 
@@ -353,6 +540,7 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
                     <Input
                       {...register('departmentLinks.marketing')}
                       placeholder="Link tài liệu marketing"
+                      bg={inputBgColor}
                     />
                   </FormControl>
 
@@ -361,6 +549,7 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
                     <Input
                       {...register('departmentLinks.gameDesign')}
                       placeholder="Link game design document"
+                      bg={inputBgColor}
                     />
                   </FormControl>
 
@@ -369,6 +558,7 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
                     <Input
                       {...register('departmentLinks.story')}
                       placeholder="Link kịch bản/story"
+                      bg={inputBgColor}
                     />
                   </FormControl>
                 </SimpleGrid>
@@ -376,14 +566,14 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
             </AccordionItem>
           </Accordion>
 
-          {/* Other Links */}
+          {/* Các Đường Dẫn Khác */}
           <FormSection title="Các Đường Dẫn Khác" icon={<ExternalLinkIcon />}>
             <VStack spacing={4}>
               {linkFields.map((field, index) => (
-                <SimpleGrid 
-                  key={field.id} 
-                  columns={{ base: 1, sm: 3 }} 
-                  spacing={4} 
+                <SimpleGrid
+                  key={field.id}
+                  columns={{ base: 1, sm: 3 }}
+                  spacing={4}
                   width="100%"
                   alignItems="flex-start"
                 >
@@ -391,12 +581,14 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
                     <Input
                       {...register(`links.${index}.title`)}
                       placeholder="Tiêu đề đường dẫn"
+                      bg={inputBgColor}
                     />
                   </FormControl>
                   <FormControl>
                     <Input
                       {...register(`links.${index}.url`)}
                       placeholder="https://example.com"
+                      bg={inputBgColor}
                     />
                   </FormControl>
                   <IconButton
@@ -420,14 +612,14 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
             </VStack>
           </FormSection>
 
-          {/* Milestones */}
+          {/* Các Mốc Thời Gian Quan Trọng */}
           <FormSection title="Các Mốc Thời Gian Quan Trọng" icon={<CalendarIcon />}>
             <VStack spacing={4}>
               {milestoneFields.map((field, index) => (
-                <SimpleGrid 
-                  key={field.id} 
-                  columns={{ base: 1, sm: 3 }} 
-                  spacing={4} 
+                <SimpleGrid
+                  key={field.id}
+                  columns={{ base: 1, sm: 3 }}
+                  spacing={4}
                   width="100%"
                   alignItems="flex-start"
                 >
@@ -435,12 +627,14 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
                     <Input
                       {...register(`milestones.${index}.date`)}
                       type="date"
+                      bg={inputBgColor}
                     />
                   </FormControl>
                   <FormControl>
                     <Input
                       {...register(`milestones.${index}.title`)}
                       placeholder="Tiêu đề mốc thời gian"
+                      bg={inputBgColor}
                     />
                   </FormControl>
                   <IconButton
@@ -449,8 +643,6 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
                     variant="ghost"
                     onClick={() => removeMilestone(index)}
                     aria-label="Xóa mốc thời gian"
-                    alignSelf={{ base: 'stretch', sm: 'flex-start' }}
-                    width={{ base: 'full', sm: 'auto' }}
                   />
                 </SimpleGrid>
               ))}
@@ -466,138 +658,86 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
             </VStack>
           </FormSection>
 
-          {/* Tasks Section */}
-          <FormSection title="Danh Sách Công Việc" icon={<CalendarIcon />}>
-            <VStack spacing={4}>
-              {taskFields.map((field, index) => (
-                <SimpleGrid 
-                  key={field.id} 
-                  columns={{ base: 1, md: 4 }} 
-                  spacing={4} 
-                  width="100%"
-                  alignItems="flex-start"
-                >
-                  <FormControl>
-                    <Input
-                      {...register(`tasks.${index}.title`)}
-                      placeholder="Tên công việc"
-                    />
-                  </FormControl>
-                  <FormControl>
-                    <Select 
-                      {...register(`tasks.${index}.assignee`)}
-                      placeholder="Chọn người thực hiện"
+          {/* Tiến Độ Theo Người Thực Hiện */}
+          {tasks.length > 0 && assignees.length > 0 && (
+            <FormSection title="Tiến Độ Theo Người Thực Hiện" icon={<CalendarIcon />}>
+              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                {assignees.map((assignee) => {
+                  const assigneeTasks = tasks.filter(
+                    (task) => task.assignee === assignee.id
+                  );
+                  if (assigneeTasks.length === 0) return null;
+
+                  const assigneeProgress = Math.round(
+                    assigneeTasks.reduce(
+                      (sum, task) => sum + (Number(task.progress) || 0),
+                      0
+                    ) / assigneeTasks.length
+                  );
+
+                  return (
+                    <Box
+                      key={assignee.id}
+                      p={4}
+                      borderWidth="1px"
+                      borderRadius="md"
+                      borderColor={borderColor}
+                      bg={inputBgColor}
                     >
-                      <option value="member1">Thành viên 1</option>
-                      <option value="member2">Thành viên 2</option>
-                      <option value="member3">Thành viên 3</option>
-                    </Select>
-                  </FormControl>
-                  <FormControl>
-                    <Input
-                      {...register(`tasks.${index}.deadline`)}
-                      type="date"
-                      placeholder="Hạn hoàn thành"
-                    />
-                  </FormControl>
-                  <IconButton
-                    icon={<DeleteIcon />}
-                    colorScheme="red"
-                    variant="ghost"
-                    onClick={() => removeTask(index)}
-                    aria-label="Xóa công việc"
-                    alignSelf={{ base: 'stretch', md: 'flex-start' }}
-                    width={{ base: 'full', md: 'auto' }}
-                  />
-                </SimpleGrid>
-              ))}
-              <Button
-                leftIcon={<AddIcon />}
-                onClick={() => appendTask({ 
-                  title: '', 
-                  assignee: '', 
-                  deadline: '' 
+                      <VStack align="stretch" spacing={2}>
+                        <Heading size="sm" color={textColor}>
+                          {assignee.fullName}
+                        </Heading>
+                        <Text fontSize="sm" color="gray.400">
+                          {assignee.email}
+                        </Text>
+                        <Progress
+                          value={assigneeProgress}
+                          size="sm"
+                          colorScheme="blue"
+                          hasStripe
+                          borderRadius="full"
+                        />
+                        <Text fontSize="sm" textAlign="right" color={textColor}>
+                          {assigneeTasks.length} công việc - {assigneeProgress}%
+                        </Text>
+                      </VStack>
+                    </Box>
+                  );
                 })}
-                colorScheme="blue"
-                variant="ghost"
-                width="100%"
-              >
-                Thêm Công Việc
-              </Button>
-            </VStack>
-          </FormSection>
-
-          {/* Status & Progress Section (Admin Only) */}
-          {(userRole === 'admin-tong' || userRole === 'admin-con') && (
-            <FormSection title="Trạng Thái & Tiến Độ" icon={<CalendarIcon />}>
-              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={spacing}>
-                <FormControl isInvalid={errors.status}>
-                  <FormLabel>Trạng Thái</FormLabel>
-                  <Select 
-                    {...register('status')}
-                    defaultValue="đang-chờ"
-                  >
-                    <option value="đang-chờ">Đang Chờ</option>
-                    <option value="đang-thực-hiện">Đang Thực Hiện</option>
-                    <option value="hoàn-thành">Hoàn Thành</option>
-                    <option value="tạm-dừng">Tạm Dừng</option>
-                  </Select>
-                  <FormErrorMessage>
-                    {errors.status?.message}
-                  </FormErrorMessage>
-                </FormControl>
-
-                <FormControl isInvalid={errors.progress}>
-                  <FormLabel>Tiến Độ (%)</FormLabel>
-                  <Input
-                    {...register('progress', {
-                      valueAsNumber: true,
-                      min: { value: 0, message: 'Tiến độ không thể âm' },
-                      max: { value: 100, message: 'Tiến độ không thể vượt quá 100%' }
-                    })}
-                    type="number"
-                    placeholder="0"
-                  />
-                  <Progress
-                    value={parseInt(watch('progress') || 0)}
-                    size="sm"
-                    mt={2}
-                    colorScheme="blue"
-                    borderRadius="full"
-                  />
-                  <FormErrorMessage>
-                    {errors.progress?.message}
-                  </FormErrorMessage>
-                </FormControl>
               </SimpleGrid>
             </FormSection>
           )}
 
           {/* Form Controls */}
-          <Divider my={4} />
+          <Divider my={6} borderColor={borderColor} />
+
           <Stack
             direction={{ base: 'column', sm: 'row' }}
             spacing={4}
             justify="flex-end"
-            pt={4}
             width="100%"
           >
             <Button
               onClick={onCancel}
               variant="outline"
               isDisabled={isSubmitting}
-              size={buttonSize}
+              size={{ base: 'md', md: 'lg' }}
               width={{ base: '100%', sm: 'auto' }}
+              _hover={{
+                bg: 'gray.700',
+              }}
             >
               Hủy Bỏ
             </Button>
+
             <Button
               type="submit"
               colorScheme="blue"
               isLoading={isSubmitting}
               loadingText="Đang xử lý..."
               leftIcon={<AddIcon />}
-              size={buttonSize}
+              size={{ base: 'md', md: 'lg' }}
               width={{ base: '100%', sm: 'auto' }}
             >
               {initialData ? 'Cập Nhật Dự Án' : 'Tạo Dự Án Mới'}
@@ -607,6 +747,52 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
       </Box>
     </Container>
   );
+};
+
+ProjectForm.propTypes = {
+  onSubmit: PropTypes.func.isRequired,
+  initialData: PropTypes.shape({
+    id: PropTypes.string,
+    name: PropTypes.string,
+    description: PropTypes.string,
+    startDate: PropTypes.string,
+    endDate: PropTypes.string,
+    videoUrl: PropTypes.string,
+    imageUrl: PropTypes.string,
+    status: PropTypes.string,
+    progress: PropTypes.number,
+    tasks: PropTypes.arrayOf(
+      PropTypes.shape({
+        title: PropTypes.string,
+        assignee: PropTypes.string,
+        deadline: PropTypes.string,
+        progress: PropTypes.number,
+      })
+    ),
+    departmentLinks: PropTypes.shape({
+      coding: PropTypes.string,
+      design2D: PropTypes.string,
+      design3D: PropTypes.string,
+      filmProduction: PropTypes.string,
+      marketing: PropTypes.string,
+      gameDesign: PropTypes.string,
+      story: PropTypes.string,
+    }),
+    milestones: PropTypes.arrayOf(
+      PropTypes.shape({
+        date: PropTypes.string,
+        title: PropTypes.string,
+      })
+    ),
+    links: PropTypes.arrayOf(
+      PropTypes.shape({
+        title: PropTypes.string,
+        url: PropTypes.string,
+      })
+    ),
+  }),
+  onCancel: PropTypes.func.isRequired,
+  userRole: PropTypes.oneOf(['admin-tong', 'admin-con', 'member']).isRequired,
 };
 
 export default ProjectForm;

@@ -1,3 +1,4 @@
+// src/App.js
 import React from 'react';
 import { ChakraProvider, Spinner, Center } from '@chakra-ui/react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
@@ -47,7 +48,7 @@ const AppRoutes = () => {
       <Route
         path="/admin-tong"
         element={
-          <ProtectedRoute requiredRole={["admin-tong"]}>
+          <ProtectedRoute requiredRole={['admin-tong']}>
             <Layout>
               <AdminTongDashboard />
             </Layout>
@@ -57,7 +58,7 @@ const AppRoutes = () => {
       <Route
         path="/admin-con"
         element={
-          <ProtectedRoute requiredRole={["admin-con"]}>
+          <ProtectedRoute requiredRole={['admin-con']}>
             <Layout>
               <AdminConDashboard />
             </Layout>
@@ -67,7 +68,7 @@ const AppRoutes = () => {
       <Route
         path="/member"
         element={
-          <ProtectedRoute requiredRole={["member"]}>
+          <ProtectedRoute requiredRole={['member']}>
             <Layout>
               <MemberDashboard />
             </Layout>
@@ -77,7 +78,7 @@ const AppRoutes = () => {
       <Route
         path="/tao-thanh-vien"
         element={
-          <ProtectedRoute requiredRole={["admin-tong"]}>
+          <ProtectedRoute requiredRole={['admin-tong']}>
             <Layout>
               <TaoTaiKhoanThanhVien />
             </Layout>
@@ -87,7 +88,7 @@ const AppRoutes = () => {
       <Route
         path="/tao-quan-tri"
         element={
-          <ProtectedRoute requiredRole={["admin-tong"]}>
+          <ProtectedRoute requiredRole={['admin-tong']}>
             <Layout>
               <TaoTaiKhoanQuanTri />
             </Layout>
@@ -97,7 +98,7 @@ const AppRoutes = () => {
       <Route
         path="/quan-ly-du-an"
         element={
-          <ProtectedRoute requiredRole={["admin-tong", "admin-con", "member"]}>
+          <ProtectedRoute requiredRole={['admin-tong', 'admin-con', 'member']}>
             <Layout>
               <ProjectManagement />
             </Layout>

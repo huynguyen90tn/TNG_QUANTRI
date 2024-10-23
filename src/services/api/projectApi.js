@@ -1,11 +1,20 @@
+// src/services/api/projectApi.js
 import { db } from '../firebase';
-import { collection, getDocs, addDoc, updateDoc, doc, deleteDoc, getDoc } from 'firebase/firestore';
+import {
+  collection,
+  getDocs,
+  addDoc,
+  updateDoc,
+  doc,
+  deleteDoc,
+  getDoc,
+} from 'firebase/firestore';
 
 const projectsCollection = collection(db, 'projects');
 
 export const getProjects = async () => {
   const snapshot = await getDocs(projectsCollection);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  return snapshot.docs.map((docItem) => ({ id: docItem.id, ...docItem.data() }));
 };
 
 export const createProject = async (projectData) => {
