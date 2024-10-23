@@ -180,20 +180,20 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
     name: 'links',
   });
 
-  const tasks = watch('tasks') || [];
+  const tasks = useMemo(() => watch('tasks') || [], [watch('tasks')]);
   const videoUrl = watch('videoUrl');
 
   // Sử dụng useMemo để tránh tasks thay đổi trên mỗi lần render
   const tasksMemo = useMemo(() => tasks, [tasks]);
 
   const calculateTotalProgress = useCallback(() => {
-    if (tasksMemo.length === 0) return 0;
-    const totalProgress = tasksMemo.reduce(
+    if (tasks.length === 0) return 0;
+    const totalProgress = tasks.reduce(
       (sum, task) => sum + (Number(task.progress) || 0),
       0
     );
-    return Math.round(totalProgress / tasksMemo.length);
-  }, [tasksMemo]);
+    return Math.round(totalProgress / tasks.length);
+  }, [tasks]);
 
   const getYoutubeVideoId = useCallback((url) => {
     if (!url) return null;
