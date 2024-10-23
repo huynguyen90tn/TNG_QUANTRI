@@ -1,5 +1,12 @@
 import React from 'react';
-import { Container, SimpleGrid, Heading, Text, Box, Center } from '@chakra-ui/react';
+import {
+  Container,
+  SimpleGrid,
+  Heading,
+  Text,
+  Box,
+  Center,
+} from '@chakra-ui/react';
 import { motion } from 'framer-motion';
 import ProjectCard from './ProjectCard';
 
@@ -7,9 +14,11 @@ const MotionGrid = motion(SimpleGrid);
 
 const ProjectList = ({ projects = [], onEdit, userRole }) => {
   // Validate projects array
-  const validProjects = Array.isArray(projects) ? projects.filter(project => 
-    project && typeof project === 'object' && project.id
-  ) : [];
+  const validProjects = Array.isArray(projects)
+    ? projects.filter(
+        (project) => project && typeof project === 'object' && project.id
+      )
+    : [];
 
   return (
     <Container maxW="7xl" py={8}>
@@ -23,7 +32,7 @@ const ProjectList = ({ projects = [], onEdit, userRole }) => {
           Danh Sách Dự Án
         </Heading>
         <Text fontSize="lg" color="gray.600">
-          {validProjects.length 
+          {validProjects.length
             ? `Hiện có ${validProjects.length} dự án đang được thực hiện`
             : 'Chưa có dự án nào được tạo'}
         </Text>
@@ -37,16 +46,26 @@ const ProjectList = ({ projects = [], onEdit, userRole }) => {
         <MotionGrid
           columns={{ base: 1, md: 2, lg: 3 }}
           spacing={8}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          initial="hidden"
+          animate="visible"
+          variants={{
+            hidden: { opacity: 0, y: 20 },
+            visible: {
+              opacity: 1,
+              y: 0,
+              transition: {
+                staggerChildren: 0.1,
+              },
+            },
+          }}
         >
-          {validProjects.map((project, index) => (
+          {validProjects.map((project) => (
             <motion.div
               key={project.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
+              variants={{
+                hidden: { opacity: 0, y: 20 },
+                visible: { opacity: 1, y: 0 },
+              }}
             >
               <ProjectCard
                 project={project}
