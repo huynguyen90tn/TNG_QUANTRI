@@ -1,5 +1,6 @@
 // src/components/projects/ProjectForm.js
-import React, { useState, useCallback, useEffect } from 'react';
+
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import {
   Box,
@@ -56,19 +57,18 @@ import {
 import { FiYoutube } from 'react-icons/fi';
 import { getUserList } from '../../services/api/userApi';
 
-const PROJECT_STATUSES = [
-  { value: 'đang-chờ', label: 'Đang Chờ' },
-  { value: 'đang-thực-hiện', label: 'Đang Thực Hiện' },
-  { value: 'hoàn-thành', label: 'Hoàn Thành' },
-  { value: 'tạm-dừng', label: 'Tạm Dừng' },
-];
-
 const FormSection = ({ title, icon, children }) => {
   const bgColor = useColorModeValue('gray.700', 'gray.800');
   const borderColor = useColorModeValue('gray.600', 'gray.700');
 
   return (
-    <Box borderWidth="1px" borderRadius="md" p={4} bg={bgColor} borderColor={borderColor}>
+    <Box
+      borderWidth="1px"
+      borderRadius="md"
+      p={4}
+      bg={bgColor}
+      borderColor={borderColor}
+    >
       <Stack direction="row" align="center" mb={4}>
         {icon}
         <Heading size="sm">{title}</Heading>
@@ -153,18 +153,29 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
     },
   });
 
-  const { fields: taskFields, append: appendTask, remove: removeTask } = useFieldArray({
+  const {
+    fields: taskFields,
+    append: appendTask,
+    remove: removeTask,
+  } = useFieldArray({
     control,
     name: 'tasks',
   });
 
-  const { fields: milestoneFields, append: appendMilestone, remove: removeMilestone } =
-    useFieldArray({
-      control,
-      name: 'milestones',
-    });
+  const {
+    fields: milestoneFields,
+    append: appendMilestone,
+    remove: removeMilestone,
+  } = useFieldArray({
+    control,
+    name: 'milestones',
+  });
 
-  const { fields: linkFields, append: appendLink, remove: removeLink } = useFieldArray({
+  const {
+    fields: linkFields,
+    append: appendLink,
+    remove: removeLink,
+  } = useFieldArray({
     control,
     name: 'links',
   });
@@ -172,11 +183,17 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
   const tasks = watch('tasks') || [];
   const videoUrl = watch('videoUrl');
 
+  // Sử dụng useMemo để tránh tasks thay đổi trên mỗi lần render
+  const tasksMemo = useMemo(() => tasks, [tasks]);
+
   const calculateTotalProgress = useCallback(() => {
-    if (tasks.length === 0) return 0;
-    const totalProgress = tasks.reduce((sum, task) => sum + (Number(task.progress) || 0), 0);
-    return Math.round(totalProgress / tasks.length);
-  }, [tasks]);
+    if (tasksMemo.length === 0) return 0;
+    const totalProgress = tasksMemo.reduce(
+      (sum, task) => sum + (Number(task.progress) || 0),
+      0
+    );
+    return Math.round(totalProgress / tasksMemo.length);
+  }, [tasksMemo]);
 
   const getYoutubeVideoId = useCallback((url) => {
     if (!url) return null;
@@ -212,11 +229,14 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
       const invalidTask = data.tasks?.find(
         (task) =>
           task.deadline &&
-          (new Date(task.deadline) < startDate || new Date(task.deadline) > endDate)
+          (new Date(task.deadline) < startDate ||
+            new Date(task.deadline) > endDate)
       );
 
       if (invalidTask) {
-        throw new Error('Deadline công việc phải nằm trong thời gian dự án');
+        throw new Error(
+          'Deadline công việc phải nằm trong thời gian dự án'
+        );
       }
 
       const totalProgress = calculateTotalProgress();
@@ -287,7 +307,9 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
                   placeholder="Nhập tên dự án"
                   bg={inputBgColor}
                 />
-                <FormErrorMessage>{errors.name?.message}</FormErrorMessage>
+                <FormErrorMessage>
+                  {errors.name?.message}
+                </FormErrorMessage>
               </FormControl>
 
               <FormControl isInvalid={errors.description}>
@@ -298,7 +320,42 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
                   rows={3}
                   bg={inputBgColor}
                 />
-                <FormErrorMessage>{errors.description?.message}</FormErrorMessage>
+                <FormErrorMessage>
+                  {errors.description?.message}
+                </FormErrorMessage>
+              </FormControl>
+            </SimpleGrid>
+          </FormSection>
+
+          {/* Ngày Bắt Đầu và Kết Thúc */}
+          <FormSection title="Thời Gian Dự Án" icon={<CalendarIcon />}>
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+              <FormControl isInvalid={errors.startDate} isRequired>
+                <FormLabel>Ngày Bắt Đầu</FormLabel>
+                <Input
+                  {...register('startDate', {
+                    required: 'Vui lòng chọn ngày bắt đầu',
+                  })}
+                  type="date"
+                  bg={inputBgColor}
+                />
+                <FormErrorMessage>
+                  {errors.startDate?.message}
+                </FormErrorMessage>
+              </FormControl>
+
+              <FormControl isInvalid={errors.endDate} isRequired>
+                <FormLabel>Ngày Kết Thúc</FormLabel>
+                <Input
+                  {...register('endDate', {
+                    required: 'Vui lòng chọn ngày kết thúc',
+                  })}
+                  type="date"
+                  bg={inputBgColor}
+                />
+                <FormErrorMessage>
+                  {errors.endDate?.message}
+                </FormErrorMessage>
               </FormControl>
             </SimpleGrid>
           </FormSection>
@@ -319,12 +376,21 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
                   <InputRightElement>
                     <IconButton
                       aria-label="Toggle video preview"
-                      icon={showVideoPreview ? <ViewOffIcon /> : <ViewIcon />}
+                      icon={
+                        showVideoPreview ? <ViewOffIcon /> : <ViewIcon />
+                      }
                       variant="ghost"
-                      onClick={() => setShowVideoPreview(!showVideoPreview)}
+                      onClick={() =>
+                        setShowVideoPreview(!showVideoPreview)
+                      }
                     />
                   </InputRightElement>
                 </InputGroup>
+                {errors.videoUrl && (
+                  <FormErrorMessage>
+                    {errors.videoUrl?.message}
+                  </FormErrorMessage>
+                )}
               </FormControl>
 
               <FormControl>
@@ -337,11 +403,19 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
               </FormControl>
             </SimpleGrid>
 
-            <Collapse in={showVideoPreview && videoUrl && getYoutubeVideoId(videoUrl)}>
+            <Collapse
+              in={
+                showVideoPreview &&
+                videoUrl &&
+                getYoutubeVideoId(videoUrl)
+              }
+            >
               <Box mt={4}>
                 <AspectRatio ratio={16 / 9}>
                   <iframe
-                    src={`https://www.youtube.com/embed/${getYoutubeVideoId(videoUrl)}`}
+                    src={`https://www.youtube.com/embed/${getYoutubeVideoId(
+                      videoUrl
+                    )}`}
                     title="YouTube video preview"
                     allowFullScreen
                   />
@@ -375,6 +449,11 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
                             placeholder="Tên công việc"
                             bg={inputBgColor}
                           />
+                          {errors.tasks?.[index]?.title && (
+                            <Text color="red.500" fontSize="sm">
+                              {errors.tasks[index].title.message}
+                            </Text>
+                          )}
                         </Td>
                         <Td>
                           <Controller
@@ -391,8 +470,12 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
                                   <option value="">Đang tải...</option>
                                 ) : (
                                   assignees.map((assignee) => (
-                                    <option key={assignee.id} value={assignee.id}>
-                                      {assignee.fullName} ({assignee.email})
+                                    <option
+                                      key={assignee.id}
+                                      value={assignee.id}
+                                    >
+                                      {assignee.fullName} (
+                                      {assignee.email})
                                     </option>
                                   ))
                                 )}
@@ -420,7 +503,10 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
                                 value={numberField.value || 0}
                                 onChange={(value) => {
                                   numberField.onChange(Number(value));
-                                  setValue('progress', calculateTotalProgress());
+                                  setValue(
+                                    'progress',
+                                    calculateTotalProgress()
+                                  );
                                 }}
                               >
                                 <NumberInputField />
@@ -567,7 +653,10 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
           </Accordion>
 
           {/* Các Đường Dẫn Khác */}
-          <FormSection title="Các Đường Dẫn Khác" icon={<ExternalLinkIcon />}>
+          <FormSection
+            title="Các Đường Dẫn Khác"
+            icon={<ExternalLinkIcon />}
+          >
             <VStack spacing={4}>
               {linkFields.map((field, index) => (
                 <SimpleGrid
@@ -613,7 +702,10 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
           </FormSection>
 
           {/* Các Mốc Thời Gian Quan Trọng */}
-          <FormSection title="Các Mốc Thời Gian Quan Trọng" icon={<CalendarIcon />}>
+          <FormSection
+            title="Các Mốc Thời Gian Quan Trọng"
+            icon={<CalendarIcon />}
+          >
             <VStack spacing={4}>
               {milestoneFields.map((field, index) => (
                 <SimpleGrid
@@ -660,7 +752,10 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
 
           {/* Tiến Độ Theo Người Thực Hiện */}
           {tasks.length > 0 && assignees.length > 0 && (
-            <FormSection title="Tiến Độ Theo Người Thực Hiện" icon={<CalendarIcon />}>
+            <FormSection
+              title="Tiến Độ Theo Người Thực Hiện"
+              icon={<CalendarIcon />}
+            >
               <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
                 {assignees.map((assignee) => {
                   const assigneeTasks = tasks.filter(
@@ -698,8 +793,13 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
                           hasStripe
                           borderRadius="full"
                         />
-                        <Text fontSize="sm" textAlign="right" color={textColor}>
-                          {assigneeTasks.length} công việc - {assigneeProgress}%
+                        <Text
+                          fontSize="sm"
+                          textAlign="right"
+                          color={textColor}
+                        >
+                          {assigneeTasks.length} công việc -{' '}
+                          {assigneeProgress}%
                         </Text>
                       </VStack>
                     </Box>
@@ -792,7 +892,8 @@ ProjectForm.propTypes = {
     ),
   }),
   onCancel: PropTypes.func.isRequired,
-  userRole: PropTypes.oneOf(['admin-tong', 'admin-con', 'member']).isRequired,
+  userRole: PropTypes.oneOf(['admin-tong', 'admin-con', 'member'])
+    .isRequired,
 };
 
 export default ProjectForm;

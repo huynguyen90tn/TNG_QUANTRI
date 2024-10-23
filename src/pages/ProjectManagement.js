@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Heading,
@@ -9,7 +9,6 @@ import {
   useDisclosure,
   Select,
   Input,
-  IconButton,
   Flex,
   Spacer,
   Modal,
@@ -28,21 +27,24 @@ import {
   FormControl,
   FormLabel,
   ChakraProvider,
-  extendTheme
+  extendTheme,
 } from '@chakra-ui/react';
-import { 
-  AddIcon, 
-  RepeatIcon, 
-  SearchIcon, 
-  ChevronDownIcon, 
-  ChevronUpIcon 
+import {
+  AddIcon,
+  RepeatIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
 } from '@chakra-ui/icons';
 import { useAuth } from '../hooks/useAuth';
 import ProjectList from '../components/projects/ProjectList';
 import ProjectForm from '../components/projects/ProjectForm';
-import { getProjects, createProject, updateProject } from '../services/api/projectApi';
+import {
+  getProjects,
+  createProject,
+  updateProject,
+} from '../services/api/projectApi';
 
-// Theme configuration
+// Cấu hình chủ đề
 const theme = extendTheme({
   config: {
     initialColorMode: 'dark',
@@ -52,39 +54,39 @@ const theme = extendTheme({
     global: {
       body: {
         bg: 'gray.900',
-        color: 'whiteAlpha.900'
-      }
-    }
+        color: 'whiteAlpha.900',
+      },
+    },
   },
   colors: {
     gray: {
       900: '#1a202c',
       800: '#2d3748',
       700: '#4a5568',
-    }
-  }
+    },
+  },
 });
 
-// Constants
+// Hằng số
 const PROJECT_STATUSES = [
   { value: 'đang-chờ', label: 'Đang Chờ' },
   { value: 'đang-thực-hiện', label: 'Đang Thực Hiện' },
   { value: 'hoàn-thành', label: 'Hoàn Thành' },
-  { value: 'tạm-dừng', label: 'Tạm Dừng' }
+  { value: 'tạm-dừng', label: 'Tạm Dừng' },
 ];
 
 const IMPLEMENTATION_STATUSES = [
   { value: 'not_started', label: 'Chưa triển khai' },
   { value: 'in_progress', label: 'Đang triển khai' },
   { value: 'completed', label: 'Đã hoàn thành' },
-  { value: 'on_hold', label: 'Tạm dừng' }
+  { value: 'on_hold', label: 'Tạm dừng' },
 ];
 
 const PROGRESS_RANGES = [
   { value: '0-25', label: '0% - 25%' },
   { value: '26-50', label: '26% - 50%' },
   { value: '51-75', label: '51% - 75%' },
-  { value: '76-100', label: '76% - 100%' }
+  { value: '76-100', label: '76% - 100%' },
 ];
 
 const INITIAL_FILTERS = {
@@ -96,22 +98,56 @@ const INITIAL_FILTERS = {
   progress: '',
 };
 
-// Loading skeleton component
+// Component hiển thị khi đang tải
 const ProjectsSkeleton = () => (
   <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
     {[1, 2, 3].map((i) => (
-      <Box key={i} borderWidth="1px" borderRadius="lg" overflow="hidden" p={4} bg="gray.800">
-        <Skeleton height="24px" width="50%" mb={4} startColor="gray.700" endColor="gray.600" />
-        <Skeleton height="16px" mb={2} startColor="gray.700" endColor="gray.600" />
-        <Skeleton height="16px" width="60%" mb={4} startColor="gray.700" endColor="gray.600" />
-        <Skeleton height="8px" mb={2} startColor="gray.700" endColor="gray.600" />
-        <Skeleton height="8px" width="80%" startColor="gray.700" endColor="gray.600" />
+      <Box
+        key={i}
+        borderWidth="1px"
+        borderRadius="lg"
+        overflow="hidden"
+        p={4}
+        bg="gray.800"
+      >
+        <Skeleton
+          height="24px"
+          width="50%"
+          mb={4}
+          startColor="gray.700"
+          endColor="gray.600"
+        />
+        <Skeleton
+          height="16px"
+          mb={2}
+          startColor="gray.700"
+          endColor="gray.600"
+        />
+        <Skeleton
+          height="16px"
+          width="60%"
+          mb={4}
+          startColor="gray.700"
+          endColor="gray.600"
+        />
+        <Skeleton
+          height="8px"
+          mb={2}
+          startColor="gray.700"
+          endColor="gray.600"
+        />
+        <Skeleton
+          height="8px"
+          width="80%"
+          startColor="gray.700"
+          endColor="gray.600"
+        />
       </Box>
     ))}
   </SimpleGrid>
 );
 
-// Empty state component
+// Component hiển thị khi không có dự án
 const EmptyState = ({ onCreateNew, isAdmin }) => (
   <Center minH="60vh" p={8} bg="gray.800" borderRadius="xl">
     <VStack spacing={6}>
@@ -125,9 +161,9 @@ const EmptyState = ({ onCreateNew, isAdmin }) => (
         Chưa có dự án nào
       </Heading>
       <Text color="gray.400" textAlign="center">
-        {isAdmin 
-          ? "Hãy tạo dự án đầu tiên của bạn"
-          : "Hiện tại chưa có dự án nào được tạo"}
+        {isAdmin
+          ? 'Hãy tạo dự án đầu tiên của bạn'
+          : 'Hiện tại chưa có dự án nào được tạo'}
       </Text>
       {isAdmin && (
         <Button
@@ -143,7 +179,7 @@ const EmptyState = ({ onCreateNew, isAdmin }) => (
   </Center>
 );
 
-// Error state component
+// Component hiển thị khi xảy ra lỗi
 const ErrorState = ({ error, onRetry }) => (
   <Center minH="60vh" bg="gray.800" borderRadius="xl">
     <VStack spacing={6}>
@@ -153,11 +189,7 @@ const ErrorState = ({ error, onRetry }) => (
       <Text color="gray.400" textAlign="center">
         {error || 'Không thể tải dự án. Vui lòng thử lại.'}
       </Text>
-      <Button
-        leftIcon={<RepeatIcon />}
-        colorScheme="blue"
-        onClick={onRetry}
-      >
+      <Button leftIcon={<RepeatIcon />} colorScheme="blue" onClick={onRetry}>
         Thử lại
       </Button>
     </VStack>
@@ -172,16 +204,18 @@ const ProjectManagement = () => {
   const [editingProject, setEditingProject] = useState(null);
   const [filters, setFilters] = useState(INITIAL_FILTERS);
   const [isAdvancedFilterOpen, setIsAdvancedFilterOpen] = useState(false);
-  
+
   const { user } = useAuth();
   const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
 
-  // Responsive values
-  const modalSize = useBreakpointValue({ base: 'full', md: '90vw', lg: '95vw' });
+  // Giá trị responsive
+  const modalSize = useBreakpointValue({
+    base: 'full',
+    md: '90vw',
+    lg: '95vw',
+  });
   const headerHeight = useBreakpointValue({ base: '320px', md: '280px' });
-  const filterDirection = useBreakpointValue({ base: 'column', md: 'row' });
-  const searchWidth = useBreakpointValue({ base: '100%', md: '300px' });
   const modalPadding = useBreakpointValue({ base: '3', md: '6' });
 
   const fetchProjects = useCallback(async () => {
@@ -191,10 +225,10 @@ const ProjectManagement = () => {
       const fetchedProjects = await getProjects();
 
       if (!Array.isArray(fetchedProjects)) {
-        throw new Error('Invalid data format received');
+        throw new Error('Dữ liệu nhận được không hợp lệ');
       }
 
-      const normalizedProjects = fetchedProjects.map(project => ({
+      const normalizedProjects = fetchedProjects.map((project) => ({
         ...project,
         id: project.id || `temp-${Date.now()}`,
         name: project.name || 'Untitled Project',
@@ -209,8 +243,9 @@ const ProjectManagement = () => {
 
       setProjects(normalizedProjects);
       setFilteredProjects(normalizedProjects);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error occurred';
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Đã xảy ra lỗi không xác định';
       setError(message);
       toast({
         title: 'Lỗi tải dự án',
@@ -229,7 +264,7 @@ const ProjectManagement = () => {
   }, [fetchProjects]);
 
   const handleFilterChange = useCallback((field, value) => {
-    setFilters(prev => ({ ...prev, [field]: value }));
+    setFilters((prev) => ({ ...prev, [field]: value }));
   }, []);
 
   const handleResetFilters = useCallback(() => {
@@ -237,113 +272,130 @@ const ProjectManagement = () => {
     setIsAdvancedFilterOpen(false);
   }, []);
 
-  // Apply filters with error handling and progress filtering
+  // Áp dụng bộ lọc
   useEffect(() => {
     try {
       let result = [...projects];
 
-      // Apply text search
+      // Lọc theo tìm kiếm
       if (filters.search) {
         const searchLower = filters.search.toLowerCase();
-        result = result.filter(project =>
-          (project.name?.toLowerCase() || '').includes(searchLower) ||
-          (project.description?.toLowerCase() || '').includes(searchLower)
+        result = result.filter(
+          (project) =>
+            (project.name?.toLowerCase() || '').includes(searchLower) ||
+            (project.description?.toLowerCase() || '').includes(searchLower)
         );
       }
 
-      // Apply status filter
+      // Lọc theo trạng thái
       if (filters.status) {
-        result = result.filter(project => project.status === filters.status);
+        result = result.filter((project) => project.status === filters.status);
       }
 
-      // Apply implementation status filter
+      // Lọc theo tình trạng triển khai
       if (filters.implementation) {
-        result = result.filter(project => project.implementation === filters.implementation);
+        result = result.filter(
+          (project) => project.implementation === filters.implementation
+        );
       }
 
-      // Apply progress range filter
+      // Lọc theo tiến độ
       if (filters.progress) {
         const [min, max] = filters.progress.split('-').map(Number);
-        result = result.filter(project => 
-          project.progress >= min && project.progress <= max
+        result = result.filter(
+          (project) => project.progress >= min && project.progress <= max
         );
       }
 
-      // Apply date filters
+      // Lọc theo ngày bắt đầu
       if (filters.startDate) {
-        result = result.filter(project => project.startDate >= filters.startDate);
+        result = result.filter(
+          (project) => project.startDate >= filters.startDate
+        );
       }
 
+      // Lọc theo ngày kết thúc
       if (filters.endDate) {
-        result = result.filter(project => project.endDate <= filters.endDate);
+        result = result.filter((project) => project.endDate <= filters.endDate);
       }
 
       setFilteredProjects(result);
-    } catch (error) {
-      console.error('Filter error:', error);
+    } catch (err) {
+      console.error('Lỗi bộ lọc:', err);
       setFilteredProjects(projects);
     }
   }, [filters, projects]);
 
-  const handleEditProject = useCallback((project) => {
-    setEditingProject(project);
-    onOpen();
-  }, [onOpen]);
+  const handleEditProject = useCallback(
+    (project) => {
+      setEditingProject(project);
+      onOpen();
+    },
+    [onOpen]
+  );
 
-  const handleCreateProject = useCallback(async (projectData) => {
-    try {
-      setLoading(true);
-      await createProject({
-        ...projectData,
-        implementation: 'not_started',
-      });
-      await fetchProjects();
-      onClose();
-      toast({
-        title: 'Tạo dự án thành công',
-        status: 'success',
-        duration: 3000,
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error occurred';
-      toast({
-        title: 'Lỗi tạo dự án',
-        description: message,
-        status: 'error',
-        duration: 3000,
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchProjects, onClose, toast]);
-
-  const handleUpdateProject = useCallback(async (projectData) => {
-    try {
-      if (!editingProject?.id) {
-        throw new Error('Không tìm thấy ID dự án');
+  const handleCreateProject = useCallback(
+    async (projectData) => {
+      try {
+        setLoading(true);
+        await createProject({
+          ...projectData,
+          implementation: 'not_started',
+        });
+        await fetchProjects();
+        onClose();
+        toast({
+          title: 'Tạo dự án thành công',
+          status: 'success',
+          duration: 3000,
+        });
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : 'Đã xảy ra lỗi không xác định';
+        toast({
+          title: 'Lỗi tạo dự án',
+          description: message,
+          status: 'error',
+          duration: 3000,
+        });
+      } finally {
+        setLoading(false);
       }
-      setLoading(true);
-      await updateProject(editingProject.id, projectData);
-      await fetchProjects();
-      setEditingProject(null);
-      onClose();
-      toast({
-        title: 'Cập nhật dự án thành công',
-        status: 'success',
-        duration: 3000,
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error occurred';
-      toast({
-        title: 'Lỗi cập nhật dự án',
-        description: message,
-        status: 'error',
-        duration: 3000,
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [editingProject, fetchProjects, onClose, toast]);
+    },
+    [fetchProjects, onClose, toast]
+  );
+
+  const handleUpdateProject = useCallback(
+    async (projectData) => {
+      try {
+        if (!editingProject?.id) {
+          throw new Error('Không tìm thấy ID dự án');
+        }
+        setLoading(true);
+        await updateProject(editingProject.id, projectData);
+        await fetchProjects();
+        setEditingProject(null);
+        onClose();
+        toast({
+          title: 'Cập nhật dự án thành công',
+          status: 'success',
+          duration: 3000,
+        });
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : 'Đã xảy ra lỗi không xác định';
+        toast({
+          title: 'Lỗi cập nhật dự án',
+          description: message,
+          status: 'error',
+          duration: 3000,
+        });
+      } finally {
+        setLoading(false);
+      }
+    },
+    [editingProject, fetchProjects, onClose, toast]
+  );
 
   const handleCloseModal = useCallback(() => {
     setEditingProject(null);
@@ -384,24 +436,26 @@ const ProjectManagement = () => {
   return (
     <ChakraProvider theme={theme}>
       <Box minH="100vh" bg="gray.900">
-        {/* Fixed Header */}
-        <Box 
-          position="fixed" 
-          top="0" 
-          left="0" 
-          right="0" 
-          bg="gray.800" 
+        {/* Header cố định */}
+        <Box
+          position="fixed"
+          top="0"
+          left="0"
+          right="0"
+          bg="gray.800"
           boxShadow="dark-lg"
           zIndex="sticky"
           p={4}
         >
           <Container maxW="7xl">
-            <Flex 
+            <Flex
               direction={{ base: 'column', md: 'row' }}
               align={{ base: 'stretch', md: 'center' }}
               gap={4}
             >
-              <Heading size="lg" color="blue.300">Quản Lý Dự Án</Heading>
+              <Heading size="lg" color="blue.300">
+                Quản Lý Dự Án
+              </Heading>
               <Spacer display={{ base: 'none', md: 'block' }} />
               {user?.role === 'admin-tong' && (
                 <Button
@@ -418,26 +472,37 @@ const ProjectManagement = () => {
               )}
             </Flex>
 
-            {/* Filter Panel */}
-            <Box mt={4} p={4} bg="gray.700" borderRadius="lg" borderWidth="1px" borderColor="gray.600">
+            {/* Bảng điều khiển bộ lọc */}
+            <Box
+              mt={4}
+              p={4}
+              bg="gray.700"
+              borderRadius="lg"
+              borderWidth="1px"
+              borderColor="gray.600"
+            >
               <Stack spacing={4}>
                 <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
                   <Input
                     placeholder="Tìm kiếm dự án..."
                     value={filters.search}
-                    onChange={(e) => handleFilterChange('search', e.target.value)}
+                    onChange={(e) =>
+                      handleFilterChange('search', e.target.value)
+                    }
                     bg="gray.800"
                     _placeholder={{ color: 'gray.400' }}
                   />
-                  
+
                   <Select
                     placeholder="Trạng thái"
                     value={filters.status}
-                    onChange={(e) => handleFilterChange('status', e.target.value)}
+                    onChange={(e) =>
+                      handleFilterChange('status', e.target.value)
+                    }
                     bg="gray.800"
                     color="white"
                   >
-                    {PROJECT_STATUSES.map(status => (
+                    {PROJECT_STATUSES.map((status) => (
                       <option key={status.value} value={status.value}>
                         {status.label}
                       </option>
@@ -447,11 +512,13 @@ const ProjectManagement = () => {
                   <Select
                     placeholder="Tình trạng triển khai"
                     value={filters.implementation}
-                    onChange={(e) => handleFilterChange('implementation', e.target.value)}
+                    onChange={(e) =>
+                      handleFilterChange('implementation', e.target.value)
+                    }
                     bg="gray.800"
                     color="white"
                   >
-                    {IMPLEMENTATION_STATUSES.map(status => (
+                    {IMPLEMENTATION_STATUSES.map((status) => (
                       <option key={status.value} value={status.value}>
                         {status.label}
                       </option>
@@ -459,11 +526,19 @@ const ProjectManagement = () => {
                   </Select>
                 </SimpleGrid>
 
-                {/* Advanced Filters Toggle */}
+                {/* Nút mở rộng bộ lọc nâng cao */}
                 <Button
                   variant="ghost"
-                  rightIcon={isAdvancedFilterOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
-                  onClick={() => setIsAdvancedFilterOpen(!isAdvancedFilterOpen)}
+                  rightIcon={
+                    isAdvancedFilterOpen ? (
+                      <ChevronUpIcon />
+                    ) : (
+                      <ChevronDownIcon />
+                    )
+                  }
+                  onClick={() =>
+                    setIsAdvancedFilterOpen(!isAdvancedFilterOpen)
+                  }
                   size="sm"
                   color="white"
                   _hover={{ bg: 'gray.600' }}
@@ -471,7 +546,7 @@ const ProjectManagement = () => {
                   Bộ lọc nâng cao
                 </Button>
 
-                {/* Advanced Filters */}
+                {/* Bộ lọc nâng cao */}
                 <Collapse in={isAdvancedFilterOpen}>
                   <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
                     <FormControl>
@@ -479,7 +554,9 @@ const ProjectManagement = () => {
                       <Input
                         type="date"
                         value={filters.startDate}
-                        onChange={(e) => handleFilterChange('startDate', e.target.value)}
+                        onChange={(e) =>
+                          handleFilterChange('startDate', e.target.value)
+                        }
                         bg="gray.800"
                         color="white"
                       />
@@ -490,7 +567,9 @@ const ProjectManagement = () => {
                       <Input
                         type="date"
                         value={filters.endDate}
-                        onChange={(e) => handleFilterChange('endDate', e.target.value)}
+                        onChange={(e) =>
+                          handleFilterChange('endDate', e.target.value)
+                        }
                         bg="gray.800"
                         color="white"
                       />
@@ -500,12 +579,14 @@ const ProjectManagement = () => {
                       <FormLabel color="gray.300">Tiến độ</FormLabel>
                       <Select
                         value={filters.progress}
-                        onChange={(e) => handleFilterChange('progress', e.target.value)}
+                        onChange={(e) =>
+                          handleFilterChange('progress', e.target.value)
+                        }
                         bg="gray.800"
                         color="white"
                       >
                         <option value="">Tất cả</option>
-                        {PROGRESS_RANGES.map(range => (
+                        {PROGRESS_RANGES.map((range) => (
                           <option key={range.value} value={range.value}>
                             {range.label}
                           </option>
@@ -515,7 +596,7 @@ const ProjectManagement = () => {
                   </SimpleGrid>
                 </Collapse>
 
-                {/* Reset Filters */}
+                {/* Nút đặt lại bộ lọc */}
                 <Flex justify="flex-end">
                   <Button
                     leftIcon={<RepeatIcon />}
@@ -533,10 +614,10 @@ const ProjectManagement = () => {
           </Container>
         </Box>
 
-        {/* Main Content */}
-        <Container 
-          maxW="7xl" 
-          pt={headerHeight} 
+        {/* Nội dung chính */}
+        <Container
+          maxW="7xl"
+          pt={headerHeight}
           pb={8}
           px={{ base: 2, md: 4 }}
         >
@@ -559,7 +640,7 @@ const ProjectManagement = () => {
               bg="gray.800"
               color="white"
             >
-              <ModalCloseButton 
+              <ModalCloseButton
                 position="fixed"
                 top={4}
                 right={4}
@@ -592,7 +673,11 @@ const ProjectManagement = () => {
                   }}
                 >
                   <ProjectForm
-                    onSubmit={editingProject ? handleUpdateProject : handleCreateProject}
+                    onSubmit={
+                      editingProject
+                        ? handleUpdateProject
+                        : handleCreateProject
+                    }
                     initialData={editingProject}
                     onCancel={handleCloseModal}
                     userRole={user?.role}

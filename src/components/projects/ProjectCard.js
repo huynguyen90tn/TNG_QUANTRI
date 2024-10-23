@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Image,
@@ -11,13 +11,12 @@ import {
   useDisclosure,
   Modal,
   ModalOverlay,
-  ModalContent,  
+  ModalContent,
   ModalHeader,
   ModalBody,
   ModalCloseButton,
   Progress,
   useColorModeValue,
-  Tooltip,
   SimpleGrid,
   Center,
   AspectRatio,
@@ -28,14 +27,12 @@ import {
   TabPanels,
   Tabs,
   Grid,
-  GridItem
 } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
-import { 
+import {
   EditIcon,
   ExternalLinkIcon,
   CalendarIcon,
-  ViewIcon 
 } from '@chakra-ui/icons';
 import {
   FiCode,
@@ -47,17 +44,17 @@ import {
   FiYoutube,
   FiMaximize2,
   FiMinimize2,
-  FiLink
+  FiLink,
 } from 'react-icons/fi';
 
 const MotionBox = motion(Box);
 
 // Link component with improved visibility
-const ProjectLink = ({ icon, label, href, colorScheme = "blue" }) => {
+const ProjectLink = ({ icon, label, href, colorScheme = 'blue' }) => {
   if (!href) return null;
 
   return (
-    <Link 
+    <Link
       href={href}
       isExternal
       width="full"
@@ -83,8 +80,8 @@ const ProjectLink = ({ icon, label, href, colorScheme = "blue" }) => {
 
 // Department links section
 const DepartmentLinks = ({ links, bgColor }) => (
-  <Grid 
-    templateColumns={{ base: "repeat(1, 1fr)", md: "repeat(2, 1fr)" }}
+  <Grid
+    templateColumns={{ base: 'repeat(1, 1fr)', md: 'repeat(2, 1fr)' }}
     gap={4}
     bg={bgColor}
     p={4}
@@ -116,7 +113,7 @@ const DepartmentLinks = ({ links, bgColor }) => (
     />
     <ProjectLink
       icon={<FiTarget />}
-      label="Marketing" 
+      label="Marketing"
       href={links.marketing}
       colorScheme="green"
     />
@@ -137,19 +134,20 @@ const DepartmentLinks = ({ links, bgColor }) => (
   </Grid>
 );
 
-const VideoEmbed = ({ url }) => {
-  const getVideoId = useCallback((videoUrl) => {
-    if (!videoUrl) return null;
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-    const match = videoUrl.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
-  }, []);
+const getVideoId = (videoUrl) => {
+  if (!videoUrl) return null;
+  const regExp =
+    /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+  const match = videoUrl.match(regExp);
+  return match && match[2].length === 11 ? match[2] : null;
+};
 
+const VideoEmbed = ({ url }) => {
   const videoId = getVideoId(url);
   if (!videoId) return null;
 
   return (
-    <AspectRatio ratio={16/9}>
+    <AspectRatio ratio={16 / 9}>
       <iframe
         src={`https://www.youtube.com/embed/${videoId}`}
         title="YouTube video player"
@@ -158,6 +156,43 @@ const VideoEmbed = ({ url }) => {
       />
     </AspectRatio>
   );
+};
+
+const formatDate = (dateString) => {
+  if (!dateString) return 'Chưa xác định';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('vi-VN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+};
+
+// Helper function to calculate remaining time
+const calculateRemainingTime = (endDate) => {
+  if (!endDate) return 'Chưa xác định';
+
+  const end = new Date(endDate);
+  const now = new Date();
+  const diff = end - now;
+
+  if (diff < 0) return 'Đã kết thúc';
+
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  return `${days} ngày`;
+};
+
+const getStatusColor = (currentStatus) => {
+  switch (currentStatus) {
+    case 'đang-thực-hiện':
+      return 'blue';
+    case 'hoàn-thành':
+      return 'green';
+    case 'tạm-dừng':
+      return 'orange';
+    default:
+      return 'gray';
+  }
 };
 
 const ProjectCard = ({ project, onEdit, userRole }) => {
@@ -185,20 +220,12 @@ const ProjectCard = ({ project, onEdit, userRole }) => {
     endDate = '',
     departmentLinks = {},
     milestones = [],
-    links = []
+    links = [],
   } = project;
 
-  const getStatusColor = (currentStatus) => {
-    switch (currentStatus) {
-      case 'đang-thực-hiện': return 'blue';
-      case 'hoàn-thành': return 'green';
-      case 'tạm-dừng': return 'orange';
-      default: return 'gray';
-    }
-  };
-
   const statusColor = getStatusColor(status);
-  const formattedStatus = status?.replace(/-/g, ' ') || 'Chưa có trạng thái';
+  const formattedStatus =
+    status?.replace(/-/g, ' ') || 'Chưa có trạng thái';
 
   const handleEditClick = (e) => {
     e.stopPropagation();
@@ -208,16 +235,6 @@ const ProjectCard = ({ project, onEdit, userRole }) => {
   const toggleVideoExpand = (e) => {
     e.stopPropagation();
     setIsVideoExpanded(!isVideoExpanded);
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return 'Chưa xác định';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('vi-VN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    });
   };
 
   return (
@@ -241,10 +258,12 @@ const ProjectCard = ({ project, onEdit, userRole }) => {
         {/* Card Media Section */}
         <Box position="relative">
           {videoUrl ? (
-            <Box height={isVideoExpanded ? "400px" : "200px"}>
+            <Box height={isVideoExpanded ? '400px' : '200px'}>
               <VideoEmbed url={videoUrl} />
               <IconButton
-                icon={isVideoExpanded ? <FiMinimize2 /> : <FiMaximize2 />}
+                icon={
+                  isVideoExpanded ? <FiMinimize2 /> : <FiMaximize2 />
+                }
                 position="absolute"
                 top={2}
                 right={2}
@@ -261,7 +280,9 @@ const ProjectCard = ({ project, onEdit, userRole }) => {
                 width="100%"
                 height="100%"
                 objectFit="cover"
-                transform={isHovered ? 'scale(1.05)' : 'scale(1)'}
+                transform={
+                  isHovered ? 'scale(1.05)' : 'scale(1)'
+                }
                 transition="transform 0.3s ease"
                 fallback={
                   <Center height="100%" bg={bgColor}>
@@ -290,28 +311,24 @@ const ProjectCard = ({ project, onEdit, userRole }) => {
         {/* Card Content */}
         <Box p={6}>
           <VStack align="stretch" spacing={4}>
-            <Text 
-              fontWeight="bold" 
-              fontSize="xl" 
+            <Text
+              fontWeight="bold"
+              fontSize="xl"
               noOfLines={1}
               color={textColor}
             >
               {name || 'Untitled Project'}
             </Text>
-            
-            <Text 
-              noOfLines={2} 
-              color={textColor}
-              opacity={0.8}
-            >
+
+            <Text noOfLines={2} color={textColor} opacity={0.8}>
               {description || 'No description available'}
             </Text>
 
             {/* Progress Bar */}
             <Box w="100%">
-              <Text 
-                mb={2} 
-                fontSize="sm" 
+              <Text
+                mb={2}
+                fontSize="sm"
                 color={textColor}
                 opacity={0.8}
               >
@@ -343,8 +360,9 @@ const ProjectCard = ({ project, onEdit, userRole }) => {
                   Xem trên YouTube
                 </Button>
               )}
-              
-              {(userRole === 'admin-tong' || userRole === 'admin-con') && (
+
+              {(userRole === 'admin-tong' ||
+                userRole === 'admin-con') && (
                 <IconButton
                   icon={<EditIcon />}
                   onClick={handleEditClick}
@@ -360,15 +378,18 @@ const ProjectCard = ({ project, onEdit, userRole }) => {
       </MotionBox>
 
       {/* Detailed Modal */}
-      <Modal 
-        isOpen={isOpen} 
-        onClose={onClose} 
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
         size="xl"
         scrollBehavior="inside"
       >
         <ModalOverlay backdropFilter="blur(10px)" />
         <ModalContent bg={modalBgColor} color={textColor}>
-          <ModalHeader borderBottomWidth="1px" borderColor={borderColor}>
+          <ModalHeader
+            borderBottomWidth="1px"
+            borderColor={borderColor}
+          >
             <HStack justify="space-between">
               <Text fontWeight="bold" fontSize="xl">
                 {name || 'Untitled Project'}
@@ -394,12 +415,19 @@ const ProjectCard = ({ project, onEdit, userRole }) => {
                       <VideoEmbed url={videoUrl} />
                     ) : (
                       <Image
-                        src={imageUrl || '/api/placeholder/400/200'}
+                        src={
+                          imageUrl ||
+                          '/api/placeholder/400/200'
+                        }
                         alt={name}
                         borderRadius="lg"
                         objectFit="cover"
                         fallback={
-                          <Center height="200px" bg={bgColor} borderRadius="lg">
+                          <Center
+                            height="200px"
+                            bg={bgColor}
+                            borderRadius="lg"
+                          >
                             <Text color={textColor}>No image</Text>
                           </Center>
                         }
@@ -407,24 +435,34 @@ const ProjectCard = ({ project, onEdit, userRole }) => {
                     )}
 
                     <Box>
-                      <Text fontWeight="bold" mb={2}>Mô tả dự án</Text>
+                      <Text fontWeight="bold" mb={2}>
+                        Mô tả dự án
+                      </Text>
                       <Text color={textColor} opacity={0.8}>
                         {description || 'Chưa có mô tả'}
                       </Text>
                     </Box>
 
                     <Box>
-                      <Text fontWeight="bold" mb={2}>Thời gian</Text>
+                      <Text fontWeight="bold" mb={2}>
+                        Thời gian
+                      </Text>
                       <HStack spacing={4}>
                         <CalendarIcon />
-                        <Text>Bắt đầu: {formatDate(startDate)}</Text>
+                        <Text>
+                          Bắt đầu: {formatDate(startDate)}
+                        </Text>
                         <Text>-</Text>
-                        <Text>Kết thúc: {formatDate(endDate)}</Text>
+                        <Text>
+                          Kết thúc: {formatDate(endDate)}
+                        </Text>
                       </HStack>
                     </Box>
 
                     <Box>
-                      <Text fontWeight="bold" mb={4}>Tiến độ dự án</Text>
+                      <Text fontWeight="bold" mb={4}>
+                        Tiến độ dự án
+                      </Text>
                       <Progress
                         value={progress || 0}
                         size="lg"
@@ -445,89 +483,129 @@ const ProjectCard = ({ project, onEdit, userRole }) => {
                 <TabPanel>
                   <VStack spacing={6} align="stretch">
                     <Box>
-                      <Text fontWeight="bold" mb={4}>Liên kết bộ phận</Text>
-                      <DepartmentLinks 
-                        links={departmentLinks} 
+                      <Text fontWeight="bold" mb={4}>
+                        Liên kết bộ phận
+                      </Text>
+                      <DepartmentLinks
+                        links={departmentLinks}
                         bgColor={bgColor}
                       />
                     </Box>
 
-                    {Array.isArray(links) && links.length > 0 && (
-                      <Box>
-                        <Text fontWeight="bold" mb={4}>Liên kết khác</Text>
-                        <SimpleGrid columns={1} spacing={3}>
-                          {links.map((link, index) => (
-                            <ProjectLink
-                              key={index}
-                              icon={<FiLink />}
-                              label={link.title}
-                              href={link.url}
-                              colorScheme="gray"
-                            />
-                          ))}
-                        </SimpleGrid>
-                      </Box>
-                    )}
+                    {Array.isArray(links) &&
+                      links.length > 0 && (
+                        <Box>
+                          <Text fontWeight="bold" mb={4}>
+                            Liên kết khác
+                          </Text>
+                          <SimpleGrid
+                            columns={1}
+                            spacing={3}
+                          >
+                            {links.map((link, index) => (
+                              <ProjectLink
+                                key={index}
+                                icon={<FiLink />}
+                                label={link.title}
+                                href={link.url}
+                                colorScheme="gray"
+                              />
+                            ))}
+                          </SimpleGrid>
+                        </Box>
+                      )}
                   </VStack>
                 </TabPanel>
 
                 {/* Details Panel */}
                 <TabPanel>
-                  {Array.isArray(milestones) && milestones.length > 0 && (
-                    <Box>
-                      <Text fontWeight="bold" mb={4}>
-                        Các mốc quan trọng
-                      </Text>
-                      <VStack align="stretch" spacing={3}>
-                        {milestones.map((milestone, index) => (
-                          <HStack
-                            key={index}
-                            p={4}
-                            bg={bgColor}
-                            borderRadius="md"
-                            borderWidth="1px"
-                            borderColor={borderColor}
-                            justify="space-between"
-                            _hover={{ bg: modalBgColor }}
-                            transition="all 0.2s"
-                          >
-                            <VStack align="start" spacing={1}>
-                              <Text fontWeight="medium" color={textColor}>
-                                {milestone?.title || 'Chưa có tiêu đề'}
-                              </Text>
-                              <Text fontSize="sm" color={textColor} opacity={0.8}>
-                                {milestone?.description || 'Không có mô tả'}
-                              </Text>
-                            </VStack>
-                            <Badge 
-                              colorScheme={statusColor}
-                              p={2}
-                              borderRadius="md"
-                            >
-                              {formatDate(milestone?.date) || 'Chưa có ngày'}
-                            </Badge>
-                          </HStack>
-                        ))}
-                      </VStack>
-                    </Box>
-                  )}
+                  {Array.isArray(milestones) &&
+                    milestones.length > 0 && (
+                      <Box>
+                        <Text fontWeight="bold" mb={4}>
+                          Các mốc quan trọng
+                        </Text>
+                        <VStack
+                          align="stretch"
+                          spacing={3}
+                        >
+                          {milestones.map(
+                            (milestone, index) => (
+                              <HStack
+                                key={index}
+                                p={4}
+                                bg={bgColor}
+                                borderRadius="md"
+                                borderWidth="1px"
+                                borderColor={borderColor}
+                                justify="space-between"
+                                _hover={{
+                                  bg: modalBgColor,
+                                }}
+                                transition="all 0.2s"
+                              >
+                                <VStack
+                                  align="start"
+                                  spacing={1}
+                                >
+                                  <Text
+                                    fontWeight="medium"
+                                    color={textColor}
+                                  >
+                                    {milestone?.title ||
+                                      'Chưa có tiêu đề'}
+                                  </Text>
+                                  <Text
+                                    fontSize="sm"
+                                    color={textColor}
+                                    opacity={0.8}
+                                  >
+                                    {milestone?.description ||
+                                      'Không có mô tả'}
+                                  </Text>
+                                </VStack>
+                                <Badge
+                                  colorScheme={statusColor}
+                                  p={2}
+                                  borderRadius="md"
+                                >
+                                  {formatDate(
+                                    milestone?.date
+                                  ) || 'Chưa có ngày'}
+                                </Badge>
+                              </HStack>
+                            )
+                          )}
+                        </VStack>
+                      </Box>
+                    )}
 
                   {/* Additional Project Details */}
-                  <VStack spacing={6} mt={6} align="stretch">
+                  <VStack
+                    spacing={6}
+                    mt={6}
+                    align="stretch"
+                  >
                     {/* Project Info */}
                     <Box>
                       <Text fontWeight="bold" mb={4}>
                         Thông tin chi tiết
                       </Text>
-                      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-                        <Box 
-                          p={4} 
-                          bg={bgColor} 
+                      <SimpleGrid
+                        columns={{ base: 1, md: 2 }}
+                        spacing={4}
+                      >
+                        <Box
+                          p={4}
+                          bg={bgColor}
                           borderRadius="md"
                           borderWidth="1px"
                           borderColor={borderColor}
                         >
-                          <Text fontWeight="medium" mb={2}>
+                          <Text
+                            fontWeight="medium"
+                            mb={2}
+                          >
                             Trạng thái triển khai
                           </Text>
                           <Badge colorScheme={statusColor}>
@@ -535,14 +613,17 @@ const ProjectCard = ({ project, onEdit, userRole }) => {
                           </Badge>
                         </Box>
 
-                        <Box 
-                          p={4} 
-                          bg={bgColor} 
+                        <Box
+                          p={4}
+                          bg={bgColor}
                           borderRadius="md"
                           borderWidth="1px"
                           borderColor={borderColor}
                         >
-                          <Text fontWeight="medium" mb={2}>
+                          <Text
+                            fontWeight="medium"
+                            mb={2}
+                          >
                             Tiến độ dự án
                           </Text>
                           <Progress
@@ -552,7 +633,11 @@ const ProjectCard = ({ project, onEdit, userRole }) => {
                             borderRadius="full"
                             bg={borderColor}
                           />
-                          <Text fontSize="sm" mt={2} textAlign="right">
+                          <Text
+                            fontSize="sm"
+                            mt={2}
+                            textAlign="right"
+                          >
                             {progress || 0}% hoàn thành
                           </Text>
                         </Box>
@@ -564,26 +649,47 @@ const ProjectCard = ({ project, onEdit, userRole }) => {
                       <Text fontWeight="bold" mb={4}>
                         Timeline dự án
                       </Text>
-                      <VStack 
-                        spacing={4} 
-                        p={4} 
-                        bg={bgColor} 
+                      <VStack
+                        spacing={4}
+                        p={4}
+                        bg={bgColor}
                         borderRadius="md"
                         borderWidth="1px"
                         borderColor={borderColor}
                       >
-                        <HStack justify="space-between" width="100%">
+                        <HStack
+                          justify="space-between"
+                          width="100%"
+                        >
                           <Text>Ngày bắt đầu:</Text>
-                          <Badge>{formatDate(startDate)}</Badge>
+                          <Badge>
+                            {formatDate(startDate)}
+                          </Badge>
                         </HStack>
-                        <HStack justify="space-between" width="100%">
-                          <Text>Ngày kết thúc (dự kiến):</Text>
-                          <Badge>{formatDate(endDate)}</Badge>
+                        <HStack
+                          justify="space-between"
+                          width="100%"
+                        >
+                          <Text>
+                            Ngày kết thúc (dự kiến):
+                          </Text>
+                          <Badge>
+                            {formatDate(endDate)}
+                          </Badge>
                         </HStack>
-                        <HStack justify="space-between" width="100%">
-                          <Text>Thời gian còn lại:</Text>
-                          <Badge colorScheme={statusColor}>
-                            {calculateRemainingTime(endDate)}
+                        <HStack
+                          justify="space-between"
+                          width="100%"
+                        >
+                          <Text>
+                            Thời gian còn lại:
+                          </Text>
+                          <Badge
+                            colorScheme={statusColor}
+                          >
+                            {calculateRemainingTime(
+                              endDate
+                            )}
                           </Badge>
                         </HStack>
                       </VStack>
@@ -594,26 +700,41 @@ const ProjectCard = ({ project, onEdit, userRole }) => {
                       <Text fontWeight="bold" mb={4}>
                         Bộ phận tham gia
                       </Text>
-                      <SimpleGrid columns={{ base: 2, md: 3 }} spacing={4}>
-                        {Object.entries(departmentLinks).map(([key, value]) => value && (
-                          <Box 
-                            key={key}
-                            p={3}
-                            bg={bgColor}
-                            borderRadius="md"
-                            borderWidth="1px"
-                            borderColor={borderColor}
-                            textAlign="center"
-                          >
-                            <Text 
-                              fontSize="sm" 
-                              fontWeight="medium"
-                              textTransform="capitalize"
-                            >
-                              {key.replace(/([A-Z])/g, ' $1').trim()}
-                            </Text>
-                          </Box>
-                        ))}
+                      <SimpleGrid
+                        columns={{ base: 2, md: 3 }}
+                        spacing={4}
+                      >
+                        {Object.entries(
+                          departmentLinks
+                        ).map(
+                          ([key, value]) =>
+                            value && (
+                              <Box
+                                key={key}
+                                p={3}
+                                bg={bgColor}
+                                borderRadius="md"
+                                borderWidth="1px"
+                                borderColor={
+                                  borderColor
+                                }
+                                textAlign="center"
+                              >
+                                <Text
+                                  fontSize="sm"
+                                  fontWeight="medium"
+                                  textTransform="capitalize"
+                                >
+                                  {key
+                                    .replace(
+                                      /([A-Z])/g,
+                                      ' $1'
+                                    )
+                                    .trim()}
+                                </Text>
+                              </Box>
+                            )
+                        )}
                       </SimpleGrid>
                     </Box>
                   </VStack>
@@ -625,20 +746,6 @@ const ProjectCard = ({ project, onEdit, userRole }) => {
       </Modal>
     </>
   );
-};
-
-// Helper function to calculate remaining time
-const calculateRemainingTime = (endDate) => {
-  if (!endDate) return 'Chưa xác định';
-  
-  const end = new Date(endDate);
-  const now = new Date();
-  const diff = end - now;
-
-  if (diff < 0) return 'Đã kết thúc';
-
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  return `${days} ngày`;
 };
 
 export default ProjectCard;
