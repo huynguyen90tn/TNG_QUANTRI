@@ -1,3 +1,4 @@
+// store/index.js
 import { configureStore } from '@reduxjs/toolkit';
 import projectReducer from './slices/projectSlice';
 import authReducer from './slices/authSlice';
@@ -9,6 +10,10 @@ const store = configureStore({
     auth: authReducer,
     theme: themeReducer,
   },
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      serializableCheck: false,
+    }),
 });
 
 export default store;
