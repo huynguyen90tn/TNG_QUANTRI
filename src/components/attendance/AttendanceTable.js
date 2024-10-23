@@ -22,6 +22,8 @@ import {
   StatLabel,
   StatNumber,
   Text,
+  Spinner,
+  Center,
 } from '@chakra-ui/react';
 import { 
   FaSearch, 
@@ -32,7 +34,7 @@ import {
   FaExclamationTriangle,
   FaCheckCircle,
   FaCalendarAlt,
-  FaUsers
+  FaUsers,
 } from 'react-icons/fa';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '../../services/firebase';
@@ -162,9 +164,58 @@ const StatusBadge = React.memo(({ isLate }) => (
   </Badge>
 ));
 
+const TableContent = React.memo(({ isLoading, records }) => {
+  if (isLoading) {
+    return (
+      <Tr>
+        <Td colSpan={8}>
+          <Center py={4}>
+            <Spinner size="lg" color="blue.500" />
+          </Center>
+        </Td>
+      </Tr>
+    );
+  }
+
+  if (records.length === 0) {
+    return (
+      <Tr>
+        <Td colSpan={8}>
+          <Center py={4}>
+            <Text color="gray.500">Không có dữ liệu</Text>
+          </Center>
+        </Td>
+      </Tr>
+    );
+  }
+
+  return records.map((record) => (
+    <Tr key={record.id}>
+      <Td fontWeight="bold">{record.memberCode}</Td>
+      <Td>{record.fullName}</Td>
+      <Td>{record.department}</Td>
+      <Td>{formatDate(record.checkInTime)}</Td>
+      <Td>
+        <StatusBadge isLate={record.isLate} />
+      </Td>
+      <Td>
+        <WorkLocationBadge location={record.workLocation} />
+      </Td>
+      <Td>{record.isLate ? record.lateReason : '-'}</Td>
+      <Td>
+        {record.isLate && record.hasReported && (
+          <Text color="green.500" fontSize="sm">
+            Đã báo cáo ({record.reportedTo?.fullName})
+          </Text>
+        )}
+      </Td>
+    </Tr>
+  ));
+});
+
 function AttendanceTable({ userRole, userId, department }) {
   const [records, setRecords] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({
     month: new Date().getMonth() + 1,
     year: CURRENT_YEAR,
@@ -173,6 +224,7 @@ function AttendanceTable({ userRole, userId, department }) {
   });
 
   const bgColor = useColorModeValue('gray.50', 'gray.800');
+  const tableBg = useColorModeValue('white', 'gray.700');
 
   const stats = useMemo(() => {
     const total = records.length;
@@ -189,7 +241,7 @@ function AttendanceTable({ userRole, userId, department }) {
 
   const fetchRecords = useCallback(async () => {
     try {
-      setLoading(true);
+      setIsLoading(true);
       const { start, end } = getMonthRange(filters.month, filters.year);
 
       let baseQuery = query(
@@ -230,7 +282,7 @@ function AttendanceTable({ userRole, userId, department }) {
     } catch (error) {
       console.error('Error fetching records:', error);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   }, [filters, userRole, userId, department]);
 
@@ -316,7 +368,7 @@ function AttendanceTable({ userRole, userId, department }) {
       </HStack>
 
       <Box w="full" overflowX="auto">
-        <Table variant="simple" bg={useColorModeValue('white', 'gray.700')} borderRadius="lg" overflow="hidden">
+        <Table variant="simple" bg={tableBg} borderRadius="lg" overflow="hidden">
           <Thead>
             <Tr>
               <Th>Mã số</Th>
@@ -330,28 +382,7 @@ function AttendanceTable({ userRole, userId, department }) {
             </Tr>
           </Thead>
           <Tbody>
-            {records.map((record) => (
-              <Tr key={record.id}>
-                <Td fontWeight="bold">{record.memberCode}</Td>
-                <Td>{record.fullName}</Td>
-                <Td>{record.department}</Td>
-                <Td>{formatDate(record.checkInTime)}</Td>
-                <Td>
-                  <StatusBadge isLate={record.isLate} />
-                </Td>
-                <Td>
-                  <WorkLocationBadge location={record.workLocation} />
-                </Td>
-                <Td>{record.isLate ? record.lateReason : '-'}</Td>
-                <Td>
-                  {record.isLate && record.hasReported && (
-                    <Text color="green.500" fontSize="sm">
-                      Đã báo cáo ({record.reportedTo?.fullName})
-                    </Text>
-                  )}
-                </Td>
-              </Tr>
-            ))}
+            <TableContent isLoading={isLoading} records={records} />
           </Tbody>
         </Table>
       </Box>
