@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Box,
   Heading,
@@ -28,74 +28,74 @@ import {
   FormLabel,
   ChakraProvider,
   extendTheme,
-} from '@chakra-ui/react';
+} from "@chakra-ui/react";
 import {
   AddIcon,
   RepeatIcon,
   ChevronDownIcon,
   ChevronUpIcon,
-} from '@chakra-ui/icons';
-import { useAuth } from '../hooks/useAuth';
-import ProjectList from '../components/projects/ProjectList';
-import ProjectForm from '../components/projects/ProjectForm';
+} from "@chakra-ui/icons";
+import { useAuth } from "../hooks/useAuth";
+import ProjectList from "../components/projects/ProjectList";
+import ProjectForm from "../components/projects/ProjectForm";
 import {
   getProjects,
   createProject,
   updateProject,
-} from '../services/api/projectApi';
+} from "../services/api/projectApi";
 
 // Cấu hình chủ đề
 const theme = extendTheme({
   config: {
-    initialColorMode: 'dark',
+    initialColorMode: "dark",
     useSystemColorMode: false,
   },
   styles: {
     global: {
       body: {
-        bg: 'gray.900',
-        color: 'whiteAlpha.900',
+        bg: "gray.900",
+        color: "whiteAlpha.900",
       },
     },
   },
   colors: {
     gray: {
-      900: '#1a202c',
-      800: '#2d3748',
-      700: '#4a5568',
+      900: "#1a202c",
+      800: "#2d3748",
+      700: "#4a5568",
     },
   },
 });
 
 // Hằng số
 const PROJECT_STATUSES = [
-  { value: 'đang-chờ', label: 'Đang Chờ' },
-  { value: 'đang-thực-hiện', label: 'Đang Thực Hiện' },
-  { value: 'hoàn-thành', label: 'Hoàn Thành' },
-  { value: 'tạm-dừng', label: 'Tạm Dừng' },
+  { value: "đang-chờ", label: "Đang Chờ" },
+  { value: "đang-thực-hiện", label: "Đang Thực Hiện" },
+  { value: "hoàn-thành", label: "Hoàn Thành" },
+  { value: "tạm-dừng", label: "Tạm Dừng" },
 ];
 
 const IMPLEMENTATION_STATUSES = [
-  { value: 'not_started', label: 'Chưa triển khai' },
-  { value: 'in_progress', label: 'Đang triển khai' },
-  { value: 'completed', label: 'Đã hoàn thành' },
-  { value: 'on_hold', label: 'Tạm dừng' },
+  { value: "not_started", label: "Chưa triển khai" },
+  { value: "in_progress", label: "Đang triển khai" },
+  { value: "completed", label: "Đã hoàn thành" },
+  { value: "on_hold", label: "Tạm dừng" },
 ];
 
 const PROGRESS_RANGES = [
-  { value: '0-25', label: '0% - 25%' },
-  { value: '26-50', label: '26% - 50%' },
-  { value: '51-75', label: '51% - 75%' },
-  { value: '76-100', label: '76% - 100%' },
+  { value: "0-25", label: "0% - 25%" },
+  { value: "26-50", label: "26% - 50%" },
+  { value: "51-75", label: "51% - 75%" },
+  { value: "76-100", label: "76% - 100%" },
 ];
 
 const INITIAL_FILTERS = {
-  search: '',
-  status: '',
-  implementation: '',
-  startDate: '',
-  endDate: '',
-  progress: '',
+  search: "",
+  status: "",
+  implementation: "",
+  startDate: "",
+  endDate: "",
+  progress: "",
 };
 
 // Component hiển thị khi đang tải
@@ -162,8 +162,8 @@ const EmptyState = ({ onCreateNew, isAdmin }) => (
       </Heading>
       <Text color="gray.400" textAlign="center">
         {isAdmin
-          ? 'Hãy tạo dự án đầu tiên của bạn'
-          : 'Hiện tại chưa có dự án nào được tạo'}
+          ? "Hãy tạo dự án đầu tiên của bạn"
+          : "Hiện tại chưa có dự án nào được tạo"}
       </Text>
       {isAdmin && (
         <Button
@@ -187,7 +187,7 @@ const ErrorState = ({ error, onRetry }) => (
         Đã xảy ra lỗi
       </Heading>
       <Text color="gray.400" textAlign="center">
-        {error || 'Không thể tải dự án. Vui lòng thử lại.'}
+        {error || "Không thể tải dự án. Vui lòng thử lại."}
       </Text>
       <Button leftIcon={<RepeatIcon />} colorScheme="blue" onClick={onRetry}>
         Thử lại
@@ -211,12 +211,12 @@ const ProjectManagement = () => {
 
   // Giá trị responsive
   const modalSize = useBreakpointValue({
-    base: 'full',
-    md: '90vw',
-    lg: '95vw',
+    base: "full",
+    md: "90vw",
+    lg: "95vw",
   });
-  const headerHeight = useBreakpointValue({ base: '320px', md: '280px' });
-  const modalPadding = useBreakpointValue({ base: '3', md: '6' });
+  const headerHeight = useBreakpointValue({ base: "320px", md: "280px" });
+  const modalPadding = useBreakpointValue({ base: "3", md: "6" });
 
   const fetchProjects = useCallback(async () => {
     try {
@@ -225,32 +225,32 @@ const ProjectManagement = () => {
       const fetchedProjects = await getProjects();
 
       if (!Array.isArray(fetchedProjects)) {
-        throw new Error('Dữ liệu nhận được không hợp lệ');
+        throw new Error("Dữ liệu nhận được không hợp lệ");
       }
 
       const normalizedProjects = fetchedProjects.map((project) => ({
         ...project,
         id: project.id || `temp-${Date.now()}`,
-        name: project.name || 'Untitled Project',
-        description: project.description || 'No description available',
-        videoUrl: project.videoUrl || '',
-        status: project.status || 'đang-chờ',
-        implementation: project.implementation || 'not_started',
+        name: project.name || "Untitled Project",
+        description: project.description || "No description available",
+        videoUrl: project.videoUrl || "",
+        status: project.status || "đang-chờ",
+        implementation: project.implementation || "not_started",
         progress: Number(project.progress) || 0,
-        startDate: project.startDate || '',
-        endDate: project.endDate || '',
+        startDate: project.startDate || "",
+        endDate: project.endDate || "",
       }));
 
       setProjects(normalizedProjects);
       setFilteredProjects(normalizedProjects);
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : 'Đã xảy ra lỗi không xác định';
+        err instanceof Error ? err.message : "Đã xảy ra lỗi không xác định";
       setError(message);
       toast({
-        title: 'Lỗi tải dự án',
+        title: "Lỗi tải dự án",
         description: message,
-        status: 'error',
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -282,8 +282,8 @@ const ProjectManagement = () => {
         const searchLower = filters.search.toLowerCase();
         result = result.filter(
           (project) =>
-            (project.name?.toLowerCase() || '').includes(searchLower) ||
-            (project.description?.toLowerCase() || '').includes(searchLower)
+            (project.name?.toLowerCase() || "").includes(searchLower) ||
+            (project.description?.toLowerCase() || "").includes(searchLower),
         );
       }
 
@@ -295,22 +295,22 @@ const ProjectManagement = () => {
       // Lọc theo tình trạng triển khai
       if (filters.implementation) {
         result = result.filter(
-          (project) => project.implementation === filters.implementation
+          (project) => project.implementation === filters.implementation,
         );
       }
 
       // Lọc theo tiến độ
       if (filters.progress) {
-        const [min, max] = filters.progress.split('-').map(Number);
+        const [min, max] = filters.progress.split("-").map(Number);
         result = result.filter(
-          (project) => project.progress >= min && project.progress <= max
+          (project) => project.progress >= min && project.progress <= max,
         );
       }
 
       // Lọc theo ngày bắt đầu
       if (filters.startDate) {
         result = result.filter(
-          (project) => project.startDate >= filters.startDate
+          (project) => project.startDate >= filters.startDate,
         );
       }
 
@@ -321,7 +321,7 @@ const ProjectManagement = () => {
 
       setFilteredProjects(result);
     } catch (err) {
-      console.error('Lỗi bộ lọc:', err);
+      console.error("Lỗi bộ lọc:", err);
       setFilteredProjects(projects);
     }
   }, [filters, projects]);
@@ -331,7 +331,7 @@ const ProjectManagement = () => {
       setEditingProject(project);
       onOpen();
     },
-    [onOpen]
+    [onOpen],
   );
 
   const handleCreateProject = useCallback(
@@ -340,36 +340,36 @@ const ProjectManagement = () => {
         setLoading(true);
         await createProject({
           ...projectData,
-          implementation: 'not_started',
+          implementation: "not_started",
         });
         await fetchProjects();
         onClose();
         toast({
-          title: 'Tạo dự án thành công',
-          status: 'success',
+          title: "Tạo dự án thành công",
+          status: "success",
           duration: 3000,
         });
       } catch (err) {
         const message =
-          err instanceof Error ? err.message : 'Đã xảy ra lỗi không xác định';
+          err instanceof Error ? err.message : "Đã xảy ra lỗi không xác định";
         toast({
-          title: 'Lỗi tạo dự án',
+          title: "Lỗi tạo dự án",
           description: message,
-          status: 'error',
+          status: "error",
           duration: 3000,
         });
       } finally {
         setLoading(false);
       }
     },
-    [fetchProjects, onClose, toast]
+    [fetchProjects, onClose, toast],
   );
 
   const handleUpdateProject = useCallback(
     async (projectData) => {
       try {
         if (!editingProject?.id) {
-          throw new Error('Không tìm thấy ID dự án');
+          throw new Error("Không tìm thấy ID dự án");
         }
         setLoading(true);
         await updateProject(editingProject.id, projectData);
@@ -377,24 +377,24 @@ const ProjectManagement = () => {
         setEditingProject(null);
         onClose();
         toast({
-          title: 'Cập nhật dự án thành công',
-          status: 'success',
+          title: "Cập nhật dự án thành công",
+          status: "success",
           duration: 3000,
         });
       } catch (err) {
         const message =
-          err instanceof Error ? err.message : 'Đã xảy ra lỗi không xác định';
+          err instanceof Error ? err.message : "Đã xảy ra lỗi không xác định";
         toast({
-          title: 'Lỗi cập nhật dự án',
+          title: "Lỗi cập nhật dự án",
           description: message,
-          status: 'error',
+          status: "error",
           duration: 3000,
         });
       } finally {
         setLoading(false);
       }
     },
-    [editingProject, fetchProjects, onClose, toast]
+    [editingProject, fetchProjects, onClose, toast],
   );
 
   const handleCloseModal = useCallback(() => {
@@ -418,7 +418,7 @@ const ProjectManagement = () => {
             setEditingProject(null);
             onOpen();
           }}
-          isAdmin={user?.role === 'admin-tong'}
+          isAdmin={user?.role === "admin-tong"}
         />
       );
     }
@@ -449,15 +449,15 @@ const ProjectManagement = () => {
         >
           <Container maxW="7xl">
             <Flex
-              direction={{ base: 'column', md: 'row' }}
-              align={{ base: 'stretch', md: 'center' }}
+              direction={{ base: "column", md: "row" }}
+              align={{ base: "stretch", md: "center" }}
               gap={4}
             >
               <Heading size="lg" color="blue.300">
                 Quản Lý Dự Án
               </Heading>
-              <Spacer display={{ base: 'none', md: 'block' }} />
-              {user?.role === 'admin-tong' && (
+              <Spacer display={{ base: "none", md: "block" }} />
+              {user?.role === "admin-tong" && (
                 <Button
                   leftIcon={<AddIcon />}
                   colorScheme="blue"
@@ -465,7 +465,7 @@ const ProjectManagement = () => {
                     setEditingProject(null);
                     onOpen();
                   }}
-                  width={{ base: '100%', md: 'auto' }}
+                  width={{ base: "100%", md: "auto" }}
                 >
                   Tạo Dự Án Mới
                 </Button>
@@ -487,17 +487,17 @@ const ProjectManagement = () => {
                     placeholder="Tìm kiếm dự án..."
                     value={filters.search}
                     onChange={(e) =>
-                      handleFilterChange('search', e.target.value)
+                      handleFilterChange("search", e.target.value)
                     }
                     bg="gray.800"
-                    _placeholder={{ color: 'gray.400' }}
+                    _placeholder={{ color: "gray.400" }}
                   />
 
                   <Select
                     placeholder="Trạng thái"
                     value={filters.status}
                     onChange={(e) =>
-                      handleFilterChange('status', e.target.value)
+                      handleFilterChange("status", e.target.value)
                     }
                     bg="gray.800"
                     color="white"
@@ -513,7 +513,7 @@ const ProjectManagement = () => {
                     placeholder="Tình trạng triển khai"
                     value={filters.implementation}
                     onChange={(e) =>
-                      handleFilterChange('implementation', e.target.value)
+                      handleFilterChange("implementation", e.target.value)
                     }
                     bg="gray.800"
                     color="white"
@@ -536,12 +536,10 @@ const ProjectManagement = () => {
                       <ChevronDownIcon />
                     )
                   }
-                  onClick={() =>
-                    setIsAdvancedFilterOpen(!isAdvancedFilterOpen)
-                  }
+                  onClick={() => setIsAdvancedFilterOpen(!isAdvancedFilterOpen)}
                   size="sm"
                   color="white"
-                  _hover={{ bg: 'gray.600' }}
+                  _hover={{ bg: "gray.600" }}
                 >
                   Bộ lọc nâng cao
                 </Button>
@@ -555,7 +553,7 @@ const ProjectManagement = () => {
                         type="date"
                         value={filters.startDate}
                         onChange={(e) =>
-                          handleFilterChange('startDate', e.target.value)
+                          handleFilterChange("startDate", e.target.value)
                         }
                         bg="gray.800"
                         color="white"
@@ -568,7 +566,7 @@ const ProjectManagement = () => {
                         type="date"
                         value={filters.endDate}
                         onChange={(e) =>
-                          handleFilterChange('endDate', e.target.value)
+                          handleFilterChange("endDate", e.target.value)
                         }
                         bg="gray.800"
                         color="white"
@@ -580,7 +578,7 @@ const ProjectManagement = () => {
                       <Select
                         value={filters.progress}
                         onChange={(e) =>
-                          handleFilterChange('progress', e.target.value)
+                          handleFilterChange("progress", e.target.value)
                         }
                         bg="gray.800"
                         color="white"
@@ -604,7 +602,7 @@ const ProjectManagement = () => {
                     onClick={handleResetFilters}
                     size="sm"
                     color="white"
-                    _hover={{ bg: 'gray.600' }}
+                    _hover={{ bg: "gray.600" }}
                   >
                     Đặt lại bộ lọc
                   </Button>
@@ -615,12 +613,7 @@ const ProjectManagement = () => {
         </Box>
 
         {/* Nội dung chính */}
-        <Container
-          maxW="7xl"
-          pt={headerHeight}
-          pb={8}
-          px={{ base: 2, md: 4 }}
-        >
+        <Container maxW="7xl" pt={headerHeight} pb={8} px={{ base: 2, md: 4 }}>
           {renderContent()}
 
           {/* Modal */}
@@ -635,8 +628,8 @@ const ProjectManagement = () => {
               width={modalSize}
               maxWidth={modalSize}
               margin="auto"
-              height={{ base: '100vh', md: '90vh' }}
-              my={{ base: 0, md: '5vh' }}
+              height={{ base: "100vh", md: "90vh" }}
+              my={{ base: 0, md: "5vh" }}
               bg="gray.800"
               color="white"
             >
@@ -659,24 +652,22 @@ const ProjectManagement = () => {
                   overflow="auto"
                   bg="gray.800"
                   sx={{
-                    '&::-webkit-scrollbar': {
-                      width: '4px',
+                    "&::-webkit-scrollbar": {
+                      width: "4px",
                     },
-                    '&::-webkit-scrollbar-track': {
-                      width: '6px',
-                      bg: 'gray.700',
+                    "&::-webkit-scrollbar-track": {
+                      width: "6px",
+                      bg: "gray.700",
                     },
-                    '&::-webkit-scrollbar-thumb': {
-                      background: 'gray.500',
-                      borderRadius: '24px',
+                    "&::-webkit-scrollbar-thumb": {
+                      background: "gray.500",
+                      borderRadius: "24px",
                     },
                   }}
                 >
                   <ProjectForm
                     onSubmit={
-                      editingProject
-                        ? handleUpdateProject
-                        : handleCreateProject
+                      editingProject ? handleUpdateProject : handleCreateProject
                     }
                     initialData={editingProject}
                     onCancel={handleCloseModal}

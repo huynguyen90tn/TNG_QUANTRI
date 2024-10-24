@@ -1,27 +1,32 @@
 // src/App.js
-import React from 'react';
-import { ChakraProvider, Spinner, Center } from '@chakra-ui/react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './hooks/useAuth';
-import Layout from './components/layout/Layout';
-import theme from './styles/theme';
+import React from "react";
+import { ChakraProvider, Spinner, Center } from "@chakra-ui/react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import { AuthProvider, useAuth } from "./hooks/useAuth";
+import Layout from "./components/layout/Layout";
+import theme from "./styles/theme";
 
 // Pages
-import HomePage from './pages/HomePage';
-import AdminTongDashboard from './pages/dashboard/AdminTongDashboard';
-import AdminConDashboard from './pages/dashboard/AdminConDashboard';
-import MemberDashboard from './pages/dashboard/MemberDashboard';
-import ProjectManagement from './pages/ProjectManagement';
-import TaskManagementPage from './pages/TaskManagementPage';
-import TaskListPage from './pages/TaskListPage';
+import HomePage from "./pages/HomePage";
+import AdminTongDashboard from "./pages/dashboard/AdminTongDashboard";
+import AdminConDashboard from "./pages/dashboard/AdminConDashboard";
+import MemberDashboard from "./pages/dashboard/MemberDashboard";
+import ProjectManagement from "./pages/ProjectManagement";
+import TaskManagementPage from "./pages/TaskManagementPage";
+import TaskListPage from "./pages/TaskListPage";
 
 // Auth Pages
-import TaoTaiKhoanThanhVien from './pages/auth/TaoTaiKhoanThanhVien';
-import TaoTaiKhoanQuanTri from './pages/auth/TaoTaiKhoanQuanTri';
+import TaoTaiKhoanThanhVien from "./pages/auth/TaoTaiKhoanThanhVien";
+import TaoTaiKhoanQuanTri from "./pages/auth/TaoTaiKhoanQuanTri";
 
 // Components
-import AttendanceTable from './components/attendance/AttendanceTable';
-import AttendanceForm from './components/attendance/AttendanceForm';
+import AttendanceTable from "./components/attendance/AttendanceTable";
+import AttendanceForm from "./components/attendance/AttendanceForm";
 
 const ProtectedRoute = ({ children, requiredRole }) => {
   const { user, loading } = useAuth();
@@ -61,7 +66,7 @@ const AppRoutes = () => {
       <Route
         path="/admin-tong"
         element={
-          <ProtectedRoute requiredRole={['admin-tong']}>
+          <ProtectedRoute requiredRole={["admin-tong"]}>
             <Layout>
               <AdminTongDashboard />
             </Layout>
@@ -72,7 +77,7 @@ const AppRoutes = () => {
       <Route
         path="/admin-tong/diem-danh"
         element={
-          <ProtectedRoute requiredRole={['admin-tong']}>
+          <ProtectedRoute requiredRole={["admin-tong"]}>
             <Layout>
               <AttendanceTable userRole="admin-tong" />
             </Layout>
@@ -83,7 +88,7 @@ const AppRoutes = () => {
       <Route
         path="/tao-quan-tri"
         element={
-          <ProtectedRoute requiredRole={['admin-tong']}>
+          <ProtectedRoute requiredRole={["admin-tong"]}>
             <Layout>
               <TaoTaiKhoanQuanTri />
             </Layout>
@@ -95,7 +100,7 @@ const AppRoutes = () => {
       <Route
         path="/admin-con"
         element={
-          <ProtectedRoute requiredRole={['admin-con']}>
+          <ProtectedRoute requiredRole={["admin-con"]}>
             <Layout>
               <AdminConDashboard />
             </Layout>
@@ -106,7 +111,7 @@ const AppRoutes = () => {
       <Route
         path="/admin-con/diem-danh"
         element={
-          <ProtectedRoute requiredRole={['admin-con']}>
+          <ProtectedRoute requiredRole={["admin-con"]}>
             <Layout>
               <AttendanceTable userRole="admin-con" />
             </Layout>
@@ -117,7 +122,7 @@ const AppRoutes = () => {
       <Route
         path="/admin-con/tao-thanh-vien"
         element={
-          <ProtectedRoute requiredRole={['admin-con']}>
+          <ProtectedRoute requiredRole={["admin-con"]}>
             <Layout>
               <TaoTaiKhoanThanhVien />
             </Layout>
@@ -129,7 +134,7 @@ const AppRoutes = () => {
       <Route
         path="/member"
         element={
-          <ProtectedRoute requiredRole={['member']}>
+          <ProtectedRoute requiredRole={["member"]}>
             <Layout>
               <MemberDashboard />
             </Layout>
@@ -140,7 +145,7 @@ const AppRoutes = () => {
       <Route
         path="/member/diem-danh"
         element={
-          <ProtectedRoute requiredRole={['member']}>
+          <ProtectedRoute requiredRole={["member"]}>
             <Layout>
               <AttendanceForm />
             </Layout>
@@ -151,7 +156,7 @@ const AppRoutes = () => {
       <Route
         path="/member/lich-su-diem-danh"
         element={
-          <ProtectedRoute requiredRole={['member']}>
+          <ProtectedRoute requiredRole={["member"]}>
             <Layout>
               <AttendanceTable userRole="member" />
             </Layout>
@@ -163,7 +168,7 @@ const AppRoutes = () => {
       <Route
         path="/quan-ly-du-an"
         element={
-          <ProtectedRoute requiredRole={['admin-tong', 'admin-con', 'member']}>
+          <ProtectedRoute requiredRole={["admin-tong", "admin-con", "member"]}>
             <Layout>
               <ProjectManagement />
             </Layout>
@@ -176,7 +181,7 @@ const AppRoutes = () => {
       <Route
         path="/quan-ly-nhiem-vu"
         element={
-          <ProtectedRoute requiredRole={['admin-tong', 'admin-con', 'member']}>
+          <ProtectedRoute requiredRole={["admin-tong", "admin-con", "member"]}>
             <Layout>
               <TaskListPage />
             </Layout>
@@ -188,7 +193,7 @@ const AppRoutes = () => {
       <Route
         path="/quan-ly-du-an/:projectId/nhiem-vu"
         element={
-          <ProtectedRoute requiredRole={['admin-tong', 'admin-con', 'member']}>
+          <ProtectedRoute requiredRole={["admin-tong", "admin-con", "member"]}>
             <Layout>
               <TaskManagementPage />
             </Layout>
@@ -200,7 +205,7 @@ const AppRoutes = () => {
       <Route
         path="/quan-ly-nhiem-vu/:taskId"
         element={
-          <ProtectedRoute requiredRole={['admin-tong', 'admin-con', 'member']}>
+          <ProtectedRoute requiredRole={["admin-tong", "admin-con", "member"]}>
             <Layout>
               <TaskManagementPage />
             </Layout>

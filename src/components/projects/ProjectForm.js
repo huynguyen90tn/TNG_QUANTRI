@@ -1,7 +1,7 @@
 // src/components/projects/ProjectForm.js
 
-import React, { useState, useEffect } from 'react';
-import PropTypes from 'prop-types';
+import React, { useState, useEffect } from "react";
+import PropTypes from "prop-types";
 import {
   Box,
   Button,
@@ -43,8 +43,8 @@ import {
   Container,
   Divider,
   Text,
-} from '@chakra-ui/react';
-import { useForm, useFieldArray, Controller } from 'react-hook-form';
+} from "@chakra-ui/react";
+import { useForm, useFieldArray, Controller } from "react-hook-form";
 import {
   AddIcon,
   LinkIcon,
@@ -53,13 +53,13 @@ import {
   ExternalLinkIcon,
   ViewIcon,
   ViewOffIcon,
-} from '@chakra-ui/icons';
-import { FiYoutube } from 'react-icons/fi';
-import { getUserList } from '../../services/api/userApi';
+} from "@chakra-ui/icons";
+import { FiYoutube } from "react-icons/fi";
+import { getUserList } from "../../services/api/userApi";
 
 const FormSection = ({ title, icon, children }) => {
-  const bgColor = useColorModeValue('gray.700', 'gray.800');
-  const borderColor = useColorModeValue('gray.600', 'gray.700');
+  const bgColor = useColorModeValue("gray.700", "gray.800");
+  const borderColor = useColorModeValue("gray.600", "gray.700");
 
   return (
     <Box
@@ -91,25 +91,25 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
   const [isLoadingAssignees, setIsLoadingAssignees] = useState(false);
   const toast = useToast();
 
-  const bgColor = useColorModeValue('gray.800', 'gray.900');
-  const inputBgColor = useColorModeValue('gray.700', 'gray.800');
-  const textColor = useColorModeValue('gray.100', 'gray.200');
-  const borderColor = useColorModeValue('gray.600', 'gray.700');
+  const bgColor = useColorModeValue("gray.800", "gray.900");
+  const inputBgColor = useColorModeValue("gray.700", "gray.800");
+  const textColor = useColorModeValue("gray.100", "gray.200");
+  const borderColor = useColorModeValue("gray.600", "gray.700");
 
   // Fetch danh sách admin con
   useEffect(() => {
     const fetchAssignees = async () => {
       try {
         setIsLoadingAssignees(true);
-        const response = await getUserList({ role: 'admin-con' });
+        const response = await getUserList({ role: "admin-con" });
         if (response && response.data) {
           setAssignees(response.data);
         }
       } catch (error) {
         toast({
-          title: 'Lỗi tải danh sách người thực hiện',
+          title: "Lỗi tải danh sách người thực hiện",
           description: error.message,
-          status: 'error',
+          status: "error",
           duration: 3000,
           isClosable: true,
         });
@@ -130,23 +130,23 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
     formState: { errors },
   } = useForm({
     defaultValues: initialData || {
-      name: '',
-      description: '',
-      startDate: '',
-      endDate: '',
-      videoUrl: '',
-      imageUrl: '',
-      status: 'đang-chờ',
+      name: "",
+      description: "",
+      startDate: "",
+      endDate: "",
+      videoUrl: "",
+      imageUrl: "",
+      status: "đang-chờ",
       progress: 0,
       tasks: [],
       departmentLinks: {
-        coding: '',
-        design2D: '',
-        design3D: '',
-        filmProduction: '',
-        marketing: '',
-        gameDesign: '',
-        story: '',
+        coding: "",
+        design2D: "",
+        design3D: "",
+        filmProduction: "",
+        marketing: "",
+        gameDesign: "",
+        story: "",
       },
       milestones: [],
       links: [],
@@ -159,7 +159,7 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
     remove: removeTask,
   } = useFieldArray({
     control,
-    name: 'tasks',
+    name: "tasks",
   });
 
   const {
@@ -168,7 +168,7 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
     remove: removeMilestone,
   } = useFieldArray({
     control,
-    name: 'milestones',
+    name: "milestones",
   });
 
   const {
@@ -177,17 +177,17 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
     remove: removeLink,
   } = useFieldArray({
     control,
-    name: 'links',
+    name: "links",
   });
 
-  const watchedTasks = watch('tasks') || [];
-  const videoUrl = watch('videoUrl');
+  const watchedTasks = watch("tasks") || [];
+  const videoUrl = watch("videoUrl");
 
   const calculateTotalProgress = () => {
     if (watchedTasks.length === 0) return 0;
     const totalProgress = watchedTasks.reduce(
       (sum, task) => sum + (Number(task.progress) || 0),
-      0
+      0,
     );
     return Math.round(totalProgress / watchedTasks.length);
   };
@@ -213,22 +213,22 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
       const endDate = new Date(data.endDate);
 
       if (endDate < startDate) {
-        throw new Error('Ngày kết thúc phải sau ngày bắt đầu');
+        throw new Error("Ngày kết thúc phải sau ngày bắt đầu");
       }
 
       if (data.videoUrl && !validateYoutubeUrl(data.videoUrl)) {
-        throw new Error('Link YouTube không hợp lệ');
+        throw new Error("Link YouTube không hợp lệ");
       }
 
       const invalidTask = data.tasks?.find(
         (task) =>
           task.deadline &&
           (new Date(task.deadline) < startDate ||
-            new Date(task.deadline) > endDate)
+            new Date(task.deadline) > endDate),
       );
 
       if (invalidTask) {
-        throw new Error('Deadline công việc phải nằm trong thời gian dự án');
+        throw new Error("Deadline công việc phải nằm trong thời gian dự án");
       }
 
       const totalProgress = calculateTotalProgress();
@@ -237,9 +237,9 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
       await onSubmit(data);
     } catch (error) {
       toast({
-        title: 'Lỗi',
+        title: "Lỗi",
         description: error.message,
-        status: 'error',
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -265,22 +265,22 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
         borderWidth="1px"
         borderColor={borderColor}
         sx={{
-          '&::-webkit-scrollbar': {
-            width: '4px',
+          "&::-webkit-scrollbar": {
+            width: "4px",
           },
-          '&::-webkit-scrollbar-track': {
-            width: '6px',
-            bg: 'gray.700',
+          "&::-webkit-scrollbar-track": {
+            width: "6px",
+            bg: "gray.700",
           },
-          '&::-webkit-scrollbar-thumb': {
-            background: 'gray.500',
-            borderRadius: '24px',
+          "&::-webkit-scrollbar-thumb": {
+            background: "gray.500",
+            borderRadius: "24px",
           },
         }}
       >
         <VStack spacing={6} align="stretch">
           <Heading size="lg" color="blue.300">
-            {initialData ? 'Cập Nhật Dự Án' : 'Tạo Dự Án Mới'}
+            {initialData ? "Cập Nhật Dự Án" : "Tạo Dự Án Mới"}
           </Heading>
 
           {/* Thông Tin Cơ Bản */}
@@ -289,11 +289,11 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
               <FormControl isInvalid={errors.name} isRequired>
                 <FormLabel>Tên Dự Án</FormLabel>
                 <Input
-                  {...register('name', {
-                    required: 'Vui lòng nhập tên dự án',
+                  {...register("name", {
+                    required: "Vui lòng nhập tên dự án",
                     minLength: {
                       value: 3,
-                      message: 'Tên dự án phải có ít nhất 3 ký tự',
+                      message: "Tên dự án phải có ít nhất 3 ký tự",
                     },
                   })}
                   placeholder="Nhập tên dự án"
@@ -305,7 +305,7 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
               <FormControl isInvalid={errors.description}>
                 <FormLabel>Mô Tả</FormLabel>
                 <Textarea
-                  {...register('description')}
+                  {...register("description")}
                   placeholder="Nhập mô tả dự án"
                   rows={3}
                   bg={inputBgColor}
@@ -323,29 +323,25 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
               <FormControl isInvalid={errors.startDate} isRequired>
                 <FormLabel>Ngày Bắt Đầu</FormLabel>
                 <Input
-                  {...register('startDate', {
-                    required: 'Vui lòng chọn ngày bắt đầu',
+                  {...register("startDate", {
+                    required: "Vui lòng chọn ngày bắt đầu",
                   })}
                   type="date"
                   bg={inputBgColor}
                 />
-                <FormErrorMessage>
-                  {errors.startDate?.message}
-                </FormErrorMessage>
+                <FormErrorMessage>{errors.startDate?.message}</FormErrorMessage>
               </FormControl>
 
               <FormControl isInvalid={errors.endDate} isRequired>
                 <FormLabel>Ngày Kết Thúc</FormLabel>
                 <Input
-                  {...register('endDate', {
-                    required: 'Vui lòng chọn ngày kết thúc',
+                  {...register("endDate", {
+                    required: "Vui lòng chọn ngày kết thúc",
                   })}
                   type="date"
                   bg={inputBgColor}
                 />
-                <FormErrorMessage>
-                  {errors.endDate?.message}
-                </FormErrorMessage>
+                <FormErrorMessage>{errors.endDate?.message}</FormErrorMessage>
               </FormControl>
             </SimpleGrid>
           </FormSection>
@@ -357,7 +353,7 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
                 <FormLabel>URL Video YouTube</FormLabel>
                 <InputGroup>
                   <Input
-                    {...register('videoUrl', {
+                    {...register("videoUrl", {
                       validate: validateYoutubeUrl,
                     })}
                     placeholder="https://youtube.com/watch?v=..."
@@ -366,13 +362,9 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
                   <InputRightElement>
                     <IconButton
                       aria-label="Toggle video preview"
-                      icon={
-                        showVideoPreview ? <ViewOffIcon /> : <ViewIcon />
-                      }
+                      icon={showVideoPreview ? <ViewOffIcon /> : <ViewIcon />}
                       variant="ghost"
-                      onClick={() =>
-                        setShowVideoPreview(!showVideoPreview)
-                      }
+                      onClick={() => setShowVideoPreview(!showVideoPreview)}
                     />
                   </InputRightElement>
                 </InputGroup>
@@ -386,7 +378,7 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
               <FormControl>
                 <FormLabel>URL Hình Ảnh</FormLabel>
                 <Input
-                  {...register('imageUrl')}
+                  {...register("imageUrl")}
                   placeholder="https://example.com/image.jpg"
                   bg={inputBgColor}
                 />
@@ -394,17 +386,13 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
             </SimpleGrid>
 
             <Collapse
-              in={
-                showVideoPreview &&
-                videoUrl &&
-                getYoutubeVideoId(videoUrl)
-              }
+              in={showVideoPreview && videoUrl && getYoutubeVideoId(videoUrl)}
             >
               <Box mt={4}>
                 <AspectRatio ratio={16 / 9}>
                   <iframe
                     src={`https://www.youtube.com/embed/${getYoutubeVideoId(
-                      videoUrl
+                      videoUrl,
                     )}`}
                     title="YouTube video preview"
                     allowFullScreen
@@ -434,7 +422,7 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
                         <Td>
                           <Input
                             {...register(`tasks.${index}.title`, {
-                              required: 'Vui lòng nhập tên công việc',
+                              required: "Vui lòng nhập tên công việc",
                             })}
                             placeholder="Tên công việc"
                             bg={inputBgColor}
@@ -464,8 +452,7 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
                                       key={assignee.id}
                                       value={assignee.id}
                                     >
-                                      {assignee.fullName} (
-                                      {assignee.email})
+                                      {assignee.fullName} ({assignee.email})
                                     </option>
                                   ))
                                 )}
@@ -494,8 +481,8 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
                                 onChange={(value) => {
                                   numberField.onChange(Number(value));
                                   setValue(
-                                    'progress',
-                                    calculateTotalProgress()
+                                    "progress",
+                                    calculateTotalProgress(),
                                   );
                                 }}
                               >
@@ -527,9 +514,9 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
                 leftIcon={<AddIcon />}
                 onClick={() =>
                   appendTask({
-                    title: '',
-                    assignee: '',
-                    deadline: '',
+                    title: "",
+                    assignee: "",
+                    deadline: "",
                     progress: 0,
                   })
                 }
@@ -563,7 +550,7 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
               <AccordionButton
                 bg={inputBgColor}
                 borderRadius="md"
-                _hover={{ bg: 'gray.600' }}
+                _hover={{ bg: "gray.600" }}
               >
                 <Box flex="1">
                   <Stack direction="row" align="center">
@@ -578,7 +565,7 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
                   <FormControl>
                     <FormLabel>Code Repository</FormLabel>
                     <Input
-                      {...register('departmentLinks.coding')}
+                      {...register("departmentLinks.coding")}
                       placeholder="https://github.com/your-project"
                       bg={inputBgColor}
                     />
@@ -587,7 +574,7 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
                   <FormControl>
                     <FormLabel>Thiết Kế 2D</FormLabel>
                     <Input
-                      {...register('departmentLinks.design2D')}
+                      {...register("departmentLinks.design2D")}
                       placeholder="Link thiết kế 2D"
                       bg={inputBgColor}
                     />
@@ -596,7 +583,7 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
                   <FormControl>
                     <FormLabel>Thiết Kế 3D</FormLabel>
                     <Input
-                      {...register('departmentLinks.design3D')}
+                      {...register("departmentLinks.design3D")}
                       placeholder="Link thiết kế 3D"
                       bg={inputBgColor}
                     />
@@ -605,7 +592,7 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
                   <FormControl>
                     <FormLabel>Sản Xuất Phim</FormLabel>
                     <Input
-                      {...register('departmentLinks.filmProduction')}
+                      {...register("departmentLinks.filmProduction")}
                       placeholder="Link sản xuất phim"
                       bg={inputBgColor}
                     />
@@ -614,7 +601,7 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
                   <FormControl>
                     <FormLabel>Marketing</FormLabel>
                     <Input
-                      {...register('departmentLinks.marketing')}
+                      {...register("departmentLinks.marketing")}
                       placeholder="Link tài liệu marketing"
                       bg={inputBgColor}
                     />
@@ -623,7 +610,7 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
                   <FormControl>
                     <FormLabel>Game Design</FormLabel>
                     <Input
-                      {...register('departmentLinks.gameDesign')}
+                      {...register("departmentLinks.gameDesign")}
                       placeholder="Link game design document"
                       bg={inputBgColor}
                     />
@@ -632,7 +619,7 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
                   <FormControl>
                     <FormLabel>Story/Kịch Bản</FormLabel>
                     <Input
-                      {...register('departmentLinks.story')}
+                      {...register("departmentLinks.story")}
                       placeholder="Link kịch bản/story"
                       bg={inputBgColor}
                     />
@@ -643,10 +630,7 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
           </Accordion>
 
           {/* Các Đường Dẫn Khác */}
-          <FormSection
-            title="Các Đường Dẫn Khác"
-            icon={<ExternalLinkIcon />}
-          >
+          <FormSection title="Các Đường Dẫn Khác" icon={<ExternalLinkIcon />}>
             <VStack spacing={4}>
               {linkFields.map((field, index) => (
                 <SimpleGrid
@@ -681,7 +665,7 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
               ))}
               <Button
                 leftIcon={<AddIcon />}
-                onClick={() => appendLink({ title: '', url: '' })}
+                onClick={() => appendLink({ title: "", url: "" })}
                 colorScheme="blue"
                 variant="ghost"
                 width="100%"
@@ -730,7 +714,7 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
               ))}
               <Button
                 leftIcon={<AddIcon />}
-                onClick={() => appendMilestone({ date: '', title: '' })}
+                onClick={() => appendMilestone({ date: "", title: "" })}
                 colorScheme="blue"
                 variant="ghost"
                 width="100%"
@@ -749,15 +733,15 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
               <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
                 {assignees.map((assignee) => {
                   const assigneeTasks = watchedTasks.filter(
-                    (task) => task.assignee === assignee.id
+                    (task) => task.assignee === assignee.id,
                   );
                   if (assigneeTasks.length === 0) return null;
 
                   const assigneeProgress = Math.round(
                     assigneeTasks.reduce(
                       (sum, task) => sum + (Number(task.progress) || 0),
-                      0
-                    ) / assigneeTasks.length
+                      0,
+                    ) / assigneeTasks.length,
                   );
 
                   return (
@@ -783,11 +767,7 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
                           hasStripe
                           borderRadius="full"
                         />
-                        <Text
-                          fontSize="sm"
-                          textAlign="right"
-                          color={textColor}
-                        >
+                        <Text fontSize="sm" textAlign="right" color={textColor}>
                           {assigneeTasks.length} công việc - {assigneeProgress}%
                         </Text>
                       </VStack>
@@ -802,7 +782,7 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
           <Divider my={6} borderColor={borderColor} />
 
           <Stack
-            direction={{ base: 'column', sm: 'row' }}
+            direction={{ base: "column", sm: "row" }}
             spacing={4}
             justify="flex-end"
             width="100%"
@@ -811,10 +791,10 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
               onClick={onCancel}
               variant="outline"
               isDisabled={isSubmitting}
-              size={{ base: 'md', md: 'lg' }}
-              width={{ base: '100%', sm: 'auto' }}
+              size={{ base: "md", md: "lg" }}
+              width={{ base: "100%", sm: "auto" }}
               _hover={{
-                bg: 'gray.700',
+                bg: "gray.700",
               }}
             >
               Hủy Bỏ
@@ -826,10 +806,10 @@ const ProjectForm = ({ onSubmit, initialData, onCancel, userRole }) => {
               isLoading={isSubmitting}
               loadingText="Đang xử lý..."
               leftIcon={<AddIcon />}
-              size={{ base: 'md', md: 'lg' }}
-              width={{ base: '100%', sm: 'auto' }}
+              size={{ base: "md", md: "lg" }}
+              width={{ base: "100%", sm: "auto" }}
             >
-              {initialData ? 'Cập Nhật Dự Án' : 'Tạo Dự Án Mới'}
+              {initialData ? "Cập Nhật Dự Án" : "Tạo Dự Án Mới"}
             </Button>
           </Stack>
         </VStack>
@@ -856,7 +836,7 @@ ProjectForm.propTypes = {
         assignee: PropTypes.string,
         deadline: PropTypes.string,
         progress: PropTypes.number,
-      })
+      }),
     ),
     departmentLinks: PropTypes.shape({
       coding: PropTypes.string,
@@ -871,17 +851,17 @@ ProjectForm.propTypes = {
       PropTypes.shape({
         date: PropTypes.string,
         title: PropTypes.string,
-      })
+      }),
     ),
     links: PropTypes.arrayOf(
       PropTypes.shape({
         title: PropTypes.string,
         url: PropTypes.string,
-      })
+      }),
     ),
   }),
   onCancel: PropTypes.func.isRequired,
-  userRole: PropTypes.oneOf(['admin-tong', 'admin-con', 'member']).isRequired,
+  userRole: PropTypes.oneOf(["admin-tong", "admin-con", "member"]).isRequired,
 };
 
 export default ProjectForm;

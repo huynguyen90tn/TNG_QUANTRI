@@ -1,6 +1,6 @@
 // src/components/tasks/TaskManagement.js
-import React, { useState, useEffect, useCallback } from 'react';
-import PropTypes from 'prop-types';
+import React, { useState, useEffect, useCallback } from "react";
+import PropTypes from "prop-types";
 import {
   Box,
   Button,
@@ -22,19 +22,28 @@ import {
   Progress,
   useColorModeValue,
   Heading,
-} from '@chakra-ui/react';
-import { AddIcon, EditIcon, DeleteIcon } from '@chakra-ui/icons';
-import { useAuth } from '../../hooks/useAuth';
-import { getAllUsers, getDepartmentUsers, getUserList } from '../../services/api/userApi';
-import { createTask, updateTask, deleteTask, getTasks } from '../../services/api/taskApi';
+} from "@chakra-ui/react";
+import { AddIcon, EditIcon, DeleteIcon } from "@chakra-ui/icons";
+import { useAuth } from "../../hooks/useAuth";
+import {
+  getAllUsers,
+  getDepartmentUsers,
+  getUserList,
+} from "../../services/api/userApi";
+import {
+  createTask,
+  updateTask,
+  deleteTask,
+  getTasks,
+} from "../../services/api/taskApi";
 
 const DEPARTMENTS = [
-  { id: 'thien-minh-duong', name: 'Thiên Minh Đường', role: '2D' },
-  { id: 'tay-van-cac', name: 'Tây Vân Các', role: '3D' },
-  { id: 'hoa-tam-duong', name: 'Họa Tam Đường', role: 'CODE' },
-  { id: 'ho-ly-son-trang', name: 'Hồ Ly Sơn trang', role: 'MARKETING' },
-  { id: 'hoa-van-cac', name: 'Hoa Vân Các', role: 'FILM' },
-  { id: 'tinh-van-cac', name: 'Tinh Vân Các', role: 'GAME_DESIGN' }
+  { id: "thien-minh-duong", name: "Thiên Minh Đường", role: "2D" },
+  { id: "tay-van-cac", name: "Tây Vân Các", role: "3D" },
+  { id: "hoa-tam-duong", name: "Họa Tam Đường", role: "CODE" },
+  { id: "ho-ly-son-trang", name: "Hồ Ly Sơn trang", role: "MARKETING" },
+  { id: "hoa-van-cac", name: "Hoa Vân Các", role: "FILM" },
+  { id: "tinh-van-cac", name: "Tinh Vân Các", role: "GAME_DESIGN" },
 ];
 
 const TaskManagement = ({ projectId }) => {
@@ -42,22 +51,22 @@ const TaskManagement = ({ projectId }) => {
   const toast = useToast();
   const [tasks, setTasks] = useState([]);
   const [users, setUsers] = useState([]);
-  const [selectedDepartment, setSelectedDepartment] = useState('');
+  const [selectedDepartment, setSelectedDepartment] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [currentTask, setCurrentTask] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const bgColor = useColorModeValue('gray.800', 'gray.900');
-  const borderColor = useColorModeValue('gray.600', 'gray.700');
+  const bgColor = useColorModeValue("gray.800", "gray.900");
+  const borderColor = useColorModeValue("gray.600", "gray.700");
 
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    assignee: '',
-    department: '',
-    deadline: '',
+    title: "",
+    description: "",
+    assignee: "",
+    department: "",
+    deadline: "",
     progress: 0,
-    status: 'pending'
+    status: "pending",
   });
 
   const loadTasks = useCallback(async () => {
@@ -66,9 +75,9 @@ const TaskManagement = ({ projectId }) => {
       setTasks(result.data);
     } catch (error) {
       toast({
-        title: 'Lỗi khi tải danh sách nhiệm vụ',
+        title: "Lỗi khi tải danh sách nhiệm vụ",
         description: error.message,
-        status: 'error',
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -86,9 +95,9 @@ const TaskManagement = ({ projectId }) => {
       }
     } catch (error) {
       toast({
-        title: 'Lỗi khi tải danh sách người dùng',
+        title: "Lỗi khi tải danh sách người dùng",
         description: error.message,
-        status: 'error',
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -107,16 +116,16 @@ const TaskManagement = ({ projectId }) => {
       if (isEditing && currentTask) {
         await updateTask(currentTask.id, { ...formData, projectId });
         toast({
-          title: 'Cập nhật nhiệm vụ thành công',
-          status: 'success',
+          title: "Cập nhật nhiệm vụ thành công",
+          status: "success",
           duration: 3000,
           isClosable: true,
         });
       } else {
         await createTask({ ...formData, projectId });
         toast({
-          title: 'Tạo nhiệm vụ mới thành công',
-          status: 'success',
+          title: "Tạo nhiệm vụ mới thành công",
+          status: "success",
           duration: 3000,
           isClosable: true,
         });
@@ -125,9 +134,9 @@ const TaskManagement = ({ projectId }) => {
       loadTasks();
     } catch (error) {
       toast({
-        title: 'Lỗi',
+        title: "Lỗi",
         description: error.message,
-        status: 'error',
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -146,26 +155,26 @@ const TaskManagement = ({ projectId }) => {
       department: task.department,
       deadline: task.deadline,
       progress: task.progress,
-      status: task.status
+      status: task.status,
     });
   };
 
   const handleDelete = async (taskId) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa nhiệm vụ này?')) {
+    if (window.confirm("Bạn có chắc chắn muốn xóa nhiệm vụ này?")) {
       try {
         await deleteTask(taskId);
         toast({
-          title: 'Xóa nhiệm vụ thành công',
-          status: 'success',
+          title: "Xóa nhiệm vụ thành công",
+          status: "success",
           duration: 3000,
           isClosable: true,
         });
         loadTasks();
       } catch (error) {
         toast({
-          title: 'Lỗi khi xóa nhiệm vụ',
+          title: "Lỗi khi xóa nhiệm vụ",
           description: error.message,
-          status: 'error',
+          status: "error",
           duration: 3000,
           isClosable: true,
         });
@@ -175,13 +184,13 @@ const TaskManagement = ({ projectId }) => {
 
   const resetForm = () => {
     setFormData({
-      title: '',
-      description: '',
-      assignee: '',
-      department: '',
-      deadline: '',
+      title: "",
+      description: "",
+      assignee: "",
+      department: "",
+      deadline: "",
       progress: 0,
-      status: 'pending'
+      status: "pending",
     });
     setIsEditing(false);
     setCurrentTask(null);
@@ -190,24 +199,34 @@ const TaskManagement = ({ projectId }) => {
   const handleDepartmentChange = (e) => {
     const department = e.target.value;
     setSelectedDepartment(department);
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       department,
-      assignee: ''
+      assignee: "",
     }));
   };
 
   return (
-    <Box bg={bgColor} p={6} borderRadius="lg" borderWidth="1px" borderColor={borderColor}>
-      <Heading size="lg" mb={6}>Quản Lý Nhiệm Vụ</Heading>
-      
+    <Box
+      bg={bgColor}
+      p={6}
+      borderRadius="lg"
+      borderWidth="1px"
+      borderColor={borderColor}
+    >
+      <Heading size="lg" mb={6}>
+        Quản Lý Nhiệm Vụ
+      </Heading>
+
       <form onSubmit={handleSubmit}>
         <Stack spacing={4}>
           <FormControl isRequired>
             <FormLabel>Tiêu đề nhiệm vụ</FormLabel>
             <Input
               value={formData.title}
-              onChange={(e) => setFormData({...formData, title: e.target.value})}
+              onChange={(e) =>
+                setFormData({ ...formData, title: e.target.value })
+              }
               placeholder="Nhập tiêu đề nhiệm vụ"
             />
           </FormControl>
@@ -216,12 +235,14 @@ const TaskManagement = ({ projectId }) => {
             <FormLabel>Mô tả</FormLabel>
             <Textarea
               value={formData.description}
-              onChange={(e) => setFormData({...formData, description: e.target.value})}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
               placeholder="Nhập mô tả nhiệm vụ"
             />
           </FormControl>
 
-          <Stack direction={['column', 'row']} spacing={4}>
+          <Stack direction={["column", "row"]} spacing={4}>
             <FormControl isRequired>
               <FormLabel>Phân Hệ</FormLabel>
               <Select
@@ -229,8 +250,10 @@ const TaskManagement = ({ projectId }) => {
                 onChange={handleDepartmentChange}
               >
                 <option value="">Chọn phân hệ</option>
-                {DEPARTMENTS.map(dept => (
-                  <option key={dept.id} value={dept.id}>{dept.name}</option>
+                {DEPARTMENTS.map((dept) => (
+                  <option key={dept.id} value={dept.id}>
+                    {dept.name}
+                  </option>
                 ))}
               </Select>
             </FormControl>
@@ -239,11 +262,13 @@ const TaskManagement = ({ projectId }) => {
               <FormLabel>Người thực hiện</FormLabel>
               <Select
                 value={formData.assignee}
-                onChange={(e) => setFormData({...formData, assignee: e.target.value})}
+                onChange={(e) =>
+                  setFormData({ ...formData, assignee: e.target.value })
+                }
                 isDisabled={!formData.department}
               >
                 <option value="">Chọn người thực hiện</option>
-                {users.map(user => (
+                {users.map((user) => (
                   <option key={user.id} value={user.id}>
                     {user.fullName} ({user.email})
                   </option>
@@ -256,23 +281,29 @@ const TaskManagement = ({ projectId }) => {
               <Input
                 type="date"
                 value={formData.deadline}
-                onChange={(e) => setFormData({...formData, deadline: e.target.value})}
+                onChange={(e) =>
+                  setFormData({ ...formData, deadline: e.target.value })
+                }
               />
             </FormControl>
           </Stack>
 
           <Stack direction="row" spacing={4} justify="flex-end">
-            <Button onClick={resetForm} variant="outline" isDisabled={isSubmitting}>
+            <Button
+              onClick={resetForm}
+              variant="outline"
+              isDisabled={isSubmitting}
+            >
               Hủy
             </Button>
-            <Button 
-              type="submit" 
-              colorScheme="blue" 
+            <Button
+              type="submit"
+              colorScheme="blue"
               leftIcon={<AddIcon />}
               isLoading={isSubmitting}
               loadingText="Đang xử lý..."
             >
-              {isEditing ? 'Cập nhật' : 'Thêm nhiệm vụ'}
+              {isEditing ? "Cập nhật" : "Thêm nhiệm vụ"}
             </Button>
           </Stack>
         </Stack>
@@ -290,16 +321,20 @@ const TaskManagement = ({ projectId }) => {
           </Tr>
         </Thead>
         <Tbody>
-          {tasks.map(task => (
+          {tasks.map((task) => (
             <Tr key={task.id}>
               <Td>{task.title}</Td>
               <Td>
                 <Badge colorScheme="blue">
-                  {DEPARTMENTS.find(d => d.id === task.department)?.name || task.department}
+                  {DEPARTMENTS.find((d) => d.id === task.department)?.name ||
+                    task.department}
                 </Badge>
               </Td>
-              <Td>{users.find(u => u.id === task.assignee)?.fullName || task.assignee}</Td>
-              <Td>{new Date(task.deadline).toLocaleDateString('vi-VN')}</Td>
+              <Td>
+                {users.find((u) => u.id === task.assignee)?.fullName ||
+                  task.assignee}
+              </Td>
+              <Td>{new Date(task.deadline).toLocaleDateString("vi-VN")}</Td>
               <Td>
                 <Progress value={task.progress} size="sm" colorScheme="blue" />
               </Td>

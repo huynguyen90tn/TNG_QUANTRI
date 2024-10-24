@@ -1,17 +1,17 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { 
-  getProjects, 
-  createProject, 
-  updateProject, 
-  deleteProject 
-} from '../../services/api/projectApi';
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import {
+  getProjects,
+  createProject,
+  updateProject,
+  deleteProject,
+} from "../../services/api/projectApi";
 
 // Constants for status values
 const STATUS = {
-  IDLE: 'idle',
-  LOADING: 'loading',
-  SUCCEEDED: 'succeeded',
-  FAILED: 'failed'
+  IDLE: "idle",
+  LOADING: "loading",
+  SUCCEEDED: "succeeded",
+  FAILED: "failed",
 };
 
 // Initial state
@@ -19,90 +19,96 @@ const initialState = {
   projects: [],
   status: STATUS.IDLE,
   error: null,
-  currentProject: null
+  currentProject: null,
 };
 
 /**
  * Async thunk to fetch all projects
  */
 export const fetchProjects = createAsyncThunk(
-  'projects/fetchProjects',
+  "projects/fetchProjects",
   async (_, { rejectWithValue }) => {
     try {
       const projects = await getProjects();
       if (!Array.isArray(projects)) {
-        throw new Error('Invalid response format');
+        throw new Error("Invalid response format");
       }
       return projects;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Không thể tải danh sách dự án';
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Không thể tải danh sách dự án";
       return rejectWithValue(message);
     }
-  }
+  },
 );
 
 /**
  * Async thunk to create a new project
  */
 export const addProject = createAsyncThunk(
-  'projects/addProject',
+  "projects/addProject",
   async (projectData, { rejectWithValue }) => {
     try {
       if (!projectData) {
-        throw new Error('Project data is required');
+        throw new Error("Project data is required");
       }
       const newProject = await createProject(projectData);
       return newProject;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Không thể tạo dự án';
+      const message =
+        error instanceof Error ? error.message : "Không thể tạo dự án";
       return rejectWithValue(message);
     }
-  }
+  },
 );
 
 /**
  * Async thunk to update an existing project
  */
 export const editProject = createAsyncThunk(
-  'projects/editProject',
+  "projects/editProject",
   async ({ projectId, projectData }, { rejectWithValue }) => {
     try {
       if (!projectId || !projectData) {
-        throw new Error('Project ID and data are required');
+        throw new Error("Project ID and data are required");
       }
       const updatedProject = await updateProject(projectId, projectData);
       return updatedProject;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Không thể cập nhật dự án';
+      const message =
+        error instanceof Error ? error.message : "Không thể cập nhật dự án";
       return rejectWithValue(message);
     }
-  }
+  },
 );
 
 /**
  * Async thunk to remove a project
  */
 export const removeProject = createAsyncThunk(
-  'projects/removeProject',
+  "projects/removeProject",
   async (projectId, { rejectWithValue }) => {
     try {
       if (!projectId) {
-        throw new Error('Project ID is required');
+        throw new Error("Project ID is required");
       }
       await deleteProject(projectId);
       return projectId;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Không thể xóa dự án';
+      const message =
+        error instanceof Error ? error.message : "Không thể xóa dự án";
       return rejectWithValue(message);
     }
-  }
+  },
 );
 
 /**
  * Project slice with reducers and extra reducers for async actions
  */
 const projectSlice = createSlice({
-  name: 'projects',
+  name: "projects",
   initialState,
   reducers: {
     setCurrentProject: (state, action) => {
@@ -113,7 +119,7 @@ const projectSlice = createSlice({
     },
     resetStatus: (state) => {
       state.status = STATUS.IDLE;
-    }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -154,7 +160,9 @@ const projectSlice = createSlice({
       })
       .addCase(editProject.fulfilled, (state, action) => {
         state.status = STATUS.SUCCEEDED;
-        const index = state.projects.findIndex(project => project.id === action.payload.id);
+        const index = state.projects.findIndex(
+          (project) => project.id === action.payload.id,
+        );
         if (index !== -1) {
           state.projects[index] = action.payload;
         }
@@ -172,7 +180,9 @@ const projectSlice = createSlice({
       })
       .addCase(removeProject.fulfilled, (state, action) => {
         state.status = STATUS.SUCCEEDED;
-        state.projects = state.projects.filter(project => project.id !== action.payload);
+        state.projects = state.projects.filter(
+          (project) => project.id !== action.payload,
+        );
         state.error = null;
       })
       .addCase(removeProject.rejected, (state, action) => {
@@ -183,11 +193,8 @@ const projectSlice = createSlice({
 });
 
 // Export actions
-export const { 
-  setCurrentProject, 
-  clearError, 
-  resetStatus 
-} = projectSlice.actions;
+export const { setCurrentProject, clearError, resetStatus } =
+  projectSlice.actions;
 
 // Export selectors
 export const selectAllProjects = (state) => state.projects.projects;

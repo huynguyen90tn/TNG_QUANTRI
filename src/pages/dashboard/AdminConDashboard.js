@@ -1,6 +1,6 @@
 // src/pages/dashboard/AdminConDashboard.js
-import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Container,
@@ -21,18 +21,18 @@ import {
   Badge,
   Divider,
   useToast,
-} from '@chakra-ui/react';
-import { 
-  FaUsers, 
-  FaProjectDiagram, 
-  FaClock, 
-  FaUserPlus, 
+} from "@chakra-ui/react";
+import {
+  FaUsers,
+  FaProjectDiagram,
+  FaClock,
+  FaUserPlus,
   FaListAlt,
-  FaTasks 
-} from 'react-icons/fa';
-import { useAuth } from '../../hooks/useAuth';
-import { getTasksByDepartment } from '../../services/api/taskApi';
-import { getUserList } from '../../services/api/userApi';
+  FaTasks,
+} from "react-icons/fa";
+import { useAuth } from "../../hooks/useAuth";
+import { getTasksByDepartment } from "../../services/api/taskApi";
+import { getUserList } from "../../services/api/userApi";
 
 const AdminConDashboard = () => {
   const navigate = useNavigate();
@@ -41,33 +41,34 @@ const AdminConDashboard = () => {
   const [stats, setStats] = useState({
     totalMembers: 0,
     totalTasks: 0,
-    completedTasks: 0
+    completedTasks: 0,
   });
 
-  const bgColor = useColorModeValue('gray.50', 'gray.900');
-  const cardBg = useColorModeValue('white', 'gray.800');
-  const textColor = useColorModeValue('gray.600', 'gray.300');
+  const bgColor = useColorModeValue("gray.50", "gray.900");
+  const cardBg = useColorModeValue("white", "gray.800");
+  const textColor = useColorModeValue("gray.600", "gray.300");
 
   const loadDashboardData = useCallback(async () => {
     if (!user?.department) return;
-    
+
     try {
       const [membersResponse, tasksResponse] = await Promise.all([
-        getUserList({ role: 'member', department: user.department }),
-        getTasksByDepartment(user.department)
+        getUserList({ role: "member", department: user.department }),
+        getTasksByDepartment(user.department),
       ]);
 
       const tasks = tasksResponse.data;
       setStats({
         totalMembers: membersResponse.data.length,
         totalTasks: tasks.length,
-        completedTasks: tasks.filter(task => task.status === 'completed').length
+        completedTasks: tasks.filter((task) => task.status === "completed")
+          .length,
       });
     } catch (error) {
       toast({
-        title: 'Lỗi tải dữ liệu',
+        title: "Lỗi tải dữ liệu",
         description: error.message,
-        status: 'error',
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -81,12 +82,12 @@ const AdminConDashboard = () => {
   const handleSignOut = async () => {
     try {
       await signOut();
-      navigate('/');
+      navigate("/");
     } catch (error) {
       toast({
-        title: 'Lỗi đăng xuất',
+        title: "Lỗi đăng xuất",
         description: error.message,
-        status: 'error',
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -100,7 +101,7 @@ const AdminConDashboard = () => {
       rounded="xl"
       shadow="md"
       transition="transform 0.2s"
-      _hover={{ transform: 'translateY(-2px)' }}
+      _hover={{ transform: "translateY(-2px)" }}
     >
       <Flex align="center">
         <Icon as={icon} w={8} h={8} color={color} mr={4} />
@@ -130,15 +131,17 @@ const AdminConDashboard = () => {
             </Badge>
             <Menu>
               <MenuButton>
-                <Avatar 
-                  size="sm" 
+                <Avatar
+                  size="sm"
                   name={user?.displayName}
                   src={user?.photoURL}
                 />
               </MenuButton>
               <MenuList>
-                <MenuItem onClick={() => navigate('/ho-so')}>Hồ sơ</MenuItem>
-                <MenuItem onClick={() => navigate('/cai-dat')}>Cài đặt</MenuItem>
+                <MenuItem onClick={() => navigate("/ho-so")}>Hồ sơ</MenuItem>
+                <MenuItem onClick={() => navigate("/cai-dat")}>
+                  Cài đặt
+                </MenuItem>
                 <Divider />
                 <MenuItem onClick={handleSignOut} color="red.500">
                   Đăng xuất
@@ -151,9 +154,9 @@ const AdminConDashboard = () => {
         {/* Thống kê */}
         <Grid
           templateColumns={{
-            base: '1fr',
-            md: 'repeat(2, 1fr)',
-            lg: 'repeat(3, 1fr)'
+            base: "1fr",
+            md: "repeat(2, 1fr)",
+            lg: "repeat(3, 1fr)",
           }}
           gap={6}
           mb={8}
@@ -180,12 +183,14 @@ const AdminConDashboard = () => {
 
         {/* Các nút chức năng */}
         <VStack spacing={4} align="stretch">
-          <Heading size="md" mb={4}>Chức năng quản lý</Heading>
+          <Heading size="md" mb={4}>
+            Chức năng quản lý
+          </Heading>
           <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
             <Button
               leftIcon={<FaUserPlus />}
               colorScheme="green"
-              onClick={() => navigate('/admin-con/tao-thanh-vien')}
+              onClick={() => navigate("/admin-con/tao-thanh-vien")}
               size="lg"
               variant="outline"
             >
@@ -195,7 +200,7 @@ const AdminConDashboard = () => {
             <Button
               leftIcon={<FaListAlt />}
               colorScheme="blue"
-              onClick={() => navigate('/admin-con/diem-danh')}
+              onClick={() => navigate("/admin-con/diem-danh")}
               size="lg"
               variant="outline"
             >
@@ -205,7 +210,7 @@ const AdminConDashboard = () => {
             <Button
               leftIcon={<FaProjectDiagram />}
               colorScheme="purple"
-              onClick={() => navigate('/quan-ly-du-an')}
+              onClick={() => navigate("/quan-ly-du-an")}
               size="lg"
               variant="outline"
             >
@@ -215,7 +220,7 @@ const AdminConDashboard = () => {
             <Button
               leftIcon={<FaTasks />}
               colorScheme="orange"
-              onClick={() => navigate('/quan-ly-nhiem-vu')}
+              onClick={() => navigate("/quan-ly-nhiem-vu")}
               size="lg"
               variant="outline"
             >

@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   Container,
   SimpleGrid,
@@ -6,9 +6,9 @@ import {
   Text,
   Box,
   Center,
-} from '@chakra-ui/react';
-import { motion } from 'framer-motion';
-import ProjectCard from './ProjectCard';
+} from "@chakra-ui/react";
+import { motion } from "framer-motion";
+import ProjectCard from "./ProjectCard";
 
 const MotionGrid = motion(SimpleGrid);
 
@@ -16,7 +16,7 @@ const ProjectList = ({ projects = [], onEdit, userRole }) => {
   // Validate projects array
   const validProjects = Array.isArray(projects)
     ? projects.filter(
-        (project) => project && typeof project === 'object' && project.id
+        (project) => project && typeof project === "object" && project.id,
       )
     : [];
 
@@ -25,7 +25,7 @@ const ProjectList = ({ projects = [], onEdit, userRole }) => {
       <Box mb={8} textAlign="center">
         <Heading
           mb={4}
-          fontSize={{ base: '2xl', md: '4xl' }}
+          fontSize={{ base: "2xl", md: "4xl" }}
           fontWeight="bold"
           color="blue.600"
         >
@@ -34,7 +34,7 @@ const ProjectList = ({ projects = [], onEdit, userRole }) => {
         <Text fontSize="lg" color="gray.600">
           {validProjects.length
             ? `Hiện có ${validProjects.length} dự án đang được thực hiện`
-            : 'Chưa có dự án nào được tạo'}
+            : "Chưa có dự án nào được tạo"}
         </Text>
       </Box>
 

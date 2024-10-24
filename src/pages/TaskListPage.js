@@ -1,5 +1,5 @@
 // src/pages/TaskListPage.js
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Box,
   Container,
@@ -38,26 +38,31 @@ import {
   Text,
   Flex,
   Spacer,
-} from '@chakra-ui/react';
-import { 
-  AddIcon, 
-  EditIcon, 
-  DeleteIcon, 
+} from "@chakra-ui/react";
+import {
+  AddIcon,
+  EditIcon,
+  DeleteIcon,
   ChevronDownIcon,
   SearchIcon,
-  FilterIcon 
-} from '@chakra-ui/icons';
-import { useAuth } from '../hooks/useAuth';
-import { getTasks, createTask, updateTask, deleteTask } from '../services/api/taskApi';
-import { getUserList } from '../services/api/userApi';
+  FilterIcon,
+} from "@chakra-ui/icons";
+import { useAuth } from "../hooks/useAuth";
+import {
+  getTasks,
+  createTask,
+  updateTask,
+  deleteTask,
+} from "../services/api/taskApi";
+import { getUserList } from "../services/api/userApi";
 
 const DEPARTMENTS = [
-  { id: 'thien-minh-duong', name: 'Thiên Minh Đường', role: '2D' },
-  { id: 'tay-van-cac', name: 'Tây Vân Các', role: '3D' },
-  { id: 'hoa-tam-duong', name: 'Họa Tam Đường', role: 'CODE' },
-  { id: 'ho-ly-son-trang', name: 'Hồ Ly Sơn trang', role: 'MARKETING' },
-  { id: 'hoa-van-cac', name: 'Hoa Vân Các', role: 'FILM' },
-  { id: 'tinh-van-cac', name: 'Tinh Vân Các', role: 'GAME_DESIGN' }
+  { id: "thien-minh-duong", name: "Thiên Minh Đường", role: "2D" },
+  { id: "tay-van-cac", name: "Tây Vân Các", role: "3D" },
+  { id: "hoa-tam-duong", name: "Họa Tam Đường", role: "CODE" },
+  { id: "ho-ly-son-trang", name: "Hồ Ly Sơn trang", role: "MARKETING" },
+  { id: "hoa-van-cac", name: "Hoa Vân Các", role: "FILM" },
+  { id: "tinh-van-cac", name: "Tinh Vân Các", role: "GAME_DESIGN" },
 ];
 
 const TaskListPage = () => {
@@ -69,23 +74,23 @@ const TaskListPage = () => {
   const [loading, setLoading] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [filters, setFilters] = useState({
-    department: '',
-    status: '',
-    search: '',
+    department: "",
+    status: "",
+    search: "",
   });
 
   const [taskForm, setTaskForm] = useState({
-    title: '',
-    description: '',
-    assignee: '',
-    department: '',
-    deadline: '',
+    title: "",
+    description: "",
+    assignee: "",
+    department: "",
+    deadline: "",
     progress: 0,
-    status: 'pending'
+    status: "pending",
   });
 
-  const bgColor = useColorModeValue('white', 'gray.800');
-  const borderColor = useColorModeValue('gray.200', 'gray.600');
+  const bgColor = useColorModeValue("white", "gray.800");
+  const borderColor = useColorModeValue("gray.200", "gray.600");
 
   const loadTasks = useCallback(async () => {
     try {
@@ -94,9 +99,9 @@ const TaskListPage = () => {
       setTasks(response.data);
     } catch (error) {
       toast({
-        title: 'Lỗi tải danh sách nhiệm vụ',
+        title: "Lỗi tải danh sách nhiệm vụ",
         description: error.message,
-        status: 'error',
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -111,8 +116,8 @@ const TaskListPage = () => {
       setUsers(response.data);
     } catch (error) {
       toast({
-        title: 'Lỗi tải danh sách người dùng',
-        status: 'error',
+        title: "Lỗi tải danh sách người dùng",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -130,15 +135,15 @@ const TaskListPage = () => {
       if (selectedTask) {
         await updateTask(selectedTask.id, taskForm);
         toast({
-          title: 'Cập nhật nhiệm vụ thành công',
-          status: 'success',
+          title: "Cập nhật nhiệm vụ thành công",
+          status: "success",
           duration: 3000,
         });
       } else {
         await createTask(taskForm);
         toast({
-          title: 'Tạo nhiệm vụ thành công',
-          status: 'success',
+          title: "Tạo nhiệm vụ thành công",
+          status: "success",
           duration: 3000,
         });
       }
@@ -147,9 +152,9 @@ const TaskListPage = () => {
       resetForm();
     } catch (error) {
       toast({
-        title: 'Lỗi',
+        title: "Lỗi",
         description: error.message,
-        status: 'error',
+        status: "error",
         duration: 3000,
       });
     } finally {
@@ -166,26 +171,26 @@ const TaskListPage = () => {
       department: task.department,
       deadline: task.deadline,
       progress: task.progress,
-      status: task.status
+      status: task.status,
     });
     onOpen();
   };
 
   const handleDelete = async (taskId) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa nhiệm vụ này?')) {
+    if (window.confirm("Bạn có chắc chắn muốn xóa nhiệm vụ này?")) {
       try {
         await deleteTask(taskId);
         toast({
-          title: 'Xóa nhiệm vụ thành công',
-          status: 'success',
+          title: "Xóa nhiệm vụ thành công",
+          status: "success",
           duration: 3000,
         });
         loadTasks();
       } catch (error) {
         toast({
-          title: 'Lỗi khi xóa nhiệm vụ',
+          title: "Lỗi khi xóa nhiệm vụ",
           description: error.message,
-          status: 'error',
+          status: "error",
           duration: 3000,
         });
       }
@@ -194,25 +199,25 @@ const TaskListPage = () => {
 
   const resetForm = () => {
     setTaskForm({
-      title: '',
-      description: '',
-      assignee: '',
-      department: '',
-      deadline: '',
+      title: "",
+      description: "",
+      assignee: "",
+      department: "",
+      deadline: "",
       progress: 0,
-      status: 'pending'
+      status: "pending",
     });
     setSelectedTask(null);
   };
 
   const getStatusColor = (status) => {
     const colors = {
-      pending: 'yellow',
-      'in-progress': 'blue',
-      completed: 'green',
-      cancelled: 'red'
+      pending: "yellow",
+      "in-progress": "blue",
+      completed: "green",
+      cancelled: "red",
     };
-    return colors[status] || 'gray';
+    return colors[status] || "gray";
   };
 
   return (
@@ -238,18 +243,24 @@ const TaskListPage = () => {
             <Input
               placeholder="Tìm kiếm nhiệm vụ..."
               value={filters.search}
-              onChange={(e) => setFilters({...filters, search: e.target.value})}
+              onChange={(e) =>
+                setFilters({ ...filters, search: e.target.value })
+              }
             />
           </FormControl>
 
           <FormControl maxW="200px">
             <Select
               value={filters.department}
-              onChange={(e) => setFilters({...filters, department: e.target.value})}
+              onChange={(e) =>
+                setFilters({ ...filters, department: e.target.value })
+              }
               placeholder="Chọn phân hệ"
             >
-              {DEPARTMENTS.map(dept => (
-                <option key={dept.id} value={dept.id}>{dept.name}</option>
+              {DEPARTMENTS.map((dept) => (
+                <option key={dept.id} value={dept.id}>
+                  {dept.name}
+                </option>
               ))}
             </Select>
           </FormControl>
@@ -257,7 +268,9 @@ const TaskListPage = () => {
           <FormControl maxW="200px">
             <Select
               value={filters.status}
-              onChange={(e) => setFilters({...filters, status: e.target.value})}
+              onChange={(e) =>
+                setFilters({ ...filters, status: e.target.value })
+              }
               placeholder="Trạng thái"
             >
               <option value="pending">Chờ xử lý</option>
@@ -281,26 +294,34 @@ const TaskListPage = () => {
             </Tr>
           </Thead>
           <Tbody>
-            {tasks.map(task => (
+            {tasks.map((task) => (
               <Tr key={task.id}>
                 <Td>{task.title}</Td>
                 <Td>
                   <Badge>
-                    {DEPARTMENTS.find(d => d.id === task.department)?.name || task.department}
+                    {DEPARTMENTS.find((d) => d.id === task.department)?.name ||
+                      task.department}
                   </Badge>
                 </Td>
-                <Td>{users.find(u => u.id === task.assignee)?.fullName || task.assignee}</Td>
-                <Td>{new Date(task.deadline).toLocaleDateString('vi-VN')}</Td>
+                <Td>
+                  {users.find((u) => u.id === task.assignee)?.fullName ||
+                    task.assignee}
+                </Td>
+                <Td>{new Date(task.deadline).toLocaleDateString("vi-VN")}</Td>
                 <Td>
                   <Badge colorScheme={getStatusColor(task.status)}>
-                    {task.status === 'pending' && 'Chờ xử lý'}
-                    {task.status === 'in-progress' && 'Đang thực hiện'}
-                    {task.status === 'completed' && 'Hoàn thành'}
-                    {task.status === 'cancelled' && 'Đã hủy'}
+                    {task.status === "pending" && "Chờ xử lý"}
+                    {task.status === "in-progress" && "Đang thực hiện"}
+                    {task.status === "completed" && "Hoàn thành"}
+                    {task.status === "cancelled" && "Đã hủy"}
                   </Badge>
                 </Td>
                 <Td>
-                  <Progress value={task.progress} size="sm" colorScheme="blue" />
+                  <Progress
+                    value={task.progress}
+                    size="sm"
+                    colorScheme="blue"
+                  />
                 </Td>
                 <Td>
                   <HStack spacing={2}>
@@ -328,7 +349,7 @@ const TaskListPage = () => {
           <ModalOverlay />
           <ModalContent>
             <ModalHeader>
-              {selectedTask ? 'Cập nhật nhiệm vụ' : 'Thêm nhiệm vụ mới'}
+              {selectedTask ? "Cập nhật nhiệm vụ" : "Thêm nhiệm vụ mới"}
             </ModalHeader>
             <ModalCloseButton />
             <ModalBody>
@@ -337,7 +358,9 @@ const TaskListPage = () => {
                   <FormLabel>Tiêu đề</FormLabel>
                   <Input
                     value={taskForm.title}
-                    onChange={(e) => setTaskForm({...taskForm, title: e.target.value})}
+                    onChange={(e) =>
+                      setTaskForm({ ...taskForm, title: e.target.value })
+                    }
                   />
                 </FormControl>
 
@@ -345,7 +368,9 @@ const TaskListPage = () => {
                   <FormLabel>Mô tả</FormLabel>
                   <Textarea
                     value={taskForm.description}
-                    onChange={(e) => setTaskForm({...taskForm, description: e.target.value})}
+                    onChange={(e) =>
+                      setTaskForm({ ...taskForm, description: e.target.value })
+                    }
                   />
                 </FormControl>
 
@@ -353,11 +378,15 @@ const TaskListPage = () => {
                   <FormLabel>Phân hệ</FormLabel>
                   <Select
                     value={taskForm.department}
-                    onChange={(e) => setTaskForm({...taskForm, department: e.target.value})}
+                    onChange={(e) =>
+                      setTaskForm({ ...taskForm, department: e.target.value })
+                    }
                   >
                     <option value="">Chọn phân hệ</option>
-                    {DEPARTMENTS.map(dept => (
-                      <option key={dept.id} value={dept.id}>{dept.name}</option>
+                    {DEPARTMENTS.map((dept) => (
+                      <option key={dept.id} value={dept.id}>
+                        {dept.name}
+                      </option>
                     ))}
                   </Select>
                 </FormControl>
@@ -366,10 +395,12 @@ const TaskListPage = () => {
                   <FormLabel>Người thực hiện</FormLabel>
                   <Select
                     value={taskForm.assignee}
-                    onChange={(e) => setTaskForm({...taskForm, assignee: e.target.value})}
+                    onChange={(e) =>
+                      setTaskForm({ ...taskForm, assignee: e.target.value })
+                    }
                   >
                     <option value="">Chọn người thực hiện</option>
-                    {users.map(user => (
+                    {users.map((user) => (
                       <option key={user.id} value={user.id}>
                         {user.fullName} ({user.email})
                       </option>
@@ -382,7 +413,9 @@ const TaskListPage = () => {
                   <Input
                     type="date"
                     value={taskForm.deadline}
-                    onChange={(e) => setTaskForm({...taskForm, deadline: e.target.value})}
+                    onChange={(e) =>
+                      setTaskForm({ ...taskForm, deadline: e.target.value })
+                    }
                   />
                 </FormControl>
 
@@ -393,7 +426,12 @@ const TaskListPage = () => {
                     min="0"
                     max="100"
                     value={taskForm.progress}
-                    onChange={(e) => setTaskForm({...taskForm, progress: Number(e.target.value)})}
+                    onChange={(e) =>
+                      setTaskForm({
+                        ...taskForm,
+                        progress: Number(e.target.value),
+                      })
+                    }
                   />
                 </FormControl>
 
@@ -401,7 +439,9 @@ const TaskListPage = () => {
                   <FormLabel>Trạng thái</FormLabel>
                   <Select
                     value={taskForm.status}
-                    onChange={(e) => setTaskForm({...taskForm, status: e.target.value})}
+                    onChange={(e) =>
+                      setTaskForm({ ...taskForm, status: e.target.value })
+                    }
                   >
                     <option value="pending">Chờ xử lý</option>
                     <option value="in-progress">Đang thực hiện</option>
@@ -416,12 +456,12 @@ const TaskListPage = () => {
               <Button variant="ghost" mr={3} onClick={onClose}>
                 Hủy
               </Button>
-              <Button 
-                colorScheme="blue" 
+              <Button
+                colorScheme="blue"
                 onClick={handleSubmit}
                 isLoading={loading}
               >
-                {selectedTask ? 'Cập nhật' : 'Thêm mới'}
+                {selectedTask ? "Cập nhật" : "Thêm mới"}
               </Button>
             </ModalFooter>
           </ModalContent>

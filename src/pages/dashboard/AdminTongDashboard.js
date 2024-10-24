@@ -1,6 +1,6 @@
 // src/pages/dashboard/AdminTongDashboard.js
-import React, { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Flex,
@@ -24,7 +24,7 @@ import {
   Divider,
   useToast,
   Skeleton,
-} from '@chakra-ui/react';
+} from "@chakra-ui/react";
 import {
   FaUsers,
   FaProjectDiagram,
@@ -33,10 +33,10 @@ import {
   FaTasks,
   FaChartLine,
   FaListAlt,
-} from 'react-icons/fa';
-import { useAuth } from '../../hooks/useAuth';
-import { getTasks } from '../../services/api/taskApi';
-import { getAllUsers } from '../../services/api/userApi';
+} from "react-icons/fa";
+import { useAuth } from "../../hooks/useAuth";
+import { getTasks } from "../../services/api/taskApi";
+import { getAllUsers } from "../../services/api/userApi";
 
 const AdminTongDashboard = () => {
   const navigate = useNavigate();
@@ -50,10 +50,10 @@ const AdminTongDashboard = () => {
     completedTasks: 0,
   });
 
-  const bgColor = useColorModeValue('gray.50', 'gray.800');
-  const cardBg = useColorModeValue('white', 'gray.700');
-  const borderColor = useColorModeValue('gray.200', 'gray.600');
-  const textColor = useColorModeValue('gray.600', 'gray.200');
+  const bgColor = useColorModeValue("gray.50", "gray.800");
+  const cardBg = useColorModeValue("white", "gray.700");
+  const borderColor = useColorModeValue("gray.200", "gray.600");
+  const textColor = useColorModeValue("gray.600", "gray.200");
 
   const loadDashboardData = useCallback(async () => {
     try {
@@ -64,23 +64,23 @@ const AdminTongDashboard = () => {
       ]);
 
       const completedTasks = tasksResponse.data.filter(
-        (task) => task.progress === 100
+        (task) => task.progress === 100,
       ).length;
 
       setStats({
         totalUsers: usersResponse.data.length,
         totalProjects: usersResponse.data.reduce(
           (acc, user) => acc + (user.projects?.length || 0),
-          0
+          0,
         ),
         totalTasks: tasksResponse.data.length,
         completedTasks,
       });
     } catch (error) {
       toast({
-        title: 'Lỗi tải dữ liệu',
+        title: "Lỗi tải dữ liệu",
         description: error.message,
-        status: 'error',
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -96,12 +96,12 @@ const AdminTongDashboard = () => {
   const handleSignOut = async () => {
     try {
       await signOut();
-      navigate('/');
+      navigate("/");
     } catch (error) {
       toast({
-        title: 'Lỗi đăng xuất',
+        title: "Lỗi đăng xuất",
         description: error.message,
-        status: 'error',
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -144,7 +144,7 @@ const AdminTongDashboard = () => {
       px={8}
       py={6}
       shadow="md"
-      _hover={{ transform: 'translateY(-2px)', shadow: 'lg' }}
+      _hover={{ transform: "translateY(-2px)", shadow: "lg" }}
       transition="all 0.2s"
     >
       {label}
@@ -159,7 +159,7 @@ const AdminTongDashboard = () => {
           <Box>
             <Heading size="lg">Dashboard Quản Trị</Heading>
             <Text color={textColor}>
-              Xin chào, {user?.displayName || 'Admin'}
+              Xin chào, {user?.displayName || "Admin"}
             </Text>
           </Box>
 
@@ -176,8 +176,10 @@ const AdminTongDashboard = () => {
                 name={user?.displayName}
               />
               <MenuList>
-                <MenuItem onClick={() => navigate('/ho-so')}>Hồ sơ</MenuItem>
-                <MenuItem onClick={() => navigate('/cai-dat')}>Cài đặt</MenuItem>
+                <MenuItem onClick={() => navigate("/ho-so")}>Hồ sơ</MenuItem>
+                <MenuItem onClick={() => navigate("/cai-dat")}>
+                  Cài đặt
+                </MenuItem>
                 <Divider />
                 <MenuItem onClick={handleSignOut} color="red.500">
                   Đăng xuất
@@ -220,25 +222,25 @@ const AdminTongDashboard = () => {
           <QuickActionButton
             icon={<FaUserPlus />}
             label="Tạo tài khoản quản trị"
-            onClick={() => navigate('/tao-quan-tri')}
+            onClick={() => navigate("/tao-quan-tri")}
             colorScheme="blue"
           />
           <QuickActionButton
             icon={<FaCalendarCheck />}
             label="Quản lý điểm danh"
-            onClick={() => navigate('/admin-tong/diem-danh')}
+            onClick={() => navigate("/admin-tong/diem-danh")}
             colorScheme="green"
           />
           <QuickActionButton
             icon={<FaProjectDiagram />}
             label="Quản lý dự án"
-            onClick={() => navigate('/quan-ly-du-an')}
+            onClick={() => navigate("/quan-ly-du-an")}
             colorScheme="purple"
           />
           <QuickActionButton
             icon={<FaListAlt />}
             label="Quản lý nhiệm vụ"
-            onClick={() => navigate('/quan-ly-nhiem-vu')}
+            onClick={() => navigate("/quan-ly-nhiem-vu")}
             colorScheme="orange"
           />
         </SimpleGrid>

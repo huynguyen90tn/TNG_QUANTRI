@@ -1,5 +1,5 @@
 // File: src/components/attendance/AttendanceForm.js
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Box,
   VStack,
@@ -14,17 +14,17 @@ import {
   RadioGroup,
   Stack,
   useColorModeValue,
-} from '@chakra-ui/react';
-import { 
-  collection, 
-  getDocs, 
-  query, 
-  where, 
+} from "@chakra-ui/react";
+import {
+  collection,
+  getDocs,
+  query,
+  where,
   addDoc,
-  Timestamp
-} from 'firebase/firestore';
-import { db } from '../../services/firebase';
-import { useAuth } from '../../hooks/useAuth';
+  Timestamp,
+} from "firebase/firestore";
+import { db } from "../../services/firebase";
+import { useAuth } from "../../hooks/useAuth";
 
 const DEPARTMENTS = [
   "Thiên Minh Đường",
@@ -32,24 +32,24 @@ const DEPARTMENTS = [
   "Họa Tam Đường",
   "Hồ Ly Sơn trang",
   "Hoa Vân Các",
-  "Tinh Vân Các"
+  "Tinh Vân Các",
 ];
 
 const GREETINGS = [
   "Chúc bạn một ngày làm việc hiệu quả! ✨",
   "Hãy tỏa sáng hôm nay nhé! 🌟",
-  "Chúc bạn một ngày tràn đầy năng lượng! 🎉"
+  "Chúc bạn một ngày tràn đầy năng lượng! 🎉",
 ];
 
 const WORKING_HOURS = {
   MORNING: {
     START: { hour: 9, minute: 5 },
-    END: { hour: 12, minute: 0 }
+    END: { hour: 12, minute: 0 },
   },
   AFTERNOON: {
     START: { hour: 13, minute: 0 },
-    END: { hour: 18, minute: 0 }
-  }
+    END: { hour: 18, minute: 0 },
+  },
 };
 
 function AttendanceForm({ onClose }) {
@@ -59,36 +59,36 @@ function AttendanceForm({ onClose }) {
   const [admins, setAdmins] = useState([]);
 
   const [formData, setFormData] = useState({
-    fullName: '',
-    memberCode: '',
-    workLocation: '',
-    department: user?.department || '',
-    lateReason: '',
-    hasReported: 'no',
-    reportedToAdmin: ''
+    fullName: "",
+    memberCode: "",
+    workLocation: "",
+    department: user?.department || "",
+    lateReason: "",
+    hasReported: "no",
+    reportedToAdmin: "",
   });
 
-  const bgColor = useColorModeValue('white', 'gray.800');
-  const borderColor = useColorModeValue('gray.200', 'gray.600');
+  const bgColor = useColorModeValue("white", "gray.800");
+  const borderColor = useColorModeValue("gray.200", "gray.600");
 
   const fetchAdmins = useCallback(async () => {
     try {
       const adminsQuery = query(
-        collection(db, 'users'),
-        where('role', 'in', ['admin-tong', 'admin-con'])
+        collection(db, "users"),
+        where("role", "in", ["admin-tong", "admin-con"]),
       );
       const snapshot = await getDocs(adminsQuery);
-      const adminsList = snapshot.docs.map(doc => ({
+      const adminsList = snapshot.docs.map((doc) => ({
         id: doc.id,
-        ...doc.data()
+        ...doc.data(),
       }));
       setAdmins(adminsList);
     } catch (error) {
-      console.error('Error fetching admins:', error);
+      console.error("Error fetching admins:", error);
       toast({
-        title: 'Lỗi',
-        description: 'Không thể tải danh sách quản lý',
-        status: 'error',
+        title: "Lỗi",
+        description: "Không thể tải danh sách quản lý",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -104,11 +104,14 @@ function AttendanceForm({ onClose }) {
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
 
-    if (currentHour < WORKING_HOURS.MORNING.END.hour || 
-        (currentHour === WORKING_HOURS.MORNING.END.hour && currentMinute <= WORKING_HOURS.MORNING.END.minute)) {
-      return 'MORNING';
+    if (
+      currentHour < WORKING_HOURS.MORNING.END.hour ||
+      (currentHour === WORKING_HOURS.MORNING.END.hour &&
+        currentMinute <= WORKING_HOURS.MORNING.END.minute)
+    ) {
+      return "MORNING";
     }
-    return 'AFTERNOON';
+    return "AFTERNOON";
   }, []);
 
   const isLate = useCallback(() => {
@@ -118,9 +121,11 @@ function AttendanceForm({ onClose }) {
     const currentShift = getCurrentShift();
 
     const shiftStart = WORKING_HOURS[currentShift].START;
-    
-    if (currentHour > shiftStart.hour || 
-        (currentHour === shiftStart.hour && currentMinute > shiftStart.minute)) {
+
+    if (
+      currentHour > shiftStart.hour ||
+      (currentHour === shiftStart.hour && currentMinute > shiftStart.minute)
+    ) {
       return true;
     }
     return false;
@@ -130,7 +135,7 @@ function AttendanceForm({ onClose }) {
     const now = new Date();
     const currentShift = getCurrentShift();
     const shiftStart = WORKING_HOURS[currentShift].START;
-    
+
     let deadline = new Date();
     deadline.setHours(shiftStart.hour, shiftStart.minute, 0);
 
@@ -140,10 +145,14 @@ function AttendanceForm({ onClose }) {
     }
 
     let diffMs = now.getTime() - deadline.getTime();
-    
+
     // Nếu là ca chiều, trừ đi thời gian nghỉ trưa
-    if (currentShift === 'AFTERNOON') {
-      const lunchBreakMs = (WORKING_HOURS.AFTERNOON.START.hour - WORKING_HOURS.MORNING.END.hour) * 60 * 60 * 1000;
+    if (currentShift === "AFTERNOON") {
+      const lunchBreakMs =
+        (WORKING_HOURS.AFTERNOON.START.hour - WORKING_HOURS.MORNING.END.hour) *
+        60 *
+        60 *
+        1000;
       diffMs -= lunchBreakMs;
     }
 
@@ -159,13 +168,18 @@ function AttendanceForm({ onClose }) {
     setLoading(true);
 
     try {
-      if (!formData.fullName || !formData.memberCode || !formData.workLocation || !formData.department) {
-        throw new Error('Vui lòng điền đầy đủ thông tin!');
+      if (
+        !formData.fullName ||
+        !formData.memberCode ||
+        !formData.workLocation ||
+        !formData.department
+      ) {
+        throw new Error("Vui lòng điền đầy đủ thông tin!");
       }
 
       const late = isLate();
       if (late && !formData.lateReason) {
-        throw new Error('Vui lòng nhập lý do đi muộn!');
+        throw new Error("Vui lòng nhập lý do đi muộn!");
       }
 
       const currentShift = getCurrentShift();
@@ -184,21 +198,22 @@ function AttendanceForm({ onClose }) {
         lateHours: hours,
         lateMinutes: minutes,
         lateReason: late ? formData.lateReason : null,
-        hasReported: formData.hasReported === 'yes',
-        reportedTo: formData.hasReported === 'yes' && formData.reportedToAdmin
-          ? admins.find(admin => admin.id === formData.reportedToAdmin)
-          : null,
-        createdAt: Timestamp.now()
+        hasReported: formData.hasReported === "yes",
+        reportedTo:
+          formData.hasReported === "yes" && formData.reportedToAdmin
+            ? admins.find((admin) => admin.id === formData.reportedToAdmin)
+            : null,
+        createdAt: Timestamp.now(),
       };
 
-      await addDoc(collection(db, 'attendance'), attendanceData);
+      await addDoc(collection(db, "attendance"), attendanceData);
 
       toast({
-        title: 'Điểm danh thành công!',
+        title: "Điểm danh thành công!",
         description: late
-          ? `Bạn đi muộn ${hours > 0 ? `${hours}h` : ''}${minutes}p. ${greeting}`
+          ? `Bạn đi muộn ${hours > 0 ? `${hours}h` : ""}${minutes}p. ${greeting}`
           : `Chúc mừng bạn đã đến đúng giờ! ${greeting}`,
-        status: late ? 'warning' : 'success',
+        status: late ? "warning" : "success",
         duration: 5000,
         isClosable: true,
       });
@@ -206,9 +221,9 @@ function AttendanceForm({ onClose }) {
       onClose();
     } catch (error) {
       toast({
-        title: 'Lỗi!',
+        title: "Lỗi!",
         description: error.message,
-        status: 'error',
+        status: "error",
         duration: 5000,
         isClosable: true,
       });
@@ -232,7 +247,9 @@ function AttendanceForm({ onClose }) {
           <FormLabel>Họ và tên</FormLabel>
           <Input
             value={formData.fullName}
-            onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, fullName: e.target.value }))
+            }
             placeholder="Nhập họ và tên"
           />
         </FormControl>
@@ -241,7 +258,9 @@ function AttendanceForm({ onClose }) {
           <FormLabel>Mã số thành viên</FormLabel>
           <Input
             value={formData.memberCode}
-            onChange={(e) => setFormData(prev => ({ ...prev, memberCode: e.target.value }))}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, memberCode: e.target.value }))
+            }
             placeholder="Nhập mã số thành viên"
           />
         </FormControl>
@@ -250,7 +269,9 @@ function AttendanceForm({ onClose }) {
           <FormLabel>Địa điểm làm việc</FormLabel>
           <Select
             value={formData.workLocation}
-            onChange={(e) => setFormData(prev => ({ ...prev, workLocation: e.target.value }))}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, workLocation: e.target.value }))
+            }
             placeholder="Chọn địa điểm"
           >
             <option value="online">Online</option>
@@ -262,11 +283,15 @@ function AttendanceForm({ onClose }) {
           <FormLabel>Bộ phận</FormLabel>
           <Select
             value={formData.department}
-            onChange={(e) => setFormData(prev => ({ ...prev, department: e.target.value }))}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, department: e.target.value }))
+            }
             placeholder="Chọn bộ phận"
           >
             {DEPARTMENTS.map((dept) => (
-              <option key={dept} value={dept}>{dept}</option>
+              <option key={dept} value={dept}>
+                {dept}
+              </option>
             ))}
           </Select>
         </FormControl>
@@ -277,7 +302,12 @@ function AttendanceForm({ onClose }) {
               <FormLabel>Lý do đi muộn</FormLabel>
               <Textarea
                 value={formData.lateReason}
-                onChange={(e) => setFormData(prev => ({ ...prev, lateReason: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    lateReason: e.target.value,
+                  }))
+                }
                 placeholder="Nhập lý do đi muộn..."
               />
             </FormControl>
@@ -286,7 +316,9 @@ function AttendanceForm({ onClose }) {
               <FormLabel>Đã báo cáo với quản lý?</FormLabel>
               <RadioGroup
                 value={formData.hasReported}
-                onChange={(value) => setFormData(prev => ({ ...prev, hasReported: value }))}
+                onChange={(value) =>
+                  setFormData((prev) => ({ ...prev, hasReported: value }))
+                }
               >
                 <Stack direction="row">
                   <Radio value="yes">Đã báo cáo</Radio>
@@ -295,12 +327,17 @@ function AttendanceForm({ onClose }) {
               </RadioGroup>
             </FormControl>
 
-            {formData.hasReported === 'yes' && (
+            {formData.hasReported === "yes" && (
               <FormControl isRequired>
                 <FormLabel>Đã báo cáo với</FormLabel>
                 <Select
                   value={formData.reportedToAdmin}
-                  onChange={(e) => setFormData(prev => ({ ...prev, reportedToAdmin: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      reportedToAdmin: e.target.value,
+                    }))
+                  }
                   placeholder="Chọn quản lý"
                 >
                   {admins.map((admin) => (

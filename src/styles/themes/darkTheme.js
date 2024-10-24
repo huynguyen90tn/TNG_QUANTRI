@@ -1,33 +1,33 @@
-import { createTheme } from '@mui/material/styles';
+import { createTheme } from "@mui/material/styles";
 
 const baseTheme = {
   typography: {
     fontFamily: [
-      '-apple-system',
-      'BlinkMacSystemFont',
+      "-apple-system",
+      "BlinkMacSystemFont",
       '"Segoe UI"',
-      'Roboto',
+      "Roboto",
       '"Helvetica Neue"',
-      'Arial',
-      'sans-serif',
+      "Arial",
+      "sans-serif",
       '"Apple Color Emoji"',
       '"Segoe UI Emoji"',
       '"Segoe UI Symbol"',
-    ].join(','),
+    ].join(","),
   },
   components: {
     MuiButton: {
       styleOverrides: {
         root: {
-          textTransform: 'none',
-          borderRadius: '6px',
+          textTransform: "none",
+          borderRadius: "6px",
         },
       },
     },
     MuiPaper: {
       styleOverrides: {
         root: {
-          borderRadius: '8px',
+          borderRadius: "8px",
         },
       },
     },
@@ -37,17 +37,17 @@ const baseTheme = {
 export const darkTheme = createTheme({
   ...baseTheme,
   palette: {
-    mode: 'dark',
+    mode: "dark",
     primary: {
-      main: '#1877f2',
+      main: "#1877f2",
     },
     background: {
-      default: '#18191a',
-      paper: '#242526',
+      default: "#18191a",
+      paper: "#242526",
     },
     text: {
-      primary: '#e4e6eb',
-      secondary: '#b0b3b8',
+      primary: "#e4e6eb",
+      secondary: "#b0b3b8",
     },
   },
 });
@@ -55,17 +55,17 @@ export const darkTheme = createTheme({
 export const lightTheme = createTheme({
   ...baseTheme,
   palette: {
-    mode: 'light',
+    mode: "light",
     primary: {
-      main: '#1877f2',
+      main: "#1877f2",
     },
     background: {
-      default: '#f0f2f5',
-      paper: '#ffffff',
+      default: "#f0f2f5",
+      paper: "#ffffff",
     },
     text: {
-      primary: '#050505',
-      secondary: '#65676b',
+      primary: "#050505",
+      secondary: "#65676b",
     },
   },
 });

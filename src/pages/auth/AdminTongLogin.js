@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { Flex, useToast } from '@chakra-ui/react';
-import LoginForm from '../../components/auth/LoginForm';
-import { useAuth } from '../../hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from "react";
+import { Flex, useToast } from "@chakra-ui/react";
+import LoginForm from "../../components/auth/LoginForm";
+import { useAuth } from "../../hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 const AdminTongLogin = () => {
   const toast = useToast();
@@ -14,8 +14,8 @@ const AdminTongLogin = () => {
     setIsLoading(true);
     try {
       const role = await login(email, password);
-      if (role !== 'adminTong') {
-        throw new Error('Không có quyền truy cập tài khoản Admin Tổng');
+      if (role !== "adminTong") {
+        throw new Error("Không có quyền truy cập tài khoản Admin Tổng");
       }
       toast({
         title: "Đăng nhập thành công",
@@ -23,7 +23,7 @@ const AdminTongLogin = () => {
         duration: 3000,
         isClosable: true,
       });
-      navigate('/admin-tong/dashboard');
+      navigate("/admin-tong/dashboard");
     } catch (error) {
       toast({
         title: "Đăng nhập thất bại",
@@ -39,7 +39,11 @@ const AdminTongLogin = () => {
 
   return (
     <Flex height="100vh" alignItems="center" justifyContent="center">
-      <LoginForm title="Đăng nhập Admin Tổng" onSubmit={handleSubmit} isLoading={isLoading} />
+      <LoginForm
+        title="Đăng nhập Admin Tổng"
+        onSubmit={handleSubmit}
+        isLoading={isLoading}
+      />
     </Flex>
   );
 };

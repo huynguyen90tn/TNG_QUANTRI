@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useAuth } from '../../hooks/useAuth';
+import React, { useState } from "react";
+import { useAuth } from "../../hooks/useAuth";
 import {
   Box,
   Button,
@@ -9,12 +9,12 @@ import {
   Select,
   VStack,
   useToast,
-} from '@chakra-ui/react';
+} from "@chakra-ui/react";
 
 const CreateUserForm = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [role, setRole] = useState('member');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState("member");
   const { createUser } = useAuth();
   const toast = useToast();
 
@@ -28,9 +28,9 @@ const CreateUserForm = () => {
         duration: 3000,
         isClosable: true,
       });
-      setEmail('');
-      setPassword('');
-      setRole('member');
+      setEmail("");
+      setPassword("");
+      setRole("member");
     } catch (error) {
       toast({
         title: "Lỗi khi tạo tài khoản",
@@ -70,7 +70,9 @@ const CreateUserForm = () => {
               <option value="admin-tong">Admin Tổng</option>
             </Select>
           </FormControl>
-          <Button type="submit" colorScheme="blue">Tạo tài khoản</Button>
+          <Button type="submit" colorScheme="blue">
+            Tạo tài khoản
+          </Button>
         </VStack>
       </form>
     </Box>

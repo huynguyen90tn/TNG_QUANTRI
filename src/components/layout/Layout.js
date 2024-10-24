@@ -1,7 +1,7 @@
-import React from 'react';
-import { Box, Flex } from '@chakra-ui/react';
-import Header from './Header';
-import { useAuth } from '../../hooks/useAuth';
+import React from "react";
+import { Box, Flex } from "@chakra-ui/react";
+import Header from "./Header";
+import { useAuth } from "../../hooks/useAuth";
 
 const Layout = ({ children }) => {
   const { user } = useAuth();

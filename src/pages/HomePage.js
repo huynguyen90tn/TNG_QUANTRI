@@ -1,11 +1,17 @@
-import React from 'react';
-import { Box, Container, Heading, Text, VStack } from '@chakra-ui/react';
-import HomeBackground from '../components/HomeBackground';
-import LoginForm from '../components/auth/LoginForm';
+import React from "react";
+import { Box, Container, Heading, Text, VStack } from "@chakra-ui/react";
+import HomeBackground from "../components/HomeBackground";
+import LoginForm from "../components/auth/LoginForm";
 
 const HomePage = () => {
   return (
-    <Box position="relative" minHeight="100vh" display="flex" alignItems="center" justifyContent="center">
+    <Box
+      position="relative"
+      minHeight="100vh"
+      display="flex"
+      alignItems="center"
+      justifyContent="center"
+    >
       <HomeBackground />
       <Container maxWidth="container.sm" position="relative" zIndex={1}>
         <VStack

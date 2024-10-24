@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Button,
@@ -19,42 +19,48 @@ import {
   Icon,
   useColorModeValue,
   Radio,
-  RadioGroup
-} from '@chakra-ui/react';
-import { useAuth } from '../../hooks/useAuth';
-import { storage, db, auth } from '../../services/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { FaUser, FaIdCard, FaBuilding, FaShieldAlt, FaUpload } from 'react-icons/fa';
+  RadioGroup,
+} from "@chakra-ui/react";
+import { useAuth } from "../../hooks/useAuth";
+import { storage, db, auth } from "../../services/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { doc, setDoc, getDoc } from "firebase/firestore";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import {
+  FaUser,
+  FaIdCard,
+  FaBuilding,
+  FaShieldAlt,
+  FaUpload,
+} from "react-icons/fa";
 
 const TaoTaiKhoanQuanTri = () => {
   const [formData, setFormData] = useState({
     avatar: null,
-    fullName: '',
-    memberCode: '',
-    idNumber: '',
-    department: '',
+    fullName: "",
+    memberCode: "",
+    idNumber: "",
+    department: "",
     permissions: [],
-    email: '',
-    password: '',
-    adminType: 'admin-con'
+    email: "",
+    password: "",
+    adminType: "admin-con",
   });
   const [imagePreview, setImagePreview] = useState(null);
   const { user, loading } = useAuth();
   const toast = useToast();
   const [isAdminTong, setIsAdminTong] = useState(false);
 
-  const bgColor = useColorModeValue('gray.800', 'gray.900');
-  const textColor = useColorModeValue('white', 'gray.100');
-  const inputBgColor = useColorModeValue('gray.700', 'gray.800');
+  const bgColor = useColorModeValue("gray.800", "gray.900");
+  const textColor = useColorModeValue("white", "gray.100");
+  const inputBgColor = useColorModeValue("gray.700", "gray.800");
 
   useEffect(() => {
     const checkAdminStatus = async () => {
       if (user) {
         const userDoc = await getDoc(doc(db, "users", user.uid));
         const userData = userDoc.data();
-        setIsAdminTong(userData?.role === 'admin-tong');
+        setIsAdminTong(userData?.role === "admin-tong");
       }
     };
     checkAdminStatus();
@@ -62,13 +68,13 @@ const TaoTaiKhoanQuanTri = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setFormData(prev => ({ ...prev, avatar: file }));
+      setFormData((prev) => ({ ...prev, avatar: file }));
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result);
@@ -78,7 +84,7 @@ const TaoTaiKhoanQuanTri = () => {
   };
 
   const handlePermissionChange = (checkedItems) => {
-    setFormData(prev => ({ ...prev, permissions: checkedItems }));
+    setFormData((prev) => ({ ...prev, permissions: checkedItems }));
   };
 
   const handleSubmit = async (e) => {
@@ -111,11 +117,15 @@ const TaoTaiKhoanQuanTri = () => {
 
     try {
       console.log("Starting registration process");
-      
-      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        formData.email,
+        formData.password,
+      );
       const newUser = userCredential.user;
 
-      let avatarUrl = '';
+      let avatarUrl = "";
       if (formData.avatar) {
         console.log("Uploading avatar");
         const avatarRef = ref(storage, `avatars/${newUser.uid}`);
@@ -135,7 +145,7 @@ const TaoTaiKhoanQuanTri = () => {
         avatar: avatarUrl,
         role: formData.adminType,
         createdBy: user.uid,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       };
 
       console.log("Admin data prepared:", adminData);
@@ -153,14 +163,14 @@ const TaoTaiKhoanQuanTri = () => {
 
       setFormData({
         avatar: null,
-        fullName: '',
-        memberCode: '',
-        idNumber: '',
-        department: '',
+        fullName: "",
+        memberCode: "",
+        idNumber: "",
+        department: "",
         permissions: [],
-        email: '',
-        password: '',
-        adminType: 'admin-con'
+        email: "",
+        password: "",
+        adminType: "admin-con",
       });
       setImagePreview(null);
     } catch (error) {
@@ -179,10 +189,24 @@ const TaoTaiKhoanQuanTri = () => {
     <Box bg={bgColor} minH="100vh" py={10}>
       <Container maxW="container.md">
         <VStack spacing={8} align="stretch">
-          <Heading color={textColor} size="2xl" textAlign="center">Đăng ký Quản trị mới</Heading>
-          <Text color={textColor}>Current user: {user ? `${user.email} (${isAdminTong ? 'Admin Tong' : 'Not Admin Tong'})` : 'Not logged in'}</Text>
+          <Heading color={textColor} size="2xl" textAlign="center">
+            Đăng ký Quản trị mới
+          </Heading>
+          <Text color={textColor}>
+            Current user:{" "}
+            {user
+              ? `${user.email} (${isAdminTong ? "Admin Tong" : "Not Admin Tong"})`
+              : "Not logged in"}
+          </Text>
           <form onSubmit={handleSubmit}>
-            <VStack spacing={6} align="stretch" bg={inputBgColor} p={8} borderRadius="xl" boxShadow="xl">
+            <VStack
+              spacing={6}
+              align="stretch"
+              bg={inputBgColor}
+              p={8}
+              borderRadius="xl"
+              boxShadow="xl"
+            >
               <Flex justifyContent="center" mb={4}>
                 <FormControl width="200px">
                   <FormLabel htmlFor="avatar" cursor="pointer">
@@ -190,7 +214,7 @@ const TaoTaiKhoanQuanTri = () => {
                       <Box
                         borderRadius="full"
                         boxSize="150px"
-                        bg={imagePreview ? 'transparent' : 'gray.600'}
+                        bg={imagePreview ? "transparent" : "gray.600"}
                         display="flex"
                         alignItems="center"
                         justifyContent="center"
@@ -207,7 +231,9 @@ const TaoTaiKhoanQuanTri = () => {
                           <Icon as={FaUpload} w={10} h={10} color="gray.400" />
                         )}
                       </Box>
-                      <Text color={textColor} fontSize="sm">Tải lên ảnh đại diện</Text>
+                      <Text color={textColor} fontSize="sm">
+                        Tải lên ảnh đại diện
+                      </Text>
                     </VStack>
                   </FormLabel>
                   <Input
@@ -222,23 +248,59 @@ const TaoTaiKhoanQuanTri = () => {
 
               <SimpleGrid columns={2} spacing={6}>
                 <FormControl isRequired>
-                  <FormLabel color={textColor}><Icon as={FaUser} color="blue.400" mr={2} />Họ và tên</FormLabel>
-                  <Input name="fullName" value={formData.fullName} onChange={handleChange} bg="gray.700" color={textColor} />
+                  <FormLabel color={textColor}>
+                    <Icon as={FaUser} color="blue.400" mr={2} />
+                    Họ và tên
+                  </FormLabel>
+                  <Input
+                    name="fullName"
+                    value={formData.fullName}
+                    onChange={handleChange}
+                    bg="gray.700"
+                    color={textColor}
+                  />
                 </FormControl>
 
                 <FormControl isRequired>
-                  <FormLabel color={textColor}><Icon as={FaIdCard} color="green.400" mr={2} />Mã số thành viên</FormLabel>
-                  <Input name="memberCode" value={formData.memberCode} onChange={handleChange} bg="gray.700" color={textColor} />
+                  <FormLabel color={textColor}>
+                    <Icon as={FaIdCard} color="green.400" mr={2} />
+                    Mã số thành viên
+                  </FormLabel>
+                  <Input
+                    name="memberCode"
+                    value={formData.memberCode}
+                    onChange={handleChange}
+                    bg="gray.700"
+                    color={textColor}
+                  />
                 </FormControl>
 
                 <FormControl isRequired>
-                  <FormLabel color={textColor}><Icon as={FaIdCard} color="yellow.400" mr={2} />Số CCCD</FormLabel>
-                  <Input name="idNumber" value={formData.idNumber} onChange={handleChange} bg="gray.700" color={textColor} />
+                  <FormLabel color={textColor}>
+                    <Icon as={FaIdCard} color="yellow.400" mr={2} />
+                    Số CCCD
+                  </FormLabel>
+                  <Input
+                    name="idNumber"
+                    value={formData.idNumber}
+                    onChange={handleChange}
+                    bg="gray.700"
+                    color={textColor}
+                  />
                 </FormControl>
 
                 <FormControl isRequired>
-                  <FormLabel color={textColor}><Icon as={FaBuilding} color="purple.400" mr={2} />Phân hệ</FormLabel>
-                  <Select name="department" value={formData.department} onChange={handleChange} bg="gray.700" color={textColor}>
+                  <FormLabel color={textColor}>
+                    <Icon as={FaBuilding} color="purple.400" mr={2} />
+                    Phân hệ
+                  </FormLabel>
+                  <Select
+                    name="department"
+                    value={formData.department}
+                    onChange={handleChange}
+                    bg="gray.700"
+                    color={textColor}
+                  >
                     <option value="">Chọn phân hệ</option>
                     <option value="Thiên Minh Đường">Thiên Minh Đường</option>
                     <option value="Tây Vân Các">Tây Vân Các</option>
@@ -251,45 +313,92 @@ const TaoTaiKhoanQuanTri = () => {
               </SimpleGrid>
 
               <FormControl>
-                <FormLabel color={textColor}><Icon as={FaShieldAlt} color="red.400" mr={2} />Phân quyền</FormLabel>
-                <CheckboxGroup colorScheme="green" value={formData.permissions} onChange={handlePermissionChange}>
+                <FormLabel color={textColor}>
+                  <Icon as={FaShieldAlt} color="red.400" mr={2} />
+                  Phân quyền
+                </FormLabel>
+                <CheckboxGroup
+                  colorScheme="green"
+                  value={formData.permissions}
+                  onChange={handlePermissionChange}
+                >
                   <SimpleGrid columns={2} spacing={4}>
-                    <Checkbox value="manage_members" color={textColor}>Quản lý thành viên</Checkbox>
-                    <Checkbox value="manage_projects" color={textColor}>Quản lý dự án</Checkbox>
-                    <Checkbox value="view_reports" color={textColor}>Xem báo cáo</Checkbox>
-                    <Checkbox value="edit_settings" color={textColor}>Chỉnh sửa cài đặt</Checkbox>
+                    <Checkbox value="manage_members" color={textColor}>
+                      Quản lý thành viên
+                    </Checkbox>
+                    <Checkbox value="manage_projects" color={textColor}>
+                      Quản lý dự án
+                    </Checkbox>
+                    <Checkbox value="view_reports" color={textColor}>
+                      Xem báo cáo
+                    </Checkbox>
+                    <Checkbox value="edit_settings" color={textColor}>
+                      Chỉnh sửa cài đặt
+                    </Checkbox>
                   </SimpleGrid>
                 </CheckboxGroup>
               </FormControl>
 
               <FormControl isRequired>
                 <FormLabel color={textColor}>Email</FormLabel>
-                <Input name="email" type="email" value={formData.email} onChange={handleChange} bg="gray.700" color={textColor} />
+                <Input
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  bg="gray.700"
+                  color={textColor}
+                />
               </FormControl>
 
               <FormControl isRequired>
                 <FormLabel color={textColor}>Mật khẩu</FormLabel>
-                <Input name="password" type="password" value={formData.password} onChange={handleChange} bg="gray.700" color={textColor} />
+                <Input
+                  name="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  bg="gray.700"
+                  color={textColor}
+                />
               </FormControl>
 
               <FormControl isRequired>
                 <FormLabel color={textColor}>Loại Admin</FormLabel>
-                <RadioGroup name="adminType" value={formData.adminType} onChange={(value) => setFormData(prev => ({ ...prev, adminType: value }))}>
+                <RadioGroup
+                  name="adminType"
+                  value={formData.adminType}
+                  onChange={(value) =>
+                    setFormData((prev) => ({ ...prev, adminType: value }))
+                  }
+                >
                   <VStack align="start">
-                    <Radio value="admin-con" color={textColor}>Admin Con</Radio>
-                    <Radio value="admin-tong" color={textColor}>Admin Tổng</Radio>
+                    <Radio value="admin-con" color={textColor}>
+                      Admin Con
+                    </Radio>
+                    <Radio value="admin-tong" color={textColor}>
+                      Admin Tổng
+                    </Radio>
                   </VStack>
                 </RadioGroup>
               </FormControl>
 
-              <Button type="submit" colorScheme="blue" size="lg" leftIcon={<FaShieldAlt />} isLoading={loading} isDisabled={!isAdminTong}>
+              <Button
+                type="submit"
+                colorScheme="blue"
+                size="lg"
+                leftIcon={<FaShieldAlt />}
+                isLoading={loading}
+                isDisabled={!isAdminTong}
+              >
                 Đăng ký Quản trị
               </Button>
             </VStack>
           </form>
 
           <Text color="gray.400" fontSize="sm" textAlign="center">
-            Lưu ý: Bạn vẫn ở trang Admin và không bị đăng xuất sau khi đăng ký thành công.
+            Lưu ý: Bạn vẫn ở trang Admin và không bị đăng xuất sau khi đăng ký
+            thành công.
           </Text>
         </VStack>
       </Container>

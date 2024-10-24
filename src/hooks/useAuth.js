@@ -1,19 +1,21 @@
 // src/hooks/useAuth.js
-import React, { useState, useEffect, useContext, createContext } from 'react';
-import { auth, db } from '../services/firebase';
+import React, { useState, useEffect, useContext, createContext } from "react";
+import { auth, db } from "../services/firebase";
 import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   signOut,
   createUserWithEmailAndPassword,
-} from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+} from "firebase/auth";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const authContext = useProvideAuth();
-  return <AuthContext.Provider value={authContext}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={authContext}>{children}</AuthContext.Provider>
+  );
 };
 
 export const useAuth = () => {
@@ -28,16 +30,16 @@ function useProvideAuth() {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
-          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
           if (userDoc.exists()) {
             const userData = userDoc.data();
             setUser({ ...firebaseUser, role: userData.role });
           } else {
-            console.error('User document does not exist in Firestore');
+            console.error("User document does not exist in Firestore");
             setUser(null);
           }
         } catch (error) {
-          console.error('Error fetching user data:', error);
+          console.error("Error fetching user data:", error);
           setUser(null);
         }
       } else {
@@ -52,18 +54,22 @@ function useProvideAuth() {
   const login = async (email, password) => {
     try {
       setLoading(true);
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password,
+      );
+      const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
       if (userDoc.exists()) {
         const userData = userDoc.data();
         const userWithRole = { ...userCredential.user, role: userData.role };
         setUser(userWithRole);
         return userWithRole;
       } else {
-        throw new Error('User data not found in Firestore');
+        throw new Error("User data not found in Firestore");
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error("Login error:", error);
       throw error;
     } finally {
       setLoading(false);
@@ -78,10 +84,14 @@ function useProvideAuth() {
   const createUser = async (email, password, role) => {
     try {
       setLoading(true);
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password,
+      );
       const newUser = userCredential.user;
 
-      await setDoc(doc(db, 'users', newUser.uid), {
+      await setDoc(doc(db, "users", newUser.uid), {
         email: newUser.email,
         role: role,
         createdAt: new Date().toISOString(),
@@ -91,7 +101,7 @@ function useProvideAuth() {
       setUser(userWithRole);
       return userWithRole;
     } catch (error) {
-      console.error('Create user error:', error);
+      console.error("Create user error:", error);
       throw error;
     } finally {
       setLoading(false);
