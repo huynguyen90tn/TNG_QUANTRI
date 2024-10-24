@@ -12,6 +12,8 @@ import AdminTongDashboard from './pages/dashboard/AdminTongDashboard';
 import AdminConDashboard from './pages/dashboard/AdminConDashboard';
 import MemberDashboard from './pages/dashboard/MemberDashboard';
 import ProjectManagement from './pages/ProjectManagement';
+import TaskManagementPage from './pages/TaskManagementPage';
+import TaskListPage from './pages/TaskListPage';
 
 // Auth Pages
 import TaoTaiKhoanThanhVien from './pages/auth/TaoTaiKhoanThanhVien';
@@ -21,8 +23,7 @@ import TaoTaiKhoanQuanTri from './pages/auth/TaoTaiKhoanQuanTri';
 import AttendanceTable from './components/attendance/AttendanceTable';
 import AttendanceForm from './components/attendance/AttendanceForm';
 
-// Protected Route Component
-function ProtectedRoute({ children, requiredRole }) {
+const ProtectedRoute = ({ children, requiredRole }) => {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -38,10 +39,9 @@ function ProtectedRoute({ children, requiredRole }) {
   }
 
   return children;
-}
+};
 
-// Main Routes Component
-function AppRoutes() {
+const AppRoutes = () => {
   const { loading } = useAuth();
 
   if (loading) {
@@ -58,97 +58,163 @@ function AppRoutes() {
       <Route path="/" element={<HomePage />} />
 
       {/* Admin Tổng Routes */}
-      <Route path="/admin-tong" element={
-        <ProtectedRoute requiredRole={['admin-tong']}>
-          <Layout>
-            <AdminTongDashboard />
-          </Layout>
-        </ProtectedRoute>
-      } />
+      <Route
+        path="/admin-tong"
+        element={
+          <ProtectedRoute requiredRole={['admin-tong']}>
+            <Layout>
+              <AdminTongDashboard />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
 
-      <Route path="/admin-tong/diem-danh" element={
-        <ProtectedRoute requiredRole={['admin-tong']}>
-          <Layout>
-            <AttendanceTable userRole="admin-tong" />
-          </Layout>
-        </ProtectedRoute>
-      } />
+      <Route
+        path="/admin-tong/diem-danh"
+        element={
+          <ProtectedRoute requiredRole={['admin-tong']}>
+            <Layout>
+              <AttendanceTable userRole="admin-tong" />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
 
-      <Route path="/tao-quan-tri" element={
-        <ProtectedRoute requiredRole={['admin-tong']}>
-          <Layout>
-            <TaoTaiKhoanQuanTri />
-          </Layout>
-        </ProtectedRoute>
-      } />
+      <Route
+        path="/tao-quan-tri"
+        element={
+          <ProtectedRoute requiredRole={['admin-tong']}>
+            <Layout>
+              <TaoTaiKhoanQuanTri />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
 
       {/* Admin Con Routes */}
-      <Route path="/admin-con" element={
-        <ProtectedRoute requiredRole={['admin-con']}>
-          <Layout>
-            <AdminConDashboard />
-          </Layout>
-        </ProtectedRoute>
-      } />
+      <Route
+        path="/admin-con"
+        element={
+          <ProtectedRoute requiredRole={['admin-con']}>
+            <Layout>
+              <AdminConDashboard />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
 
-      <Route path="/admin-con/diem-danh" element={
-        <ProtectedRoute requiredRole={['admin-con']}>
-          <Layout>
-            <AttendanceTable userRole="admin-con" />
-          </Layout>
-        </ProtectedRoute>
-      } />
+      <Route
+        path="/admin-con/diem-danh"
+        element={
+          <ProtectedRoute requiredRole={['admin-con']}>
+            <Layout>
+              <AttendanceTable userRole="admin-con" />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
 
-      <Route path="/admin-con/tao-thanh-vien" element={
-        <ProtectedRoute requiredRole={['admin-con']}>
-          <Layout>
-            <TaoTaiKhoanThanhVien />
-          </Layout>
-        </ProtectedRoute>
-      } />
+      <Route
+        path="/admin-con/tao-thanh-vien"
+        element={
+          <ProtectedRoute requiredRole={['admin-con']}>
+            <Layout>
+              <TaoTaiKhoanThanhVien />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
 
       {/* Member Routes */}
-      <Route path="/member" element={
-        <ProtectedRoute requiredRole={['member']}>
-          <Layout>
-            <MemberDashboard />
-          </Layout>
-        </ProtectedRoute>
-      } />
+      <Route
+        path="/member"
+        element={
+          <ProtectedRoute requiredRole={['member']}>
+            <Layout>
+              <MemberDashboard />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
 
-      <Route path="/member/diem-danh" element={
-        <ProtectedRoute requiredRole={['member']}>
-          <Layout>
-            <AttendanceForm />
-          </Layout>
-        </ProtectedRoute>
-      } />
+      <Route
+        path="/member/diem-danh"
+        element={
+          <ProtectedRoute requiredRole={['member']}>
+            <Layout>
+              <AttendanceForm />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
 
-      <Route path="/member/lich-su-diem-danh" element={
-        <ProtectedRoute requiredRole={['member']}>
-          <Layout>
-            <AttendanceTable userRole="member" />
-          </Layout>
-        </ProtectedRoute>
-      } />
+      <Route
+        path="/member/lich-su-diem-danh"
+        element={
+          <ProtectedRoute requiredRole={['member']}>
+            <Layout>
+              <AttendanceTable userRole="member" />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
 
-      {/* Shared Routes */}
-      <Route path="/quan-ly-du-an" element={
-        <ProtectedRoute requiredRole={['admin-tong', 'admin-con', 'member']}>
-          <Layout>
-            <ProjectManagement />
-          </Layout>
-        </ProtectedRoute>
-      } />
+      {/* Shared Routes - Project Management */}
+      <Route
+        path="/quan-ly-du-an"
+        element={
+          <ProtectedRoute requiredRole={['admin-tong', 'admin-con', 'member']}>
+            <Layout>
+              <ProjectManagement />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Task Management Routes */}
+      {/* Trang quản lý nhiệm vụ chung */}
+      <Route
+        path="/quan-ly-nhiem-vu"
+        element={
+          <ProtectedRoute requiredRole={['admin-tong', 'admin-con', 'member']}>
+            <Layout>
+              <TaskListPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Trang nhiệm vụ theo dự án cụ thể */}
+      <Route
+        path="/quan-ly-du-an/:projectId/nhiem-vu"
+        element={
+          <ProtectedRoute requiredRole={['admin-tong', 'admin-con', 'member']}>
+            <Layout>
+              <TaskManagementPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Trang chi tiết nhiệm vụ */}
+      <Route
+        path="/quan-ly-nhiem-vu/:taskId"
+        element={
+          <ProtectedRoute requiredRole={['admin-tong', 'admin-con', 'member']}>
+            <Layout>
+              <TaskManagementPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
 
       {/* Fallback Route */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
-}
+};
 
-// Main App Component
-function App() {
+const App = () => {
   return (
     <ChakraProvider theme={theme}>
       <AuthProvider>
@@ -158,6 +224,6 @@ function App() {
       </AuthProvider>
     </ChakraProvider>
   );
-}
+};
 
 export default App;

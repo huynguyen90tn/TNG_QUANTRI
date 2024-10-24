@@ -1,5 +1,5 @@
-
-import React from 'react';
+// src/pages/dashboard/AdminTongDashboard.js
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -14,170 +14,234 @@ import {
   MenuButton,
   MenuList,
   MenuItem,
-  Stat,
-  StatLabel,
-  StatNumber,
-  StatHelpText,
-  StatArrow,
-  Icon,
   Text,
   Container,
+  Card,
+  CardBody,
+  IconButton,
+  VStack,
+  Badge,
+  Divider,
+  useToast,
+  Skeleton,
 } from '@chakra-ui/react';
-import { 
-  FaUsers, 
-  FaProjectDiagram, 
-  FaChartPie, 
+import {
+  FaUsers,
+  FaProjectDiagram,
   FaUserPlus,
   FaCalendarCheck,
-  FaRegClock 
+  FaTasks,
+  FaChartLine,
+  FaListAlt,
 } from 'react-icons/fa';
-import {
-  BarChart,
-  Bar,
-  PieChart, 
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Legend,
-  ResponsiveContainer
-} from 'recharts';
-
-const statsData = [
-  { id: 1, label: 'Tổng thành viên', value: '1,000', icon: FaUsers, change: 12, color: 'blue' },
-  { id: 2, label: 'Dự án đang chạy', value: '50', icon: FaProjectDiagram, change: 8, color: 'green' },
-  { id: 3, label: 'Tỷ lệ đi muộn', value: '15%', icon: FaRegClock, change: -5, color: 'orange' },
-  { id: 4, label: 'KPI đạt được', value: '85%', icon: FaChartPie, change: 15, color: 'purple' },
-];
-
-const attendanceData = [
-  { name: 'Đúng giờ', value: 850, color: '#38A169' },
-  { name: 'Đi muộn', value: 150, color: '#E53E3E' },
-];
-
-const projectData = [
-  { name: 'Q1', completed: 40, ongoing: 20 },
-  { name: 'Q2', completed: 50, ongoing: 30 },
-  { name: 'Q3', completed: 45, ongoing: 25 },
-  { name: 'Q4', completed: 60, ongoing: 15 },
-];
-
-const StatCard = ({ label, value, icon, change, color }) => (
-  <Box
-    bg="white"
-    p={6}
-    rounded="xl"
-    shadow="lg"
-    _hover={{ transform: 'translateY(-2px)', shadow: 'xl' }}
-    transition="all 0.3s"
-  >
-    <Stat>
-      <Flex align="center" mb={2}>
-        <Icon as={icon} w={6} h={6} color={`${color}.500`} />
-        <StatLabel ml={2}>{label}</StatLabel>
-      </Flex>
-      <StatNumber fontSize="2xl">{value}</StatNumber>
-      <StatHelpText>
-        <StatArrow type={change > 0 ? 'increase' : 'decrease'} />
-        {Math.abs(change)}%
-      </StatHelpText>
-    </Stat>
-  </Box>
-);
+import { useAuth } from '../../hooks/useAuth';
+import { getTasks } from '../../services/api/taskApi';
+import { getAllUsers } from '../../services/api/userApi';
 
 const AdminTongDashboard = () => {
   const navigate = useNavigate();
+  const toast = useToast();
+  const { user, signOut } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalProjects: 0,
+    totalTasks: 0,
+    completedTasks: 0,
+  });
+
   const bgColor = useColorModeValue('gray.50', 'gray.800');
+  const cardBg = useColorModeValue('white', 'gray.700');
+  const borderColor = useColorModeValue('gray.200', 'gray.600');
+  const textColor = useColorModeValue('gray.600', 'gray.200');
+
+  const loadDashboardData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [usersResponse, tasksResponse] = await Promise.all([
+        getAllUsers(),
+        getTasks(),
+      ]);
+
+      const completedTasks = tasksResponse.data.filter(
+        (task) => task.progress === 100
+      ).length;
+
+      setStats({
+        totalUsers: usersResponse.data.length,
+        totalProjects: usersResponse.data.reduce(
+          (acc, user) => acc + (user.projects?.length || 0),
+          0
+        ),
+        totalTasks: tasksResponse.data.length,
+        completedTasks,
+      });
+    } catch (error) {
+      toast({
+        title: 'Lỗi tải dữ liệu',
+        description: error.message,
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate('/');
+    } catch (error) {
+      toast({
+        title: 'Lỗi đăng xuất',
+        description: error.message,
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const DashboardCard = ({ title, value, icon, color }) => (
+    <Card bg={cardBg} shadow="lg" borderWidth="1px" borderColor={borderColor}>
+      <CardBody>
+        <VStack align="start" spacing={4}>
+          <Flex align="center" width="100%" justify="space-between">
+            <IconButton
+              aria-label={title}
+              icon={icon}
+              fontSize="20px"
+              color={`${color}.500`}
+              variant="ghost"
+              isRound
+            />
+            <Text fontSize="2xl" fontWeight="bold">
+              {loading ? <Skeleton height="1.5rem" width="4rem" /> : value}
+            </Text>
+          </Flex>
+          <Text color={textColor} fontSize="sm">
+            {title}
+          </Text>
+        </VStack>
+      </CardBody>
+    </Card>
+  );
+
+  const QuickActionButton = ({ icon, label, onClick, colorScheme }) => (
+    <Button
+      leftIcon={icon}
+      onClick={onClick}
+      colorScheme={colorScheme}
+      size="lg"
+      width="full"
+      justifyContent="start"
+      px={8}
+      py={6}
+      shadow="md"
+      _hover={{ transform: 'translateY(-2px)', shadow: 'lg' }}
+      transition="all 0.2s"
+    >
+      {label}
+    </Button>
+  );
 
   return (
     <Container maxW="1600px" p={4}>
       <Box minH="100vh" bg={bgColor}>
+        {/* Header */}
         <Flex justify="space-between" align="center" mb={8}>
           <Box>
-            <Heading size="lg">Dashboard Quản trị</Heading>
-            <Text color="gray.500">Tổng quan hệ thống</Text>
+            <Heading size="lg">Dashboard Quản Trị</Heading>
+            <Text color={textColor}>
+              Xin chào, {user?.displayName || 'Admin'}
+            </Text>
           </Box>
-          
-          <HStack>
-            <Button
-              leftIcon={<FaUserPlus />}
-              colorScheme="blue"
-              onClick={() => navigate('/tao-quan-tri')}
-            >
-              Tạo tài khoản quản trị
-            </Button>
+
+          <HStack spacing={4}>
+            <Badge colorScheme="green" p={2} borderRadius="full">
+              Admin Tổng
+            </Badge>
             <Menu>
-              <MenuButton as={Avatar} cursor="pointer" size="sm" />
+              <MenuButton
+                as={Avatar}
+                cursor="pointer"
+                size="sm"
+                src={user?.photoURL}
+                name={user?.displayName}
+              />
               <MenuList>
-                <MenuItem>Hồ sơ</MenuItem>
-                <MenuItem>Cài đặt</MenuItem>
-                <MenuItem color="red.500">Đăng xuất</MenuItem>
+                <MenuItem onClick={() => navigate('/ho-so')}>Hồ sơ</MenuItem>
+                <MenuItem onClick={() => navigate('/cai-dat')}>Cài đặt</MenuItem>
+                <Divider />
+                <MenuItem onClick={handleSignOut} color="red.500">
+                  Đăng xuất
+                </MenuItem>
               </MenuList>
             </Menu>
           </HStack>
         </Flex>
 
+        {/* Thống kê */}
         <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={6} mb={8}>
-          {statsData.map(stat => (
-            <StatCard key={stat.id} {...stat} />
-          ))}
+          <DashboardCard
+            title="Tổng thành viên"
+            value={stats.totalUsers}
+            icon={<FaUsers />}
+            color="blue"
+          />
+          <DashboardCard
+            title="Dự án"
+            value={stats.totalProjects}
+            icon={<FaProjectDiagram />}
+            color="green"
+          />
+          <DashboardCard
+            title="Nhiệm vụ"
+            value={stats.totalTasks}
+            icon={<FaTasks />}
+            color="purple"
+          />
+          <DashboardCard
+            title="Hoàn thành"
+            value={stats.completedTasks}
+            icon={<FaChartLine />}
+            color="orange"
+          />
         </SimpleGrid>
 
-        <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={8} mb={8}>
-          <Box bg="white" p={6} rounded="xl" shadow="lg" height="400px">
-            <Heading size="md" mb={6}>Thống kê điểm danh</Heading>
-            <ResponsiveContainer>
-              <PieChart>
-                <Pie
-                  data={attendanceData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={80}
-                  outerRadius={120}
-                  dataKey="value"
-                >
-                  {attendanceData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </Box>
-
-          <Box bg="white" p={6} rounded="xl" shadow="lg" height="400px">
-            <Heading size="md" mb={6}>Tiến độ dự án</Heading>
-            <ResponsiveContainer>
-              <BarChart data={projectData}>
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="completed" fill="#38A169" name="Hoàn thành" />
-                <Bar dataKey="ongoing" fill="#4299E1" name="Đang thực hiện" />
-              </BarChart>
-            </ResponsiveContainer>
-          </Box>
-        </SimpleGrid>
-
-        <Flex justify="flex-end" gap={4}>
-          <Button
-            leftIcon={<FaCalendarCheck />}
-            colorScheme="green"
-            onClick={() => navigate('/admin-tong/diem-danh')}
-          >
-            Xem chi tiết điểm danh
-          </Button>
-          <Button
-            leftIcon={<FaProjectDiagram />}
+        {/* Các nút điều hướng nhanh */}
+        <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={6} mb={8}>
+          <QuickActionButton
+            icon={<FaUserPlus />}
+            label="Tạo tài khoản quản trị"
+            onClick={() => navigate('/tao-quan-tri')}
             colorScheme="blue"
+          />
+          <QuickActionButton
+            icon={<FaCalendarCheck />}
+            label="Quản lý điểm danh"
+            onClick={() => navigate('/admin-tong/diem-danh')}
+            colorScheme="green"
+          />
+          <QuickActionButton
+            icon={<FaProjectDiagram />}
+            label="Quản lý dự án"
             onClick={() => navigate('/quan-ly-du-an')}
-          >
-            Quản lý dự án
-          </Button>
-        </Flex>
+            colorScheme="purple"
+          />
+          <QuickActionButton
+            icon={<FaListAlt />}
+            label="Quản lý nhiệm vụ"
+            onClick={() => navigate('/quan-ly-nhiem-vu')}
+            colorScheme="orange"
+          />
+        </SimpleGrid>
       </Box>
     </Container>
   );
