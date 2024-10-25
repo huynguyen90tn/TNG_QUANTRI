@@ -1,4 +1,3 @@
-// src/components/tasks/TaskManagement.js
 import React, { useState, useEffect, useCallback } from "react";
 import PropTypes from "prop-types";
 import {
@@ -8,7 +7,7 @@ import {
   FormLabel,
   Input,
   Select,
-  Stack,
+  VStack,
   Table,
   Thead,
   Tbody,
@@ -22,14 +21,17 @@ import {
   Progress,
   useColorModeValue,
   Heading,
+  Stack,
+  Text,
+  SimpleGrid,
+  HStack,
+  Tag,
+  TagLabel,
+  TagCloseButton,
 } from "@chakra-ui/react";
-import { AddIcon, EditIcon, DeleteIcon } from "@chakra-ui/icons";
+import { AddIcon, DeleteIcon, EditIcon } from "@chakra-ui/icons";
 import { useAuth } from "../../hooks/useAuth";
-import {
-  getAllUsers,
-  getDepartmentUsers,
-  getUserList,
-} from "../../services/api/userApi";
+import { getDepartmentUsers } from "../../services/api/userApi";
 import {
   createTask,
   updateTask,
@@ -46,6 +48,16 @@ const DEPARTMENTS = [
   { id: "tinh-van-cac", name: "Tinh Vân Các", role: "GAME_DESIGN" },
 ];
 
+const INITIAL_TASK_STATE = {
+  taskId: "",
+  title: "",
+  description: "",
+  department: "",
+  deadline: "",
+  assignees: [],
+  status: "pending",
+};
+
 const TaskManagement = ({ projectId }) => {
   const { user } = useAuth();
   const toast = useToast();
@@ -55,19 +67,23 @@ const TaskManagement = ({ projectId }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [currentTask, setCurrentTask] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedAssignees, setSelectedAssignees] = useState([]);
+  const [taskForm, setTaskForm] = useState(INITIAL_TASK_STATE);
 
   const bgColor = useColorModeValue("gray.800", "gray.900");
   const borderColor = useColorModeValue("gray.600", "gray.700");
+  const inputBgColor = useColorModeValue("gray.700", "gray.800");
 
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    assignee: "",
-    department: "",
-    deadline: "",
-    progress: 0,
-    status: "pending",
-  });
+  const generateTaskId = useCallback((department) => {
+    const date = new Date();
+    const year = date.getFullYear().toString().slice(-2);
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const deptCode =
+      DEPARTMENTS.find((d) => d.id === department)?.role || "GEN";
+    const random = String(Math.floor(Math.random() * 1000)).padStart(3, "0");
+    return `${deptCode}-${year}${month}${day}-${random}`;
+  }, []);
 
   const loadTasks = useCallback(async () => {
     try {
@@ -85,14 +101,10 @@ const TaskManagement = ({ projectId }) => {
   }, [projectId, toast]);
 
   const loadUsers = useCallback(async () => {
+    if (!selectedDepartment) return;
     try {
-      if (selectedDepartment) {
-        const result = await getDepartmentUsers(selectedDepartment);
-        setUsers(result.data);
-      } else {
-        const result = await getAllUsers();
-        setUsers(result.data);
-      }
+      const result = await getDepartmentUsers(selectedDepartment);
+      setUsers(result.data);
     } catch (error) {
       toast({
         title: "Lỗi khi tải danh sách người dùng",
@@ -106,28 +118,127 @@ const TaskManagement = ({ projectId }) => {
 
   useEffect(() => {
     loadTasks();
+  }, [loadTasks]);
+
+  useEffect(() => {
     loadUsers();
-  }, [loadTasks, loadUsers]);
+  }, [loadUsers]);
+
+  const handleDepartmentChange = (e) => {
+    const department = e.target.value;
+    setSelectedDepartment(department);
+    const newTaskId = generateTaskId(department);
+    setTaskForm((prev) => ({
+      ...prev,
+      department,
+      taskId: newTaskId,
+      assignees: [],
+    }));
+    setSelectedAssignees([]);
+  };
+
+  const handleAssigneeSelect = (e) => {
+    const userId = e.target.value;
+    const userSelected = users.find((u) => u.id === userId);
+    if (!userSelected || selectedAssignees.some((a) => a.id === userId)) return;
+
+    const newAssignee = {
+      id: userId,
+      name: userSelected.fullName,
+      email: userSelected.email,
+      progress: 0,
+      notes: "",
+    };
+    setSelectedAssignees((prev) => [...prev, newAssignee]);
+    setTaskForm((prev) => ({
+      ...prev,
+      assignees: [...prev.assignees, newAssignee],
+    }));
+  };
+
+  const handleAssigneeProgress = (assigneeId, progress) => {
+    setSelectedAssignees((prev) =>
+      prev.map((a) =>
+        a.id === assigneeId ? { ...a, progress: Number(progress) } : a
+      )
+    );
+    setTaskForm((prev) => ({
+      ...prev,
+      assignees: prev.assignees.map((a) =>
+        a.id === assigneeId ? { ...a, progress: Number(progress) } : a
+      ),
+    }));
+  };
+
+  const handleAssigneeNotes = (assigneeId, notes) => {
+    setSelectedAssignees((prev) =>
+      prev.map((a) => (a.id === assigneeId ? { ...a, notes } : a))
+    );
+    setTaskForm((prev) => ({
+      ...prev,
+      assignees: prev.assignees.map((a) =>
+        a.id === assigneeId ? { ...a, notes } : a
+      ),
+    }));
+  };
+
+  const handleRemoveAssignee = (assigneeId) => {
+    setSelectedAssignees((prev) => prev.filter((a) => a.id !== assigneeId));
+    setTaskForm((prev) => ({
+      ...prev,
+      assignees: prev.assignees.filter((a) => a.id !== assigneeId),
+    }));
+  };
+
+  const resetForm = () => {
+    setTaskForm(INITIAL_TASK_STATE);
+    setSelectedAssignees([]);
+    setIsEditing(false);
+    setCurrentTask(null);
+    setSelectedDepartment("");
+  };
+
+  const calculateProgress = (assignees) => {
+    if (!assignees || assignees.length === 0) return 0;
+    const totalProgress = assignees.reduce(
+      (sum, a) => sum + (Number(a.progress) || 0),
+      0
+    );
+    return Math.round(totalProgress / assignees.length);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!taskForm.title || !taskForm.department || !taskForm.deadline) {
+      toast({
+        title: "Vui lòng điền đầy đủ thông tin",
+        status: "error",
+        duration: 3000,
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
+      const taskData = {
+        ...taskForm,
+        projectId,
+        taskId: taskForm.taskId || generateTaskId(taskForm.department),
+      };
+
       if (isEditing && currentTask) {
-        await updateTask(currentTask.id, { ...formData, projectId });
+        await updateTask(currentTask.id, taskData);
         toast({
           title: "Cập nhật nhiệm vụ thành công",
           status: "success",
           duration: 3000,
-          isClosable: true,
         });
       } else {
-        await createTask({ ...formData, projectId });
+        await createTask(taskData);
         toast({
           title: "Tạo nhiệm vụ mới thành công",
           status: "success",
           duration: 3000,
-          isClosable: true,
         });
       }
       resetForm();
@@ -138,7 +249,6 @@ const TaskManagement = ({ projectId }) => {
         description: error.message,
         status: "error",
         duration: 3000,
-        isClosable: true,
       });
     } finally {
       setIsSubmitting(false);
@@ -146,64 +256,35 @@ const TaskManagement = ({ projectId }) => {
   };
 
   const handleEdit = (task) => {
-    setIsEditing(true);
     setCurrentTask(task);
-    setFormData({
-      title: task.title,
-      description: task.description,
-      assignee: task.assignee,
-      department: task.department,
-      deadline: task.deadline,
-      progress: task.progress,
-      status: task.status,
+    setIsEditing(true);
+    setTaskForm({
+      ...task,
+      deadline: task.deadline.split("T")[0],
     });
+    setSelectedAssignees(task.assignees || []);
+    setSelectedDepartment(task.department);
   };
 
   const handleDelete = async (taskId) => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa nhiệm vụ này?")) {
-      try {
-        await deleteTask(taskId);
-        toast({
-          title: "Xóa nhiệm vụ thành công",
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-        });
-        loadTasks();
-      } catch (error) {
-        toast({
-          title: "Lỗi khi xóa nhiệm vụ",
-          description: error.message,
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
-      }
+    if (!window.confirm("Bạn có chắc chắn muốn xóa nhiệm vụ này?")) return;
+
+    try {
+      await deleteTask(taskId);
+      toast({
+        title: "Xóa nhiệm vụ thành công",
+        status: "success",
+        duration: 3000,
+      });
+      loadTasks();
+    } catch (error) {
+      toast({
+        title: "Lỗi khi xóa nhiệm vụ",
+        description: error.message,
+        status: "error",
+        duration: 3000,
+      });
     }
-  };
-
-  const resetForm = () => {
-    setFormData({
-      title: "",
-      description: "",
-      assignee: "",
-      department: "",
-      deadline: "",
-      progress: 0,
-      status: "pending",
-    });
-    setIsEditing(false);
-    setCurrentTask(null);
-  };
-
-  const handleDepartmentChange = (e) => {
-    const department = e.target.value;
-    setSelectedDepartment(department);
-    setFormData((prev) => ({
-      ...prev,
-      department,
-      assignee: "",
-    }));
   };
 
   return (
@@ -214,151 +295,294 @@ const TaskManagement = ({ projectId }) => {
       borderWidth="1px"
       borderColor={borderColor}
     >
-      <Heading size="lg" mb={6}>
-        Quản Lý Nhiệm Vụ
-      </Heading>
+      <VStack spacing={6} align="stretch">
+        <Heading size="lg" color="white">
+          Quản Lý Nhiệm Vụ
+        </Heading>
 
-      <form onSubmit={handleSubmit}>
-        <Stack spacing={4}>
-          <FormControl isRequired>
-            <FormLabel>Tiêu đề nhiệm vụ</FormLabel>
-            <Input
-              value={formData.title}
-              onChange={(e) =>
-                setFormData({ ...formData, title: e.target.value })
-              }
-              placeholder="Nhập tiêu đề nhiệm vụ"
-            />
-          </FormControl>
+        <form onSubmit={handleSubmit}>
+          <VStack spacing={4}>
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} w="full">
+              <FormControl isRequired>
+                <FormLabel color="white">Mã Nhiệm Vụ</FormLabel>
+                <Input
+                  value={taskForm.taskId}
+                  isReadOnly
+                  placeholder="Mã sẽ được tạo tự động khi chọn phân hệ"
+                  bg={inputBgColor}
+                  color="white"
+                />
+              </FormControl>
 
-          <FormControl>
-            <FormLabel>Mô tả</FormLabel>
-            <Textarea
-              value={formData.description}
-              onChange={(e) =>
-                setFormData({ ...formData, description: e.target.value })
-              }
-              placeholder="Nhập mô tả nhiệm vụ"
-            />
-          </FormControl>
+              <FormControl isRequired>
+                <FormLabel color="white">Tiêu Đề Nhiệm Vụ</FormLabel>
+                <Input
+                  value={taskForm.title}
+                  onChange={(e) =>
+                    setTaskForm((prev) => ({ ...prev, title: e.target.value }))
+                  }
+                  placeholder="Nhập tiêu đề nhiệm vụ"
+                  bg={inputBgColor}
+                  color="white"
+                />
+              </FormControl>
+            </SimpleGrid>
 
-          <Stack direction={["column", "row"]} spacing={4}>
-            <FormControl isRequired>
-              <FormLabel>Phân Hệ</FormLabel>
-              <Select
-                value={formData.department}
-                onChange={handleDepartmentChange}
-              >
-                <option value="">Chọn phân hệ</option>
-                {DEPARTMENTS.map((dept) => (
-                  <option key={dept.id} value={dept.id}>
-                    {dept.name}
-                  </option>
-                ))}
-              </Select>
-            </FormControl>
-
-            <FormControl isRequired>
-              <FormLabel>Người thực hiện</FormLabel>
-              <Select
-                value={formData.assignee}
+            <FormControl>
+              <FormLabel color="white">Mô Tả</FormLabel>
+              <Textarea
+                value={taskForm.description}
                 onChange={(e) =>
-                  setFormData({ ...formData, assignee: e.target.value })
+                  setTaskForm((prev) => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
                 }
-                isDisabled={!formData.department}
-              >
-                <option value="">Chọn người thực hiện</option>
-                {users.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.fullName} ({user.email})
-                  </option>
-                ))}
-              </Select>
-            </FormControl>
-
-            <FormControl isRequired>
-              <FormLabel>Deadline</FormLabel>
-              <Input
-                type="date"
-                value={formData.deadline}
-                onChange={(e) =>
-                  setFormData({ ...formData, deadline: e.target.value })
-                }
+                placeholder="Nhập mô tả nhiệm vụ"
+                bg={inputBgColor}
+                color="white"
               />
             </FormControl>
-          </Stack>
 
-          <Stack direction="row" spacing={4} justify="flex-end">
-            <Button
-              onClick={resetForm}
-              variant="outline"
-              isDisabled={isSubmitting}
-            >
-              Hủy
-            </Button>
-            <Button
-              type="submit"
-              colorScheme="blue"
-              leftIcon={<AddIcon />}
-              isLoading={isSubmitting}
-              loadingText="Đang xử lý..."
-            >
-              {isEditing ? "Cập nhật" : "Thêm nhiệm vụ"}
-            </Button>
-          </Stack>
-        </Stack>
-      </form>
+            <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4} w="full">
+              <FormControl isRequired>
+                <FormLabel color="white">Phân Hệ</FormLabel>
+                <Select
+                  value={taskForm.department}
+                  onChange={handleDepartmentChange}
+                  bg={inputBgColor}
+                  color="white"
+                  placeholder="Chọn phân hệ"
+                >
+                  {DEPARTMENTS.map((dept) => (
+                    <option key={dept.id} value={dept.id}>
+                      {dept.name}
+                    </option>
+                  ))}
+                </Select>
+              </FormControl>
 
-      <Table variant="simple" mt={8}>
-        <Thead>
-          <Tr>
-            <Th>Nhiệm vụ</Th>
-            <Th>Phân hệ</Th>
-            <Th>Người thực hiện</Th>
-            <Th>Deadline</Th>
-            <Th>Tiến độ</Th>
-            <Th>Thao tác</Th>
-          </Tr>
-        </Thead>
-        <Tbody>
-          {tasks.map((task) => (
-            <Tr key={task.id}>
-              <Td>{task.title}</Td>
-              <Td>
-                <Badge colorScheme="blue">
-                  {DEPARTMENTS.find((d) => d.id === task.department)?.name ||
-                    task.department}
-                </Badge>
-              </Td>
-              <Td>
-                {users.find((u) => u.id === task.assignee)?.fullName ||
-                  task.assignee}
-              </Td>
-              <Td>{new Date(task.deadline).toLocaleDateString("vi-VN")}</Td>
-              <Td>
-                <Progress value={task.progress} size="sm" colorScheme="blue" />
-              </Td>
-              <Td>
-                <Stack direction="row" spacing={2}>
-                  <IconButton
-                    icon={<EditIcon />}
-                    onClick={() => handleEdit(task)}
-                    aria-label="Sửa"
-                    size="sm"
-                  />
-                  <IconButton
-                    icon={<DeleteIcon />}
-                    onClick={() => handleDelete(task.id)}
-                    aria-label="Xóa"
-                    size="sm"
-                    colorScheme="red"
-                  />
-                </Stack>
-              </Td>
+              <FormControl>
+                <FormLabel color="white">Thêm Người Thực Hiện</FormLabel>
+                <Select
+                  onChange={handleAssigneeSelect}
+                  placeholder="Chọn người thực hiện"
+                  isDisabled={!taskForm.department}
+                  bg={inputBgColor}
+                  color="white"
+                >
+                  {users.map((userItem) => (
+                    <option key={userItem.id} value={userItem.id}>
+                      {userItem.fullName} ({userItem.email})
+                    </option>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <FormControl isRequired>
+                <FormLabel color="white">Deadline</FormLabel>
+                <Input
+                  type="date"
+                  value={taskForm.deadline}
+                  onChange={(e) =>
+                    setTaskForm((prev) => ({
+                      ...prev,
+                      deadline: e.target.value,
+                    }))
+                  }
+                  bg={inputBgColor}
+                  color="white"
+                />
+              </FormControl>
+            </SimpleGrid>
+
+            {selectedAssignees.length > 0 && (
+              <Box
+                width="100%"
+                bg={inputBgColor}
+                p={4}
+                borderRadius="md"
+                mt={4}
+              >
+                <Text color="white" fontWeight="medium" mb={4}>
+                  Danh Sách Người Thực Hiện:
+                </Text>
+                <VStack spacing={4} align="stretch">
+                  {selectedAssignees.map((assignee) => (
+                    <Box
+                      key={assignee.id}
+                      p={4}
+                      borderWidth="1px"
+                      borderRadius="md"
+                      borderColor={borderColor}
+                    >
+                      <HStack spacing={4} mb={4}>
+                        <Tag size="md" colorScheme="blue" borderRadius="full">
+                          <TagLabel>{assignee.name}</TagLabel>
+                          <TagCloseButton
+                            onClick={() => handleRemoveAssignee(assignee.id)}
+                          />
+                        </Tag>
+                        <Text color="white">{assignee.email}</Text>
+                      </HStack>
+
+                      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                        <FormControl>
+                          <FormLabel color="white">Tiến Độ (%)</FormLabel>
+                          <Input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={assignee.progress}
+                            onChange={(e) =>
+                              handleAssigneeProgress(
+                                assignee.id,
+                                e.target.value
+                              )
+                            }
+                            bg="gray.600"
+                            color="white"
+                          />
+                        </FormControl>
+
+                        <FormControl>
+                          <FormLabel color="white">Ghi Chú</FormLabel>
+                          <Input
+                            value={assignee.notes}
+                            onChange={(e) =>
+                              handleAssigneeNotes(assignee.id, e.target.value)
+                            }
+                            placeholder="Nhập ghi chú"
+                            bg="gray.600"
+                            color="white"
+                          />
+                        </FormControl>
+                      </SimpleGrid>
+                    </Box>
+                  ))}
+                </VStack>
+              </Box>
+            )}
+
+            <Stack
+              direction="row"
+              spacing={4}
+              justify="flex-end"
+              width="full"
+              mt={4}
+            >
+              <Button
+                onClick={resetForm}
+                variant="outline"
+                isDisabled={isSubmitting}
+                color="white"
+              >
+                Hủy
+              </Button>
+              <Button
+                type="submit"
+                colorScheme="blue"
+                leftIcon={<AddIcon />}
+                isLoading={isSubmitting}
+                loadingText="Đang xử lý..."
+              >
+                {isEditing ? "Cập Nhật" : "Thêm Nhiệm Vụ"}
+              </Button>
+            </Stack>
+          </VStack>
+        </form>
+
+        <Table variant="simple" mt={8} color="white">
+          <Thead>
+            <Tr>
+              <Th color="gray.300">Mã Nhiệm Vụ</Th>
+              <Th color="gray.300">Nhiệm Vụ</Th>
+              <Th color="gray.300">Phân Hệ</Th>
+              <Th color="gray.300">Người Thực Hiện</Th>
+              <Th color="gray.300">Deadline</Th>
+              <Th color="gray.300">Tiến Độ</Th>
+              <Th color="gray.300">Thao Tác</Th>
             </Tr>
-          ))}
-        </Tbody>
-      </Table>
+          </Thead>
+          <Tbody>
+            {tasks.map((taskItem) => (
+              <Tr key={taskItem.id}>
+                <Td>{taskItem.taskId}</Td>
+                <Td>
+                  <VStack align="start" spacing={1}>
+                    <Text fontWeight="medium">{taskItem.title}</Text>
+                    {taskItem.description && (
+                      <Text fontSize="sm" color="gray.400">
+                        {taskItem.description}
+                      </Text>
+                    )}
+                  </VStack>
+                </Td>
+                <Td>
+                  <Badge colorScheme="blue">
+                    {
+                      DEPARTMENTS.find((d) => d.id === taskItem.department)
+                        ?.name
+                    }
+                  </Badge>
+                </Td>
+                <Td>
+                  <VStack align="start" spacing={2}>
+                    {taskItem.assignees?.map((assignee) => (
+                      <Box key={assignee.id}>
+                        <HStack spacing={2}>
+                          <Badge colorScheme="green">{assignee.name}</Badge>
+                          <Text fontSize="sm">({assignee.progress}%)</Text>
+                        </HStack>
+                        {assignee.notes && (
+                          <Text fontSize="xs" color="gray.400">
+                            {assignee.notes}
+                          </Text>
+                        )}
+                      </Box>
+                    ))}
+                  </VStack>
+                </Td>
+                <Td>
+                  {new Date(taskItem.deadline).toLocaleDateString("vi-VN")}
+                </Td>
+                <Td>
+                  <VStack align="start" spacing={1}>
+                    <Progress
+                      value={calculateProgress(taskItem.assignees)}
+                      size="sm"
+                      colorScheme="blue"
+                      width="100%"
+                      borderRadius="full"
+                    />
+                    <Text fontSize="xs">
+                      Trung bình: {calculateProgress(taskItem.assignees)}%
+                    </Text>
+                  </VStack>
+                </Td>
+                <Td>
+                  <HStack spacing={2}>
+                    <IconButton
+                      icon={<EditIcon />}
+                      onClick={() => handleEdit(taskItem)}
+                      aria-label="Sửa nhiệm vụ"
+                      size="sm"
+                      colorScheme="blue"
+                    />
+                    <IconButton
+                      icon={<DeleteIcon />}
+                      onClick={() => handleDelete(taskItem.id)}
+                      aria-label="Xóa nhiệm vụ"
+                      size="sm"
+                      colorScheme="red"
+                    />
+                  </HStack>
+                </Td>
+              </Tr>
+            ))}
+          </Tbody>
+        </Table>
+      </VStack>
     </Box>
   );
 };
