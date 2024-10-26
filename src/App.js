@@ -1,4 +1,3 @@
-// src/App.js
 import React from "react";
 import { ChakraProvider, Spinner, Center } from "@chakra-ui/react";
 import {
@@ -27,6 +26,12 @@ import TaoTaiKhoanQuanTri from "./pages/auth/TaoTaiKhoanQuanTri";
 // Components
 import AttendanceTable from "./components/attendance/AttendanceTable";
 import AttendanceForm from "./components/attendance/AttendanceForm";
+
+// Báo Cáo Components
+import BaoCaoNgay from "./components/bao_cao/bao_cao_ngay";
+import ChiTietBaoCao from "./components/bao_cao/components/chi_tiet_bao_cao";
+import BaoCaoTheoDuAn from "./components/bao_cao/components/bao_cao_theo_du_an";
+import BaoCaoTheoNhiemVu from "./components/bao_cao/components/bao_cao_theo_nhiem_vu";
 
 const ProtectedRoute = ({ children, requiredRole }) => {
   const { user, loading } = useAuth();
@@ -177,7 +182,6 @@ const AppRoutes = () => {
       />
 
       {/* Task Management Routes */}
-      {/* Trang quản lý nhiệm vụ chung */}
       <Route
         path="/quan-ly-nhiem-vu"
         element={
@@ -189,7 +193,6 @@ const AppRoutes = () => {
         }
       />
 
-      {/* Trang nhiệm vụ theo dự án cụ thể */}
       <Route
         path="/quan-ly-du-an/:projectId/nhiem-vu"
         element={
@@ -201,13 +204,57 @@ const AppRoutes = () => {
         }
       />
 
-      {/* Trang chi tiết nhiệm vụ */}
       <Route
         path="/quan-ly-nhiem-vu/:taskId"
         element={
           <ProtectedRoute requiredRole={["admin-tong", "admin-con", "member"]}>
             <Layout>
               <TaskManagementPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Báo Cáo Routes */}
+      <Route
+        path="/bao-cao-ngay"
+        element={
+          <ProtectedRoute requiredRole={["admin-tong", "admin-con", "member"]}>
+            <Layout>
+              <BaoCaoNgay />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/bao-cao-ngay/:reportId"
+        element={
+          <ProtectedRoute requiredRole={["admin-tong", "admin-con", "member"]}>
+            <Layout>
+              <ChiTietBaoCao />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/quan-ly-du-an/:projectId/bao-cao"
+        element={
+          <ProtectedRoute requiredRole={["admin-tong", "admin-con", "member"]}>
+            <Layout>
+              <BaoCaoTheoDuAn />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/quan-ly-nhiem-vu/:taskId/bao-cao"
+        element={
+          <ProtectedRoute requiredRole={["admin-tong", "admin-con", "member"]}>
+            <Layout>
+              <BaoCaoTheoNhiemVu />
             </Layout>
           </ProtectedRoute>
         }

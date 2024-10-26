@@ -1,4 +1,3 @@
-// src/pages/dashboard/MemberDashboard.js
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -33,6 +32,7 @@ import {
   FaProjectDiagram,
   FaTasks,
   FaClipboardList,
+  FaChartBar,
 } from "react-icons/fa";
 import { useAuth } from "../../hooks/useAuth";
 import AttendanceForm from "../../components/attendance/AttendanceForm";
@@ -218,6 +218,16 @@ const MemberDashboard = () => {
               variant="outline"
             >
               Quản lý nhiệm vụ
+            </Button>
+
+            <Button
+              leftIcon={<FaChartBar />}
+              colorScheme="teal"
+              onClick={() => navigate("/bao-cao-ngay")}
+              size="lg"
+              variant="outline"
+            >
+              Báo cáo
             </Button>
           </Grid>
         </VStack>

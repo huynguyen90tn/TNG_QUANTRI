@@ -1,4 +1,3 @@
-// src/pages/dashboard/AdminConDashboard.js
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -29,6 +28,7 @@ import {
   FaUserPlus,
   FaListAlt,
   FaTasks,
+  FaChartBar,
 } from "react-icons/fa";
 import { useAuth } from "../../hooks/useAuth";
 import { getTasksByDepartment } from "../../services/api/taskApi";
@@ -186,7 +186,7 @@ const AdminConDashboard = () => {
           <Heading size="md" mb={4}>
             Chức năng quản lý
           </Heading>
-          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+          <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
             <Button
               leftIcon={<FaUserPlus />}
               colorScheme="green"
@@ -225,6 +225,16 @@ const AdminConDashboard = () => {
               variant="outline"
             >
               Quản lý nhiệm vụ
+            </Button>
+
+            <Button
+              leftIcon={<FaChartBar />}
+              colorScheme="teal"
+              onClick={() => navigate("/bao-cao-ngay")}
+              size="lg"
+              variant="outline"
+            >
+              Báo cáo
             </Button>
           </SimpleGrid>
         </VStack>
