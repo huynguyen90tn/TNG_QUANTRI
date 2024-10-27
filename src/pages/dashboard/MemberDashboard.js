@@ -4,7 +4,6 @@ import {
   Box,
   Container,
   Flex,
-  Grid,
   Heading,
   Text,
   Icon,
@@ -24,6 +23,11 @@ import {
   useToast,
   Divider,
   VStack,
+  SimpleGrid,
+  HStack,
+  Tooltip,
+  Card,
+  CardBody,
   Badge,
 } from "@chakra-ui/react";
 import {
@@ -33,6 +37,12 @@ import {
   FaTasks,
   FaClipboardList,
   FaChartBar,
+  FaCog,
+  FaLock,
+  FaListAlt,
+  FaCode,
+  FaEye,
+  FaChartPie,
 } from "react-icons/fa";
 import { useAuth } from "../../hooks/useAuth";
 import AttendanceForm from "../../components/attendance/AttendanceForm";
@@ -47,23 +57,33 @@ const MemberDashboard = () => {
     total: 0,
     completed: 0,
     inProgress: 0,
+    overdue: 0,
   });
 
+  // Theme colors
   const bgColor = useColorModeValue("gray.50", "gray.900");
   const cardBg = useColorModeValue("white", "gray.800");
   const textColor = useColorModeValue("gray.600", "gray.300");
+  const borderColor = useColorModeValue("gray.200", "gray.700");
+  const hoverBg = useColorModeValue("gray.50", "gray.700");
 
   const loadTaskStats = useCallback(async () => {
     if (!user?.uid) return;
     try {
       const response = await getTasksByAssignee(user.uid);
       const tasks = response.data;
+      const now = new Date();
 
       setTaskStats({
         total: tasks.length,
         completed: tasks.filter((task) => task.status === "completed").length,
-        inProgress: tasks.filter((task) => task.status === "in-progress")
-          .length,
+        inProgress: tasks.filter((task) => task.status === "in-progress").length,
+        overdue: tasks.filter(
+          (task) =>
+            task.status !== "completed" &&
+            task.deadline &&
+            new Date(task.deadline) < now
+        ).length,
       });
     } catch (error) {
       toast({
@@ -98,40 +118,146 @@ const MemberDashboard = () => {
     }
   };
 
-  const StatCard = ({ icon, label, value, color }) => (
-    <Box
+  const StatCard = ({ icon, label, value, color, percentage }) => (
+    <Card
       p={6}
       bg={cardBg}
       rounded="xl"
       shadow="md"
-      transition="transform 0.2s"
-      _hover={{ transform: "translateY(-2px)" }}
+      transition="all 0.3s"
+      _hover={{ transform: "translateY(-2px)", shadow: "lg" }}
+      borderWidth="1px"
+      borderColor={borderColor}
     >
-      <Flex align="center">
-        <Icon as={icon} w={8} h={8} color={color} mr={4} />
-        <Box>
-          <Text color={textColor}>{label}</Text>
-          <Heading size="lg">{value}</Heading>
-        </Box>
-      </Flex>
-    </Box>
+      <CardBody>
+        <Flex align="center">
+          <Icon as={icon} w={8} h={8} color={color} />
+          <Box ml={4}>
+            <Text color={textColor} fontSize="sm" fontWeight="medium">
+              {label}
+            </Text>
+            <Heading size="lg" mt={1}>
+              {value}
+            </Heading>
+            {percentage && (
+              <Text color={textColor} fontSize="sm" mt={1}>
+                {percentage}% tổng số
+              </Text>
+            )}
+          </Box>
+        </Flex>
+      </CardBody>
+    </Card>
+  );
+
+  const FeatureButton = ({ icon, label, onClick, colorScheme, tooltipText, isProtected }) => (
+    <Tooltip label={tooltipText} hasArrow placement="top">
+      <Button
+        leftIcon={
+          <HStack spacing={2}>
+            <Icon as={icon} />
+            {isProtected && <Icon as={FaLock} w={3} h={3} />}
+          </HStack>
+        }
+        colorScheme={colorScheme}
+        onClick={onClick}
+        size="lg"
+        variant="outline"
+        w="full"
+        h="16"
+        transition="all 0.3s"
+        _hover={{
+          transform: "translateY(-2px)",
+          shadow: "md",
+          bg: hoverBg,
+        }}
+      >
+        {label}
+      </Button>
+    </Tooltip>
+  );
+
+  const mainFeatures = [
+    {
+      icon: FaHistory,
+      label: "Lịch sử điểm danh",
+      path: "/member/lich-su-diem-danh",
+      colorScheme: "blue",
+      tooltip: "Xem lịch sử điểm danh của bạn",
+    },
+    {
+      icon: FaProjectDiagram,
+      label: "Quản lý dự án",
+      path: "/quan-ly-du-an",
+      colorScheme: "green",
+      tooltip: "Quản lý các dự án của bạn",
+    },
+    {
+      icon: FaTasks,
+      label: "Quản lý nhiệm vụ",
+      path: "/quan-ly-nhiem-vu",
+      colorScheme: "purple",
+      tooltip: "Quản lý nhiệm vụ được giao",
+    },
+    {
+      icon: FaChartBar,
+      label: "Báo cáo",
+      path: "/bao-cao-ngay",
+      colorScheme: "teal",
+      tooltip: "Xem và tạo báo cáo",
+    },
+  ];
+
+  const detailFeatures = [
+    {
+      icon: FaCode,
+      label: "Quản lý chi tiết code",
+      path: "/quan-ly-chi-tiet",
+      colorScheme: "pink",
+      tooltip: "Quản lý chi tiết code (Yêu cầu mật khẩu)",
+      isProtected: true,
+    },
+  ];
+
+  const ViewDetailButton = () => (
+    <Button
+      leftIcon={<FaEye />}
+      colorScheme="blue"
+      variant="solid"
+      onClick={() => navigate("/quan-ly-chi-tiet")}
+      size="md"
+      ml={2}
+    >
+      Xem
+    </Button>
   );
 
   return (
     <Container maxW="1400px">
       <Box minH="100vh" bg={bgColor} p={8}>
         {/* Header */}
-        <Flex justify="space-between" align="center" mb={8}>
+        <Flex 
+          justify="space-between" 
+          align="center" 
+          mb={8}
+          flexWrap={{ base: "wrap", md: "nowrap" }}
+          gap={4}
+        >
           <Box>
             <Heading size="lg">Bảng Điều Khiển Thành Viên</Heading>
-            <Text color={textColor}>Chúc bạn một ngày làm việc hiệu quả!</Text>
+            <Text color={textColor} mt={2}>
+              Chúc bạn một ngày làm việc hiệu quả!
+            </Text>
           </Box>
 
-          <Flex gap={4} align="center">
+          <HStack spacing={4}>
             <Button
               leftIcon={<FaUserClock />}
               colorScheme="blue"
               onClick={handleOpenAttendance}
+              size={{ base: "md", md: "lg" }}
+              shadow="md"
+              _hover={{ shadow: "lg", transform: "translateY(-2px)" }}
             >
               Điểm danh
             </Button>
@@ -139,27 +265,44 @@ const MemberDashboard = () => {
             <Menu>
               <MenuButton>
                 <Avatar
-                  size="sm"
+                  size="md"
                   name={user?.displayName}
                   src={user?.photoURL}
+                  cursor="pointer"
+                  border="2px solid"
+                  borderColor="blue.500"
                 />
               </MenuButton>
-              <MenuList>
-                <MenuItem onClick={() => navigate("/ho-so")}>
+              <MenuList shadow="lg">
+                <MenuItem 
+                  icon={<FaCog />} 
+                  onClick={() => navigate("/ho-so")}
+                >
                   Thông tin cá nhân
                 </MenuItem>
-                <MenuItem onClick={handleSignOut} color="red.500">
+                <MenuItem 
+                  icon={<FaUserClock />} 
+                  onClick={() => navigate("/member/lich-su-diem-danh")}
+                >
+                  Lịch sử điểm danh
+                </MenuItem>
+                <Divider />
+                <MenuItem 
+                  icon={<FaLock />} 
+                  onClick={handleSignOut} 
+                  color="red.500"
+                >
                   Đăng xuất
                 </MenuItem>
               </MenuList>
             </Menu>
-          </Flex>
+          </HStack>
         </Flex>
 
         {/* Thống kê */}
-        <Grid
-          templateColumns={{ base: "1fr", md: "repeat(3, 1fr)" }}
-          gap={6}
+        <SimpleGrid 
+          columns={{ base: 1, md: 2, lg: 4 }} 
+          spacing={6} 
           mb={8}
         >
           <StatCard
@@ -170,66 +313,70 @@ const MemberDashboard = () => {
           />
           <StatCard
             icon={FaClipboardList}
-            label="Nhiệm vụ đang thực hiện"
+            label="Đang thực hiện"
             value={taskStats.inProgress}
             color="orange.500"
+            percentage={((taskStats.inProgress / taskStats.total) * 100).toFixed(1)}
           />
           <StatCard
             icon={FaProjectDiagram}
-            label="Nhiệm vụ đã hoàn thành"
+            label="Đã hoàn thành"
             value={taskStats.completed}
             color="green.500"
+            percentage={((taskStats.completed / taskStats.total) * 100).toFixed(1)}
           />
-        </Grid>
+          <StatCard
+            icon={FaChartPie}
+            label="Quá hạn"
+            value={taskStats.overdue}
+            color="red.500"
+            percentage={((taskStats.overdue / taskStats.total) * 100).toFixed(1)}
+          />
+        </SimpleGrid>
 
         <Divider my={6} />
 
-        {/* Các nút chức năng */}
-        <VStack spacing={4} align="stretch">
-          <Heading size="md" mb={4}>
-            Chức năng chính
-          </Heading>
-          <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }} gap={4}>
-            <Button
-              leftIcon={<FaHistory />}
-              colorScheme="blue"
-              onClick={() => navigate("/member/lich-su-diem-danh")}
-              size="lg"
-              variant="outline"
-            >
-              Xem lịch sử điểm danh
-            </Button>
+        {/* Các nút chức năng chính */}
+        <VStack spacing={6} align="stretch">
+          <Heading size="md">Chức năng chính</Heading>
+          <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={4}>
+            {mainFeatures.map((feature) => (
+              <FeatureButton
+                key={feature.path}
+                icon={feature.icon}
+                label={feature.label}
+                onClick={() => navigate(feature.path)}
+                colorScheme={feature.colorScheme}
+                tooltipText={feature.tooltip}
+              />
+            ))}
+          </SimpleGrid>
+        </VStack>
 
-            <Button
-              leftIcon={<FaProjectDiagram />}
-              colorScheme="green"
-              onClick={() => navigate("/quan-ly-du-an")}
-              size="lg"
-              variant="outline"
-            >
-              Quản lý dự án
-            </Button>
+        <Divider my={6} />
 
-            <Button
-              leftIcon={<FaTasks />}
-              colorScheme="purple"
-              onClick={() => navigate("/quan-ly-nhiem-vu")}
-              size="lg"
-              variant="outline"
-            >
-              Quản lý nhiệm vụ
-            </Button>
-
-            <Button
-              leftIcon={<FaChartBar />}
-              colorScheme="teal"
-              onClick={() => navigate("/bao-cao-ngay")}
-              size="lg"
-              variant="outline"
-            >
-              Báo cáo
-            </Button>
-          </Grid>
+        {/* Quản lý chi tiết code */}
+        <VStack spacing={6} align="stretch">
+          <HStack>
+            <Heading size="md">Quản lý chi tiết code</Heading>
+            <Badge colorScheme="blue" variant="subtle">
+              Bảo mật
+            </Badge>
+            <ViewDetailButton />
+          </HStack>
+          <SimpleGrid columns={{ base: 1 }} spacing={4}>
+            {detailFeatures.map((feature) => (
+              <FeatureButton
+                key={feature.path}
+                icon={feature.icon}
+                label={feature.label}
+                onClick={() => navigate(feature.path)}
+                colorScheme={feature.colorScheme}
+                tooltipText={feature.tooltip}
+                isProtected={feature.isProtected}
+              />
+            ))}
+          </SimpleGrid>
         </VStack>
 
         {/* Modal Điểm danh */}
@@ -237,8 +384,13 @@ const MemberDashboard = () => {
           isOpen={isAttendanceOpen}
           onClose={handleCloseAttendance}
           size="xl"
+          isCentered
+          motionPreset="slideInBottom"
         >
-          <ModalOverlay />
+          <ModalOverlay 
+            bg="blackAlpha.300"
+            backdropFilter="blur(10px)"
+          />
           <ModalContent>
             <ModalHeader>Điểm Danh</ModalHeader>
             <ModalCloseButton />

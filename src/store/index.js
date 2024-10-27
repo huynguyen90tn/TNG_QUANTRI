@@ -4,6 +4,7 @@ import projectReducer from "./slices/projectSlice";
 import authReducer from "./slices/authSlice";
 import themeReducer from "./slices/themeSlice";
 import attendanceReducer from "./slices/attendanceSlice";
+import nhiemVuReducer from "../components/quan_ly_nhiem_vu_chi_tiet/store/nhiem_vu_slice";
 
 const store = configureStore({
   reducer: {
@@ -11,6 +12,7 @@ const store = configureStore({
     auth: authReducer,
     theme: themeReducer,
     attendance: attendanceReducer,
+    nhiemVu: nhiemVuReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

@@ -1,3 +1,4 @@
+// src/App.js
 import React from "react";
 import { ChakraProvider, Spinner, Center } from "@chakra-ui/react";
 import {
@@ -6,6 +7,7 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
+import PropTypes from 'prop-types';
 import { AuthProvider, useAuth } from "./hooks/useAuth";
 import Layout from "./components/layout/Layout";
 import theme from "./styles/theme";
@@ -18,6 +20,10 @@ import MemberDashboard from "./pages/dashboard/MemberDashboard";
 import ProjectManagement from "./pages/ProjectManagement";
 import TaskManagementPage from "./pages/TaskManagementPage";
 import TaskListPage from "./pages/TaskListPage";
+import QuanLyNhiemVuPage from "./pages/quan_ly_nhiem_vu/QuanLyNhiemVuPage";
+import ChiTietNhiemVuPage from "./pages/quan_ly_nhiem_vu/ChiTietNhiemVuPage";
+import ThongKeNhiemVuPage from "./pages/quan_ly_nhiem_vu/ThongKeNhiemVuPage";
+import QuanLyChiTietPage from "./pages/quan_ly_chi_tiet/QuanLyChiTietPage";
 
 // Auth Pages
 import TaoTaiKhoanThanhVien from "./pages/auth/TaoTaiKhoanThanhVien";
@@ -39,7 +45,7 @@ const ProtectedRoute = ({ children, requiredRole }) => {
   if (loading) {
     return (
       <Center h="100vh">
-        <Spinner size="xl" />
+        <Spinner size="xl" color="brand.500" thickness="4px" />
       </Center>
     );
   }
@@ -51,13 +57,18 @@ const ProtectedRoute = ({ children, requiredRole }) => {
   return children;
 };
 
+ProtectedRoute.propTypes = {
+  children: PropTypes.node.isRequired,
+  requiredRole: PropTypes.arrayOf(PropTypes.string).isRequired,
+};
+
 const AppRoutes = () => {
   const { loading } = useAuth();
 
   if (loading) {
     return (
       <Center h="100vh">
-        <Spinner size="xl" />
+        <Spinner size="xl" color="brand.500" thickness="4px" />
       </Center>
     );
   }
@@ -210,6 +221,85 @@ const AppRoutes = () => {
           <ProtectedRoute requiredRole={["admin-tong", "admin-con", "member"]}>
             <Layout>
               <TaskManagementPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Quản Lý Chi Tiết Routes */}
+      <Route
+        path="/quan-ly-chi-tiet"
+        element={
+          <ProtectedRoute requiredRole={["admin-tong", "admin-con", "member"]}>
+            <Layout>
+              <QuanLyChiTietPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/quan-ly-chi-tiet/tinh-nang"
+        element={
+          <ProtectedRoute requiredRole={["admin-tong", "admin-con", "member"]}>
+            <Layout>
+              <QuanLyNhiemVuPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/quan-ly-chi-tiet/backend"
+        element={
+          <ProtectedRoute requiredRole={["admin-tong", "admin-con", "member"]}>
+            <Layout>
+              <ChiTietNhiemVuPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/quan-ly-chi-tiet/kiem-thu"
+        element={
+          <ProtectedRoute requiredRole={["admin-tong", "admin-con", "member"]}>
+            <Layout>
+              <ChiTietNhiemVuPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/quan-ly-chi-tiet/thong-ke"
+        element={
+          <ProtectedRoute requiredRole={["admin-tong", "admin-con"]}>
+            <Layout>
+              <ThongKeNhiemVuPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Routes sau khi xác thực mật khẩu */}
+      <Route
+        path="/quan-ly-nhiem-vu-chi-tiet"
+        element={
+          <ProtectedRoute requiredRole={["admin-tong", "admin-con", "member"]}>
+            <Layout>
+              <QuanLyNhiemVuPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/quan-ly-du-an/:projectId/nhiem-vu-chi-tiet"
+        element={
+          <ProtectedRoute requiredRole={["admin-tong", "admin-con", "member"]}>
+            <Layout>
+              <QuanLyNhiemVuPage />
             </Layout>
           </ProtectedRoute>
         }
