@@ -1,5 +1,3 @@
-// src/pages/TaskListPage.js
-
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
@@ -83,6 +81,23 @@ const INITIAL_FORM_STATE = {
   subTasks: [],
 };
 
+// Deep clean function to remove undefined and null values
+const deepClean = (obj) => {
+  if (Array.isArray(obj)) {
+    return obj
+      .map((item) => deepClean(item))
+      .filter((item) => item !== undefined && item !== null);
+  }
+  if (obj && typeof obj === 'object') {
+    return Object.fromEntries(
+      Object.entries(obj)
+        .filter(([_, value]) => value !== undefined && value !== null)
+        .map(([key, value]) => [key, deepClean(value)])
+    );
+  }
+  return obj;
+};
+
 const TaskListPage = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
@@ -90,7 +105,6 @@ const TaskListPage = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
-  const [selectedDepartment, setSelectedDepartment] = useState('');
   const [selectedAssignees, setSelectedAssignees] = useState([]);
   const [filters, setFilters] = useState({
     department: '',
@@ -106,11 +120,8 @@ const TaskListPage = () => {
     const year = date.getFullYear().toString().slice(-2);
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const day = date.getDate().toString().padStart(2, '0');
-    const deptCode =
-      DEPARTMENTS.find((d) => d.id === department)?.role || 'GEN';
-    const random = Math.floor(Math.random() * 1000)
-      .toString()
-      .padStart(3, '0');
+    const deptCode = DEPARTMENTS.find((d) => d.id === department)?.role || 'GEN';
+    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
     return `${deptCode}-${year}${month}${day}-${random}`;
   }, []);
 
@@ -157,7 +168,6 @@ const TaskListPage = () => {
 
   const handleDepartmentChange = (e) => {
     const department = e.target.value;
-    setSelectedDepartment(department);
     setTaskForm((prev) => ({
       ...prev,
       department,
@@ -189,7 +199,7 @@ const TaskListPage = () => {
   const handleAssigneeProgress = (assigneeId, progress) => {
     const updateAssignee = (list) =>
       list.map((a) =>
-        a.id === assigneeId ? { ...a, progress: Number(progress) } : a
+        a.id === assigneeId ? { ...a, progress: Number(progress) || 0 } : a
       );
 
     setSelectedAssignees(updateAssignee);
@@ -201,7 +211,7 @@ const TaskListPage = () => {
 
   const handleAssigneeNotes = (assigneeId, notes) => {
     const updateAssignee = (list) =>
-      list.map((a) => (a.id === assigneeId ? { ...a, notes } : a));
+      list.map((a) => (a.id === assigneeId ? { ...a, notes: notes || '' } : a));
 
     setSelectedAssignees(updateAssignee);
     setTaskForm((prev) => ({
@@ -224,12 +234,32 @@ const TaskListPage = () => {
     setTaskForm(INITIAL_FORM_STATE);
     setSelectedAssignees([]);
     setSelectedTask(null);
-    setSelectedDepartment('');
+  };
+
+  const calculateOverallProgress = () => {
+    const taskAssigneeProgress =
+      taskForm.assignees.reduce((sum, a) => sum + (a.progress || 0), 0) /
+      (taskForm.assignees.length || 1);
+
+    const subTaskProgress =
+      taskForm.subTasks.reduce((sum, subTask) => {
+        const subTaskAssigneeProgress =
+          subTask.assignees.reduce(
+            (subSum, a) => subSum + (a.progress || 0),
+            0
+          ) / (subTask.assignees.length || 1);
+        return sum + subTaskAssigneeProgress;
+      }, 0) / (taskForm.subTasks.length || 1);
+
+    return Math.round((taskAssigneeProgress + subTaskProgress) / 2);
   };
 
   const handleSubTaskChange = (index, field, value) => {
     const newSubTasks = [...taskForm.subTasks];
-    newSubTasks[index][field] = value;
+    newSubTasks[index] = {
+      ...newSubTasks[index],
+      [field]: value || '',
+    };
     setTaskForm((prev) => ({
       ...prev,
       subTasks: newSubTasks,
@@ -290,36 +320,55 @@ const TaskListPage = () => {
     }));
   };
 
-  const calculateOverallProgress = () => {
-    const taskAssigneeProgress =
-      taskForm.assignees.reduce((sum, a) => sum + (a.progress || 0), 0) /
-      (taskForm.assignees.length || 1);
-    const subTaskProgress =
-      taskForm.subTasks.reduce((sum, subTask) => {
-        const subTaskAssigneeProgress =
-          subTask.assignees.reduce(
-            (subSum, a) => subSum + (a.progress || 0),
-            0
-          ) / (subTask.assignees.length || 1);
-        return sum + subTaskAssigneeProgress;
-      }, 0) / (taskForm.subTasks.length || 1);
-
-    return Math.round((taskAssigneeProgress + subTaskProgress) / 2);
-  };
-
   const handleSubmit = async () => {
+    if (!taskForm.title || !taskForm.department) {
+      toast({
+        title: 'Vui lòng điền đầy đủ thông tin',
+        description: 'Tiêu đề và phân hệ là bắt buộc',
+        status: 'error',
+        duration: 3000,
+      });
+      return;
+    }
+
     try {
       setLoading(true);
+
       const taskData = {
-        ...taskForm,
+        title: taskForm.title || '',
+        department: taskForm.department || '',
         taskId: taskForm.taskId || generateTaskId(taskForm.department),
-        progress: calculateOverallProgress(),
+        description: taskForm.description || '',
+        deadline: taskForm.deadline || null,
+        status: taskForm.status || 'pending',
+        progress: calculateOverallProgress() || 0,
+        assignees: taskForm.assignees?.map((assignee) => ({
+          id: assignee.id || '',
+          name: assignee.name || '',
+          email: assignee.email || '',
+          progress: Number(assignee.progress) || 0,
+          notes: assignee.notes || '',
+        })) || [],
+        subTasks: taskForm.subTasks?.map((subTask) => ({
+          title: subTask.title || '',
+          progress: Number(subTask.progress) || 0,
+          notes: subTask.notes || '',
+          assignees: subTask.assignees?.map((assignee) => ({
+            id: assignee.id || '',
+            name: assignee.name || '',
+            email: assignee.email || '',
+            progress: Number(assignee.progress) || 0,
+            notes: assignee.notes || '',
+          })) || [],
+        })) || [],
       };
 
+      const cleanedData = deepClean(taskData);
+
       if (selectedTask) {
-        await updateTask(selectedTask.id, taskData);
+        await updateTask(selectedTask.id, cleanedData);
       } else {
-        await createTask(taskData);
+        await createTask(cleanedData);
       }
 
       toast({
@@ -347,8 +396,6 @@ const TaskListPage = () => {
     setSelectedTask(task);
     setTaskForm(task);
     setSelectedAssignees(task.assignees || []);
-    setSelectedDepartment(task.department);
-    onOpen();
   };
 
   const handleDelete = async (taskId) => {
@@ -372,6 +419,7 @@ const TaskListPage = () => {
     }
   };
 
+  // Rest of the JSX remains the same...
   return (
     <Container maxW="container.xl" py={5}>
       <Box bg={bgColor} p={5} borderRadius="lg" shadow="base">
@@ -502,7 +550,10 @@ const TaskListPage = () => {
                   <HStack spacing={2}>
                     <IconButton
                       icon={<EditIcon />}
-                      onClick={() => handleEdit(task)}
+                      onClick={() => {
+                        handleEdit(task);
+                        onOpen();
+                      }}
                       aria-label="Sửa nhiệm vụ"
                       size="sm"
                       colorScheme="blue"
@@ -609,16 +660,10 @@ const TaskListPage = () => {
                           borderRadius="md"
                         >
                           <HStack justify="space-between" mb={2}>
-                            <Tag
-                              size="md"
-                              colorScheme="blue"
-                              borderRadius="full"
-                            >
+                            <Tag size="md" colorScheme="blue" borderRadius="full">
                               <TagLabel>{assignee.name}</TagLabel>
                               <TagCloseButton
-                                onClick={() =>
-                                  handleRemoveAssignee(assignee.id)
-                                }
+                                onClick={() => handleRemoveAssignee(assignee.id)}
                               />
                             </Tag>
                             <Text fontSize="sm">{assignee.email}</Text>
@@ -631,7 +676,7 @@ const TaskListPage = () => {
                                 type="number"
                                 min="0"
                                 max="100"
-                                value={assignee.progress}
+                                value={assignee.progress || 0}
                                 onChange={(e) =>
                                   handleAssigneeProgress(
                                     assignee.id,
@@ -643,12 +688,9 @@ const TaskListPage = () => {
                             <FormControl>
                               <FormLabel>Ghi chú</FormLabel>
                               <Input
-                                value={assignee.notes}
+                                value={assignee.notes || ''}
                                 onChange={(e) =>
-                                  handleAssigneeNotes(
-                                    assignee.id,
-                                    e.target.value
-                                  )
+                                  handleAssigneeNotes(assignee.id, e.target.value)
                                 }
                                 placeholder="Nhập ghi chú"
                               />
@@ -664,7 +706,7 @@ const TaskListPage = () => {
                   <FormLabel>Deadline</FormLabel>
                   <Input
                     type="date"
-                    value={taskForm.deadline}
+                    value={taskForm.deadline || ''}
                     onChange={(e) =>
                       setTaskForm((prev) => ({
                         ...prev,
@@ -710,7 +752,7 @@ const TaskListPage = () => {
                         <FormControl>
                           <FormLabel>Tiêu đề</FormLabel>
                           <Input
-                            value={subTask.title}
+                            value={subTask.title || ''}
                             onChange={(e) =>
                               handleSubTaskChange(index, 'title', e.target.value)
                             }
@@ -729,9 +771,7 @@ const TaskListPage = () => {
                       <FormControl>
                         <FormLabel>Thêm Người Thực Hiện</FormLabel>
                         <Select
-                          onChange={(e) =>
-                            handleSubTaskAssigneeSelect(index, e)
-                          }
+                          onChange={(e) => handleSubTaskAssigneeSelect(index, e)}
                           placeholder="Chọn người thực hiện"
                         >
                           {users.map((user) => (
@@ -781,10 +821,10 @@ const TaskListPage = () => {
                                       type="number"
                                       min="0"
                                       max="100"
-                                      value={assignee.progress}
+                                      value={assignee.progress || 0}
                                       onChange={(e) => {
-                                        const newAssignees = subTask.assignees.map(
-                                          (a) =>
+                                        const newAssignees =
+                                          subTask.assignees.map((a) =>
                                             a.id === assignee.id
                                               ? {
                                                   ...a,
@@ -793,26 +833,34 @@ const TaskListPage = () => {
                                                   ),
                                                 }
                                               : a
+                                          );
+                                        handleSubTaskChange(
+                                          index,
+                                          'assignees',
+                                          newAssignees
                                         );
-                                        handleSubTaskChange(index, 'assignees', newAssignees);
                                       }}
                                     />
                                   </FormControl>
                                   <FormControl>
                                     <FormLabel>Ghi chú</FormLabel>
                                     <Input
-                                      value={assignee.notes}
+                                      value={assignee.notes || ''}
                                       onChange={(e) => {
-                                        const newAssignees = subTask.assignees.map(
-                                          (a) =>
+                                        const newAssignees =
+                                          subTask.assignees.map((a) =>
                                             a.id === assignee.id
                                               ? {
                                                   ...a,
                                                   notes: e.target.value,
                                                 }
                                               : a
+                                          );
+                                        handleSubTaskChange(
+                                          index,
+                                          'assignees',
+                                          newAssignees
                                         );
-                                        handleSubTaskChange(index, 'assignees', newAssignees);
                                       }}
                                       placeholder="Nhập ghi chú"
                                     />
@@ -850,7 +898,7 @@ const TaskListPage = () => {
               </Button>
             </ModalFooter>
           </ModalContent>
-        </Modal>
+          </Modal>
       </Box>
     </Container>
   );
