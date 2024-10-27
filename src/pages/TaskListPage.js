@@ -1,4 +1,7 @@
+// TaskListPage.js
+
 import React, { useState, useEffect, useCallback } from 'react';
+import { useParams } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -36,8 +39,16 @@ import {
   Tag,
   TagLabel,
   TagCloseButton,
+  Tabs,
+  TabList,
+  TabPanels,
+  Tab,
+  TabPanel,
+  Spinner,
+  Tooltip,
+  SimpleGrid,
 } from '@chakra-ui/react';
-import { AddIcon, EditIcon, DeleteIcon } from '@chakra-ui/icons';
+import { AddIcon, EditIcon, DeleteIcon, InfoIcon } from '@chakra-ui/icons';
 import {
   getTasks,
   createTask,
@@ -45,6 +56,9 @@ import {
   deleteTask,
 } from '../services/api/taskApi';
 import { getAllUsers } from '../services/api/userApi';
+import { getProjects } from '../services/api/projectApi';
+import ProjectSelect from '../components/projects/ProjectSelect';
+
 
 const DEPARTMENTS = [
   { id: 'thien-minh-duong', name: 'Thiên Minh Đường', role: '2D' },
@@ -69,6 +83,12 @@ const STATUS_LABELS = {
   cancelled: 'Đã hủy',
 };
 
+const PRIORITY_OPTIONS = [
+  { value: 'high', label: 'Cao', colorScheme: 'red' },
+  { value: 'medium', label: 'Trung bình', colorScheme: 'orange' },
+  { value: 'low', label: 'Thấp', colorScheme: 'green' },
+];
+
 const INITIAL_FORM_STATE = {
   taskId: '',
   title: '',
@@ -79,9 +99,14 @@ const INITIAL_FORM_STATE = {
   status: 'pending',
   progress: 0,
   subTasks: [],
+  projectId: '',
+  priority: 'medium',
+  estimatedTime: '',
+  dependencies: [],
+  comments: [],
+  attachments: [],
 };
 
-// Deep clean function to remove undefined and null values
 const deepClean = (obj) => {
   if (Array.isArray(obj)) {
     return obj
@@ -99,10 +124,12 @@ const deepClean = (obj) => {
 };
 
 const TaskListPage = () => {
+  const { projectId } = useParams();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
   const [tasks, setTasks] = useState([]);
   const [users, setUsers] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [selectedAssignees, setSelectedAssignees] = useState([]);
@@ -110,8 +137,13 @@ const TaskListPage = () => {
     department: '',
     status: '',
     search: '',
+    projectId: projectId || '',
+    priority: '',
   });
-  const [taskForm, setTaskForm] = useState(INITIAL_FORM_STATE);
+  const [taskForm, setTaskForm] = useState({
+    ...INITIAL_FORM_STATE,
+    projectId: projectId || '',
+  });
 
   const bgColor = useColorModeValue('white', 'gray.800');
 
@@ -128,7 +160,7 @@ const TaskListPage = () => {
   const loadTasks = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await getTasks(null, filters);
+      const response = await getTasks(filters.projectId, filters);
       setTasks(response.data);
     } catch (error) {
       toast({
@@ -158,6 +190,21 @@ const TaskListPage = () => {
     }
   }, [toast]);
 
+  const loadProjects = useCallback(async () => {
+    try {
+      const response = await getProjects();
+      setProjects(response.data || []);
+    } catch (error) {
+      toast({
+        title: 'Lỗi tải danh sách dự án',
+        description: error.message,
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  }, [toast]);
+
   useEffect(() => {
     loadTasks();
   }, [loadTasks]);
@@ -165,6 +212,23 @@ const TaskListPage = () => {
   useEffect(() => {
     loadUsers();
   }, [loadUsers]);
+
+  useEffect(() => {
+    loadProjects();
+  }, [loadProjects]);
+
+  useEffect(() => {
+    if (projectId) {
+      setFilters((prev) => ({
+        ...prev,
+        projectId,
+      }));
+      setTaskForm((prev) => ({
+        ...prev,
+        projectId,
+      }));
+    }
+  }, [projectId]);
 
   const handleDepartmentChange = (e) => {
     const department = e.target.value;
@@ -231,7 +295,10 @@ const TaskListPage = () => {
   };
 
   const resetForm = () => {
-    setTaskForm(INITIAL_FORM_STATE);
+    setTaskForm({
+      ...INITIAL_FORM_STATE,
+      projectId: projectId || '',
+    });
     setSelectedAssignees([]);
     setSelectedTask(null);
   };
@@ -244,10 +311,8 @@ const TaskListPage = () => {
     const subTaskProgress =
       taskForm.subTasks.reduce((sum, subTask) => {
         const subTaskAssigneeProgress =
-          subTask.assignees.reduce(
-            (subSum, a) => subSum + (a.progress || 0),
-            0
-          ) / (subTask.assignees.length || 1);
+          subTask.assignees.reduce((subSum, a) => subSum + (a.progress || 0), 0) /
+          (subTask.assignees.length || 1);
         return sum + subTaskAssigneeProgress;
       }, 0) / (taskForm.subTasks.length || 1);
 
@@ -271,7 +336,17 @@ const TaskListPage = () => {
       ...prev,
       subTasks: [
         ...prev.subTasks,
-        { title: '', assignees: [], progress: 0, notes: '' },
+        {
+          title: '',
+          assignees: [],
+          progress: 0,
+          notes: '',
+          priority: 'medium',
+          estimatedTime: '',
+          dependencies: [],
+          comments: [],
+          attachments: [],
+        },
       ],
     }));
   };
@@ -311,9 +386,9 @@ const TaskListPage = () => {
 
   const handleSubTaskAssigneeRemove = (subTaskIndex, assigneeId) => {
     const newSubTasks = [...taskForm.subTasks];
-    newSubTasks[subTaskIndex].assignees = newSubTasks[
-      subTaskIndex
-    ].assignees.filter((a) => a.id !== assigneeId);
+    newSubTasks[subTaskIndex].assignees = newSubTasks[subTaskIndex].assignees.filter(
+      (a) => a.id !== assigneeId
+    );
     setTaskForm((prev) => ({
       ...prev,
       subTasks: newSubTasks,
@@ -321,10 +396,10 @@ const TaskListPage = () => {
   };
 
   const handleSubmit = async () => {
-    if (!taskForm.title || !taskForm.department) {
+    if (!taskForm.title || !taskForm.department || !taskForm.projectId) {
       toast({
         title: 'Vui lòng điền đầy đủ thông tin',
-        description: 'Tiêu đề và phân hệ là bắt buộc',
+        description: 'Tiêu đề, phân hệ và dự án là bắt buộc',
         status: 'error',
         duration: 3000,
       });
@@ -335,32 +410,9 @@ const TaskListPage = () => {
       setLoading(true);
 
       const taskData = {
-        title: taskForm.title || '',
-        department: taskForm.department || '',
+        ...taskForm,
         taskId: taskForm.taskId || generateTaskId(taskForm.department),
-        description: taskForm.description || '',
-        deadline: taskForm.deadline || null,
-        status: taskForm.status || 'pending',
         progress: calculateOverallProgress() || 0,
-        assignees: taskForm.assignees?.map((assignee) => ({
-          id: assignee.id || '',
-          name: assignee.name || '',
-          email: assignee.email || '',
-          progress: Number(assignee.progress) || 0,
-          notes: assignee.notes || '',
-        })) || [],
-        subTasks: taskForm.subTasks?.map((subTask) => ({
-          title: subTask.title || '',
-          progress: Number(subTask.progress) || 0,
-          notes: subTask.notes || '',
-          assignees: subTask.assignees?.map((assignee) => ({
-            id: assignee.id || '',
-            name: assignee.name || '',
-            email: assignee.email || '',
-            progress: Number(assignee.progress) || 0,
-            notes: assignee.notes || '',
-          })) || [],
-        })) || [],
       };
 
       const cleanedData = deepClean(taskData);
@@ -396,6 +448,7 @@ const TaskListPage = () => {
     setSelectedTask(task);
     setTaskForm(task);
     setSelectedAssignees(task.assignees || []);
+    onOpen();
   };
 
   const handleDelete = async (taskId) => {
@@ -419,13 +472,23 @@ const TaskListPage = () => {
     }
   };
 
-  // Rest of the JSX remains the same...
+  const handleClose = () => {
+    onClose();
+    resetForm();
+  };
+
   return (
     <Container maxW="container.xl" py={5}>
       <Box bg={bgColor} p={5} borderRadius="lg" shadow="base">
         {/* Header */}
         <Flex align="center" mb={6}>
-          <Heading size="lg">Quản Lý Nhiệm Vụ</Heading>
+          <Heading size="lg">
+            {projectId
+              ? `Nhiệm Vụ - ${
+                  projects.find((p) => p.id === projectId)?.name || 'Dự án'
+                }`
+              : 'Quản Lý Nhiệm Vụ'}
+          </Heading>
           <Spacer />
           <Button
             leftIcon={<AddIcon />}
@@ -482,98 +545,156 @@ const TaskListPage = () => {
               ))}
             </Select>
           </FormControl>
+
+          <FormControl maxW="200px">
+            <Select
+              value={filters.priority}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, priority: e.target.value }))
+              }
+              placeholder="Độ ưu tiên"
+            >
+              {PRIORITY_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </Select>
+          </FormControl>
+
+          {!projectId && (
+            <FormControl maxW="200px">
+              <ProjectSelect
+                value={filters.projectId}
+                onChange={(e) =>
+                  setFilters((prev) => ({ ...prev, projectId: e.target.value }))
+                }
+              />
+            </FormControl>
+          )}
         </HStack>
 
         {/* Tasks Table */}
-        <Table variant="simple">
-          <Thead>
-            <Tr>
-              <Th>Mã nhiệm vụ</Th>
-              <Th>Tiêu đề</Th>
-              <Th>Phân hệ</Th>
-              <Th>Người thực hiện</Th>
-              <Th>Deadline</Th>
-              <Th>Trạng thái</Th>
-              <Th>Tiến độ</Th>
-              <Th>Thao tác</Th>
-            </Tr>
-          </Thead>
-          <Tbody>
-            {tasks.map((task) => (
-              <Tr key={task.id}>
-                <Td>{task.taskId}</Td>
-                <Td>{task.title}</Td>
-                <Td>
-                  <Badge>
-                    {DEPARTMENTS.find((d) => d.id === task.department)?.name}
-                  </Badge>
-                </Td>
-                <Td>
-                  <VStack align="start" spacing={2}>
-                    {task.assignees?.map((assignee) => (
-                      <Box key={assignee.id}>
-                        <HStack spacing={2}>
-                          <Badge colorScheme="green">{assignee.name}</Badge>
-                          <Text fontSize="sm">({assignee.progress}%)</Text>
-                        </HStack>
-                        {assignee.notes && (
-                          <Text fontSize="xs" color="gray.500">
-                            {assignee.notes}
-                          </Text>
-                        )}
-                      </Box>
-                    ))}
-                  </VStack>
-                </Td>
-                <Td>
-                  {task.deadline
-                    ? new Date(task.deadline).toLocaleDateString('vi-VN')
-                    : ''}
-                </Td>
-                <Td>
-                  <Badge colorScheme={STATUS_COLORS[task.status]}>
-                    {STATUS_LABELS[task.status]}
-                  </Badge>
-                </Td>
-                <Td>
-                  <VStack align="start" spacing={1}>
-                    <Progress
-                      value={task.progress || 0}
-                      size="sm"
-                      colorScheme="blue"
-                      width="100%"
-                    />
-                    <Text fontSize="xs">{task.progress || 0}%</Text>
-                  </VStack>
-                </Td>
-                <Td>
-                  <HStack spacing={2}>
-                    <IconButton
-                      icon={<EditIcon />}
-                      onClick={() => {
-                        handleEdit(task);
-                        onOpen();
-                      }}
-                      aria-label="Sửa nhiệm vụ"
-                      size="sm"
-                      colorScheme="blue"
-                    />
-                    <IconButton
-                      icon={<DeleteIcon />}
-                      onClick={() => handleDelete(task.id)}
-                      aria-label="Xóa nhiệm vụ"
-                      size="sm"
-                      colorScheme="red"
-                    />
-                  </HStack>
-                </Td>
+        {loading ? (
+          <Spinner size="xl" />
+        ) : (
+          <Table variant="simple">
+            <Thead>
+              <Tr>
+                <Th>Mã nhiệm vụ</Th>
+                <Th>Tiêu đề</Th>
+                <Th>Phân hệ</Th>
+                <Th>Độ ưu tiên</Th>
+                <Th>Người thực hiện</Th>
+                <Th>Deadline</Th>
+                <Th>Trạng thái</Th>
+                <Th>Tiến độ</Th>
+                <Th>Thao tác</Th>
               </Tr>
-            ))}
-          </Tbody>
-        </Table>
+            </Thead>
+            <Tbody>
+              {tasks.map((task) => (
+                <Tr key={task.id}>
+                  <Td>{task.taskId}</Td>
+                  <Td>{task.title}</Td>
+                  <Td>
+                    <Badge colorScheme="purple">
+                      {DEPARTMENTS.find((d) => d.id === task.department)?.name}
+                    </Badge>
+                  </Td>
+                  <Td>
+                    <Badge
+                      colorScheme={
+                        PRIORITY_OPTIONS.find(
+                          (p) => p.value === task.priority
+                        )?.colorScheme
+                      }
+                    >
+                      {
+                        PRIORITY_OPTIONS.find(
+                          (p) => p.value === task.priority
+                        )?.label
+                      }
+                    </Badge>
+                  </Td>
+                  <Td>
+                    <VStack align="start" spacing={2}>
+                      {task.assignees?.map((assignee) => (
+                        <Box key={assignee.id}>
+                          <HStack spacing={2}>
+                            <Badge colorScheme="green">{assignee.name}</Badge>
+                            <Text fontSize="sm">({assignee.progress}%)</Text>
+                          </HStack>
+                          <Text fontSize="sm">{assignee.email}</Text>
+                          {assignee.notes && (
+                            <Text fontSize="xs" color="gray.500">
+                              {assignee.notes}
+                            </Text>
+                          )}
+                        </Box>
+                      ))}
+                    </VStack>
+                  </Td>
+                  <Td>
+                    {task.deadline
+                      ? new Date(task.deadline).toLocaleDateString('vi-VN')
+                      : ''}
+                  </Td>
+                  <Td>
+                    <Badge colorScheme={STATUS_COLORS[task.status]}>
+                      {STATUS_LABELS[task.status]}
+                    </Badge>
+                  </Td>
+                  <Td>
+                    <VStack align="start" spacing={1}>
+                      <Progress
+                        value={task.progress || 0}
+                        size="sm"
+                        colorScheme="blue"
+                        width="100%"
+                      />
+                      <Text fontSize="xs">{task.progress || 0}%</Text>
+                    </VStack>
+                  </Td>
+                  <Td>
+                    <HStack spacing={2}>
+                      <Tooltip label="Xem chi tiết">
+                        <IconButton
+                          icon={<InfoIcon />}
+                          onClick={() => handleEdit(task)}
+                          aria-label="Chi tiết nhiệm vụ"
+                          size="sm"
+                          colorScheme="teal"
+                        />
+                      </Tooltip>
+                      <Tooltip label="Chỉnh sửa">
+                        <IconButton
+                          icon={<EditIcon />}
+                          onClick={() => handleEdit(task)}
+                          aria-label="Sửa nhiệm vụ"
+                          size="sm"
+                          colorScheme="blue"
+                        />
+                      </Tooltip>
+                      <Tooltip label="Xóa">
+                        <IconButton
+                          icon={<DeleteIcon />}
+                          onClick={() => handleDelete(task.id)}
+                          aria-label="Xóa nhiệm vụ"
+                          size="sm"
+                          colorScheme="red"
+                        />
+                      </Tooltip>
+                    </HStack>
+                  </Td>
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+        )}
 
         {/* Task Modal */}
-        <Modal isOpen={isOpen} onClose={onClose} size="xl">
+        <Modal isOpen={isOpen} onClose={handleClose} size="xl">
           <ModalOverlay />
           <ModalContent>
             <ModalHeader>
@@ -581,214 +702,139 @@ const TaskListPage = () => {
             </ModalHeader>
             <ModalCloseButton />
             <ModalBody>
-              <VStack spacing={4}>
-                <FormControl>
-                  <FormLabel>Mã Nhiệm Vụ</FormLabel>
-                  <Input
-                    value={taskForm.taskId}
-                    isReadOnly
-                    placeholder="Mã sẽ được tạo tự động khi chọn phân hệ"
-                  />
-                </FormControl>
-
-                <FormControl isRequired>
-                  <FormLabel>Tiêu đề</FormLabel>
-                  <Input
-                    value={taskForm.title}
-                    onChange={(e) =>
-                      setTaskForm((prev) => ({ ...prev, title: e.target.value }))
-                    }
-                    placeholder="Nhập tiêu đề nhiệm vụ"
-                  />
-                </FormControl>
-
-                <FormControl>
-                  <FormLabel>Mô tả</FormLabel>
-                  <Textarea
-                    value={taskForm.description}
-                    onChange={(e) =>
-                      setTaskForm((prev) => ({
-                        ...prev,
-                        description: e.target.value,
-                      }))
-                    }
-                    placeholder="Nhập mô tả nhiệm vụ"
-                  />
-                </FormControl>
-
-                <FormControl isRequired>
-                  <FormLabel>Phân hệ</FormLabel>
-                  <Select
-                    value={taskForm.department}
-                    onChange={handleDepartmentChange}
-                    placeholder="Chọn phân hệ"
-                  >
-                    {DEPARTMENTS.map((dept) => (
-                      <option key={dept.id} value={dept.id}>
-                        {dept.name}
-                      </option>
-                    ))}
-                  </Select>
-                </FormControl>
-
-                <FormControl>
-                  <FormLabel>Thêm Người Thực Hiện</FormLabel>
-                  <Select
-                    onChange={handleAssigneeSelect}
-                    placeholder="Chọn người thực hiện"
-                    isDisabled={!taskForm.department}
-                  >
-                    {users.map((user) => (
-                      <option key={user.id} value={user.id}>
-                        {user.fullName} ({user.email})
-                      </option>
-                    ))}
-                  </Select>
-                </FormControl>
-
-                {selectedAssignees.length > 0 && (
-                  <Box width="100%">
-                    <Text fontWeight="medium" mb={2}>
-                      Danh sách người thực hiện:
-                    </Text>
-                    <VStack spacing={3} align="stretch">
-                      {selectedAssignees.map((assignee) => (
-                        <Box
-                          key={assignee.id}
-                          p={3}
-                          borderWidth="1px"
-                          borderRadius="md"
-                        >
-                          <HStack justify="space-between" mb={2}>
-                            <Tag size="md" colorScheme="blue" borderRadius="full">
-                              <TagLabel>{assignee.name}</TagLabel>
-                              <TagCloseButton
-                                onClick={() => handleRemoveAssignee(assignee.id)}
-                              />
-                            </Tag>
-                            <Text fontSize="sm">{assignee.email}</Text>
-                          </HStack>
-
-                          <HStack spacing={4}>
-                            <FormControl>
-                              <FormLabel>Tiến độ (%)</FormLabel>
-                              <Input
-                                type="number"
-                                min="0"
-                                max="100"
-                                value={assignee.progress || 0}
-                                onChange={(e) =>
-                                  handleAssigneeProgress(
-                                    assignee.id,
-                                    e.target.value
-                                  )
-                                }
-                              />
-                            </FormControl>
-                            <FormControl>
-                              <FormLabel>Ghi chú</FormLabel>
-                              <Input
-                                value={assignee.notes || ''}
-                                onChange={(e) =>
-                                  handleAssigneeNotes(assignee.id, e.target.value)
-                                }
-                                placeholder="Nhập ghi chú"
-                              />
-                            </FormControl>
-                          </HStack>
-                        </Box>
-                      ))}
-                    </VStack>
-                  </Box>
-                )}
-
-                <FormControl isRequired>
-                  <FormLabel>Deadline</FormLabel>
-                  <Input
-                    type="date"
-                    value={taskForm.deadline || ''}
-                    onChange={(e) =>
-                      setTaskForm((prev) => ({
-                        ...prev,
-                        deadline: e.target.value,
-                      }))
-                    }
-                  />
-                </FormControl>
-
-                <FormControl>
-                  <FormLabel>Trạng thái</FormLabel>
-                  <Select
-                    value={taskForm.status}
-                    onChange={(e) =>
-                      setTaskForm((prev) => ({
-                        ...prev,
-                        status: e.target.value,
-                      }))
-                    }
-                  >
-                    {Object.entries(STATUS_LABELS).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </Select>
-                </FormControl>
-
-                {/* SubTasks */}
-                <Box width="100%" mt={4}>
-                  <Text fontWeight="medium" mb={2}>
-                    Nhiệm vụ con:
-                  </Text>
-                  {taskForm.subTasks.map((subTask, index) => (
-                    <Box
-                      key={index}
-                      p={3}
-                      borderWidth="1px"
-                      borderRadius="md"
-                      mb={3}
-                    >
-                      <HStack justify="space-between" mb={2}>
-                        <FormControl>
-                          <FormLabel>Tiêu đề</FormLabel>
-                          <Input
-                            value={subTask.title || ''}
-                            onChange={(e) =>
-                              handleSubTaskChange(index, 'title', e.target.value)
-                            }
-                            placeholder="Tiêu đề nhiệm vụ con"
-                          />
-                        </FormControl>
-                        <IconButton
-                          icon={<DeleteIcon />}
-                          colorScheme="red"
-                          variant="ghost"
-                          onClick={() => handleRemoveSubTask(index)}
-                          aria-label="Xóa nhiệm vụ con"
+              <Tabs isFitted variant="enclosed">
+                <TabList mb="1em">
+                  <Tab>Thông tin nhiệm vụ</Tab>
+                  <Tab>Nhiệm vụ con</Tab>
+                  <Tab>Bình luận</Tab>
+                  <Tab>Tệp đính kèm</Tab>
+                </TabList>
+                <TabPanels>
+                  <TabPanel>
+                    {/* Task Details Form */}
+                    <VStack spacing={4}>
+                      <FormControl isRequired>
+                        <FormLabel>Dự án</FormLabel>
+                        <ProjectSelect
+                          value={taskForm.projectId}
+                          onChange={(e) =>
+                            setTaskForm((prev) => ({
+                              ...prev,
+                              projectId: e.target.value,
+                            }))
+                          }
                         />
-                      </HStack>
+                      </FormControl>
 
                       <FormControl>
-                        <FormLabel>Thêm Người Thực Hiện</FormLabel>
+                        <FormLabel>Mã Nhiệm Vụ</FormLabel>
+                        <Input
+                          value={taskForm.taskId}
+                          isReadOnly
+                          placeholder="Mã sẽ được tạo tự động khi chọn phân hệ"
+                        />
+                      </FormControl>
+
+                      <FormControl isRequired>
+                        <FormLabel>Tiêu đề</FormLabel>
+                        <Input
+                          value={taskForm.title}
+                          onChange={(e) =>
+                            setTaskForm((prev) => ({
+                              ...prev,
+                              title: e.target.value,
+                            }))
+                          }
+                          placeholder="Nhập tiêu đề nhiệm vụ"
+                        />
+                      </FormControl>
+
+                      <FormControl>
+                        <FormLabel>Mô tả</FormLabel>
+                        <Textarea
+                          value={taskForm.description}
+                          onChange={(e) =>
+                            setTaskForm((prev) => ({
+                              ...prev,
+                              description: e.target.value,
+                            }))
+                          }
+                          placeholder="Nhập mô tả nhiệm vụ"
+                        />
+                      </FormControl>
+
+                      <FormControl isRequired>
+                        <FormLabel>Phân hệ</FormLabel>
                         <Select
-                          onChange={(e) => handleSubTaskAssigneeSelect(index, e)}
-                          placeholder="Chọn người thực hiện"
+                          value={taskForm.department}
+                          onChange={handleDepartmentChange}
+                          placeholder="Chọn phân hệ"
                         >
-                          {users.map((user) => (
-                            <option key={user.id} value={user.id}>
-                              {user.fullName} ({user.email})
+                          {DEPARTMENTS.map((dept) => (
+                            <option key={dept.id} value={dept.id}>
+                              {dept.name}
                             </option>
                           ))}
                         </Select>
                       </FormControl>
 
-                      {subTask.assignees?.length > 0 && (
-                        <Box mt={2}>
+                      <FormControl>
+                        <FormLabel>Độ ưu tiên</FormLabel>
+                        <Select
+                          value={taskForm.priority}
+                          onChange={(e) =>
+                            setTaskForm((prev) => ({
+                              ...prev,
+                              priority: e.target.value,
+                            }))
+                          }
+                        >
+                          {PRIORITY_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </Select>
+                      </FormControl>
+
+                      <FormControl>
+                        <FormLabel>Thời gian ước tính (giờ)</FormLabel>
+                        <Input
+                          type="number"
+                          min="0"
+                          value={taskForm.estimatedTime || ''}
+                          onChange={(e) =>
+                            setTaskForm((prev) => ({
+                              ...prev,
+                              estimatedTime: e.target.value,
+                            }))
+                          }
+                          placeholder="Nhập thời gian ước tính"
+                        />
+                      </FormControl>
+
+                      <FormControl>
+                        <FormLabel>Thêm Người Thực Hiện</FormLabel>
+                        <Select
+                          onChange={handleAssigneeSelect}
+                          placeholder="Chọn người thực hiện"
+                          isDisabled={!taskForm.department}
+                        >
+                          {users.map((user) => (
+                            <option key={user.id} value={user.id}>
+                              {user.fullName} - {user.email}
+                            </option>
+                          ))}
+                        </Select>
+                      </FormControl>
+
+                      {selectedAssignees.length > 0 && (
+                        <Box width="100%">
                           <Text fontWeight="medium" mb={2}>
                             Danh sách người thực hiện:
                           </Text>
                           <VStack spacing={3} align="stretch">
-                            {subTask.assignees.map((assignee) => (
+                            {selectedAssignees.map((assignee) => (
                               <Box
                                 key={assignee.id}
                                 p={3}
@@ -804,17 +850,17 @@ const TaskListPage = () => {
                                     <TagLabel>{assignee.name}</TagLabel>
                                     <TagCloseButton
                                       onClick={() =>
-                                        handleSubTaskAssigneeRemove(
-                                          index,
-                                          assignee.id
-                                        )
+                                        handleRemoveAssignee(assignee.id)
                                       }
                                     />
                                   </Tag>
                                   <Text fontSize="sm">{assignee.email}</Text>
                                 </HStack>
 
-                                <HStack spacing={4}>
+                                <SimpleGrid
+                                  columns={{ base: 1, md: 2 }}
+                                  spacing={4}
+                                >
                                   <FormControl>
                                     <FormLabel>Tiến độ (%)</FormLabel>
                                     <Input
@@ -822,83 +868,300 @@ const TaskListPage = () => {
                                       min="0"
                                       max="100"
                                       value={assignee.progress || 0}
-                                      onChange={(e) => {
-                                        const newAssignees =
-                                          subTask.assignees.map((a) =>
-                                            a.id === assignee.id
-                                              ? {
-                                                  ...a,
-                                                  progress: Number(
-                                                    e.target.value
-                                                  ),
-                                                }
-                                              : a
-                                          );
-                                        handleSubTaskChange(
-                                          index,
-                                          'assignees',
-                                          newAssignees
-                                        );
-                                      }}
+                                      onChange={(e) =>
+                                        handleAssigneeProgress(
+                                          assignee.id,
+                                          e.target.value
+                                        )
+                                      }
                                     />
                                   </FormControl>
                                   <FormControl>
                                     <FormLabel>Ghi chú</FormLabel>
                                     <Input
                                       value={assignee.notes || ''}
-                                      onChange={(e) => {
-                                        const newAssignees =
-                                          subTask.assignees.map((a) =>
-                                            a.id === assignee.id
-                                              ? {
-                                                  ...a,
-                                                  notes: e.target.value,
-                                                }
-                                              : a
-                                          );
-                                        handleSubTaskChange(
-                                          index,
-                                          'assignees',
-                                          newAssignees
-                                        );
-                                      }}
+                                      onChange={(e) =>
+                                        handleAssigneeNotes(
+                                          assignee.id,
+                                          e.target.value
+                                        )
+                                      }
                                       placeholder="Nhập ghi chú"
                                     />
                                   </FormControl>
-                                </HStack>
+                                </SimpleGrid>
                               </Box>
                             ))}
                           </VStack>
                         </Box>
                       )}
+
+                      <FormControl isRequired>
+                        <FormLabel>Deadline</FormLabel>
+                        <Input
+                          type="date"
+                          value={taskForm.deadline || ''}
+                          onChange={(e) =>
+                            setTaskForm((prev) => ({
+                              ...prev,
+                              deadline: e.target.value,
+                            }))
+                          }
+                        />
+                      </FormControl>
+
+                      <FormControl>
+                        <FormLabel>Trạng thái</FormLabel>
+                        <Select
+                          value={taskForm.status}
+                          onChange={(e) =>
+                            setTaskForm((prev) => ({
+                              ...prev,
+                              status: e.target.value,
+                            }))
+                          }
+                        >
+                          {Object.entries(STATUS_LABELS).map(
+                            ([value, label]) => (
+                              <option key={value} value={value}>
+                                {label}
+                              </option>
+                            )
+                          )}
+                        </Select>
+                      </FormControl>
+                    </VStack>
+                  </TabPanel>
+                  <TabPanel>
+                    {/* Nhiệm vụ con */}
+                    <Box width="100%" mt={4}>
+                      <Text fontWeight="medium" mb={2}>
+                        Nhiệm vụ con:
+                      </Text>
+                      {taskForm.subTasks.map((subTask, index) => (
+                        <Box
+                          key={index}
+                          p={3}
+                          borderWidth="1px"
+                          borderRadius="md"
+                          mb={3}
+                        >
+                          <HStack justify="space-between" mb={2}>
+                            <FormControl>
+                              <FormLabel>Tiêu đề</FormLabel>
+                              <Input
+                                value={subTask.title || ''}
+                                onChange={(e) =>
+                                  handleSubTaskChange(
+                                    index,
+                                    'title',
+                                    e.target.value
+                                  )
+                                }
+                                placeholder="Tiêu đề nhiệm vụ con"
+                              />
+                            </FormControl>
+                            <IconButton
+                              icon={<DeleteIcon />}
+                              colorScheme="red"
+                              variant="ghost"
+                              onClick={() => handleRemoveSubTask(index)}
+                              aria-label="Xóa nhiệm vụ con"
+                            />
+                          </HStack>
+
+                          <FormControl>
+                            <FormLabel>Độ ưu tiên</FormLabel>
+                            <Select
+                              value={subTask.priority || 'medium'}
+                              onChange={(e) =>
+                                handleSubTaskChange(
+                                  index,
+                                  'priority',
+                                  e.target.value
+                                )
+                              }
+                            >
+                              {PRIORITY_OPTIONS.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </Select>
+                          </FormControl>
+
+                          <FormControl>
+                            <FormLabel>Thời gian ước tính (giờ)</FormLabel>
+                            <Input
+                              type="number"
+                              min="0"
+                              value={subTask.estimatedTime || ''}
+                              onChange={(e) =>
+                                handleSubTaskChange(
+                                  index,
+                                  'estimatedTime',
+                                  e.target.value
+                                )
+                              }
+                              placeholder="Nhập thời gian ước tính"
+                            />
+                          </FormControl>
+
+                          <FormControl>
+                            <FormLabel>Thêm Người Thực Hiện</FormLabel>
+                            <Select
+                              onChange={(e) =>
+                                handleSubTaskAssigneeSelect(index, e)
+                              }
+                              placeholder="Chọn người thực hiện"
+                            >
+                              {users.map((user) => (
+                                <option key={user.id} value={user.id}>
+                                  {user.fullName} - {user.email}
+                                </option>
+                              ))}
+                            </Select>
+                          </FormControl>
+
+                          {subTask.assignees?.length > 0 && (
+                            <Box mt={2}>
+                              <Text fontWeight="medium" mb={2}>
+                                Danh sách người thực hiện:
+                              </Text>
+                              <VStack spacing={3} align="stretch">
+                                {subTask.assignees.map((assignee) => (
+                                  <Box
+                                    key={assignee.id}
+                                    p={3}
+                                    borderWidth="1px"
+                                    borderRadius="md"
+                                  >
+                                    <HStack justify="space-between" mb={2}>
+                                      <Tag
+                                        size="md"
+                                        colorScheme="blue"
+                                        borderRadius="full"
+                                      >
+                                        <TagLabel>{assignee.name}</TagLabel>
+                                        <TagCloseButton
+                                          onClick={() =>
+                                            handleSubTaskAssigneeRemove(
+                                              index,
+                                              assignee.id
+                                            )
+                                          }
+                                        />
+                                      </Tag>
+                                      <Text fontSize="sm">{assignee.email}</Text>
+                                    </HStack>
+
+                                    <SimpleGrid
+                                      columns={{ base: 1, md: 2 }}
+                                      spacing={4}
+                                    >
+                                      <FormControl>
+                                        <FormLabel>Tiến độ (%)</FormLabel>
+                                        <Input
+                                          type="number"
+                                          min="0"
+                                          max="100"
+                                          value={assignee.progress || 0}
+                                          onChange={(e) => {
+                                            const newAssignees =
+                                              subTask.assignees.map((a) =>
+                                                a.id === assignee.id
+                                                  ? {
+                                                      ...a,
+                                                      progress: Number(
+                                                        e.target.value
+                                                      ),
+                                                    }
+                                                  : a
+                                              );
+                                            handleSubTaskChange(
+                                              index,
+                                              'assignees',
+                                              newAssignees
+                                            );
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <FormControl>
+                                        <FormLabel>Ghi chú</FormLabel>
+                                        <Input
+                                          value={assignee.notes || ''}
+                                          onChange={(e) => {
+                                            const newAssignees =
+                                              subTask.assignees.map((a) =>
+                                                a.id === assignee.id
+                                                  ? {
+                                                      ...a,
+                                                      notes: e.target.value,
+                                                    }
+                                                  : a
+                                              );
+                                            handleSubTaskChange(
+                                              index,
+                                              'assignees',
+                                              newAssignees
+                                            );
+                                          }}
+                                          placeholder="Nhập ghi chú"
+                                        />
+                                      </FormControl>
+                                    </SimpleGrid>
+                                  </Box>
+                                ))}
+                              </VStack>
+                            </Box>
+                          )}
+                        </Box>
+                      ))}
+                      <Button
+                        leftIcon={<AddIcon />}
+                        onClick={handleAddSubTask}
+                        colorScheme="teal"
+                        mt={2}
+                      >
+                        Thêm Nhiệm Vụ Con
+                      </Button>
                     </Box>
-                  ))}
-                  <Button
-                    leftIcon={<AddIcon />}
-                    onClick={handleAddSubTask}
-                    colorScheme="teal"
-                    mt={2}
-                  >
-                    Thêm Nhiệm Vụ Con
-                  </Button>
-                </Box>
-              </VStack>
+                  </TabPanel>
+                  <TabPanel>
+                    {/* Bình luận */}
+                    <VStack spacing={4}>
+                      <Text>
+                        Chức năng bình luận sẽ được triển khai ở đây.
+                      </Text>
+                    </VStack>
+                  </TabPanel>
+                  <TabPanel>
+                    {/* Tệp đính kèm */}
+                    <VStack spacing={4}>
+                      <Text>
+                        Chức năng tệp đính kèm sẽ được triển khai ở đây.
+                      </Text>
+                    </VStack>
+                  </TabPanel>
+                </TabPanels>
+              </Tabs>
             </ModalBody>
 
             <ModalFooter>
-              <Button variant="ghost" mr={3} onClick={onClose}>
+              <Button variant="ghost" mr={3} onClick={handleClose}>
                 Hủy
               </Button>
               <Button
                 colorScheme="blue"
                 onClick={handleSubmit}
                 isLoading={loading}
+                isDisabled={!taskForm.projectId}
               >
                 {selectedTask ? 'Cập nhật' : 'Thêm mới'}
               </Button>
             </ModalFooter>
           </ModalContent>
-          </Modal>
+        </Modal>
       </Box>
     </Container>
   );

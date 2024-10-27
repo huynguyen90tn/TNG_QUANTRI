@@ -1,13 +1,13 @@
-// src/components/bao_cao/components/chi_tiet_bao_cao.js
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Container,
   Spinner,
   useToast,
-  VStack
+  VStack,
 } from '@chakra-ui/react';
 import { baoCaoApi } from '../../../services/api/bao_cao_api';
+import { getUser } from '../../../services/api/userApi';
 import HienThiBaoCao from './hien_thi_bao_cao';
 
 const ChiTietBaoCao = () => {
@@ -19,15 +19,40 @@ const ChiTietBaoCao = () => {
 
   useEffect(() => {
     const loadBaoCao = async () => {
+      if (!reportId) {
+        navigate('/bao-cao-ngay');
+        return;
+      }
+
       try {
         const data = await baoCaoApi.layChiTiet(reportId);
-        setBaoCao(data);
+
+        // Lấy thông tin người tạo và người duyệt song song
+        const [nguoiTaoInfo, nguoiDuyetInfo] = await Promise.all([
+          data.nguoiTao ? getUser(data.nguoiTao) : null,
+          data.nguoiDuyet ? getUser(data.nguoiDuyet) : null
+        ]);
+
+        const enrichedData = {
+          ...data,
+          nguoiTaoInfo: nguoiTaoInfo ? {
+            ten: nguoiTaoInfo.fullName,
+            email: nguoiTaoInfo.email
+          } : null,
+          nguoiDuyetInfo: nguoiDuyetInfo ? {
+            ten: nguoiDuyetInfo.fullName,
+            email: nguoiDuyetInfo.email
+          } : null
+        };
+
+        setBaoCao(enrichedData);
       } catch (error) {
         toast({
           title: 'Lỗi',
-          description: error.message,
+          description: error.message || 'Không thể tải báo cáo',
           status: 'error',
-          duration: 3000
+          duration: 3000,
+          isClosable: true,
         });
         navigate('/bao-cao-ngay');
       } finally {
@@ -36,24 +61,36 @@ const ChiTietBaoCao = () => {
     };
 
     loadBaoCao();
-  }, [reportId, toast, navigate]);
+  }, [reportId, navigate, toast]);
+
+  const handleClose = () => {
+    navigate('/bao-cao-ngay');
+  };
 
   if (loading) {
     return (
       <Container centerContent py={10}>
-        <Spinner size="xl" />
+        <Spinner
+          thickness="4px"
+          speed="0.65s"
+          emptyColor="gray.200"
+          color="blue.500"
+          size="xl"
+        />
       </Container>
     );
   }
 
-  if (!baoCao) return null;
+  if (!baoCao) {
+    return null;
+  }
 
   return (
     <VStack spacing={6} align="stretch" w="full">
-      <HienThiBaoCao 
+      <HienThiBaoCao
         baoCao={baoCao}
         isOpen={true}
-        onClose={() => navigate('/bao-cao-ngay')}
+        onClose={handleClose}
       />
     </VStack>
   );

@@ -1,5 +1,4 @@
- // src/components/bao_cao/components/form_bao_cao.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   VStack,
   SimpleGrid,
@@ -9,19 +8,18 @@ import {
   Select,
   Button,
   useToast,
-  Box,
-  Heading,
   Card,
   CardBody,
+  Heading,
   FormErrorMessage,
-  useColorModeValue
+  useColorModeValue,
+  Box
 } from '@chakra-ui/react';
 import { useForm } from 'react-hook-form';
-import TrinhSoanThao from './trinh_soan_thao';
-import { LOAI_BAO_CAO, PHAN_HE } from '../constants/loai_bao_cao';
-import { getUserList } from '../../../services/api/userApi';
 import { getProjects } from '../../../services/api/projectApi';
 import { getTasks } from '../../../services/api/taskApi';
+import { LOAI_BAO_CAO, PHAN_HE } from '../constants/loai_bao_cao';
+import TrinhSoanThao from './trinh_soan_thao';
 
 const FormBaoCao = ({ 
   initialData, 
@@ -36,13 +34,14 @@ const FormBaoCao = ({
 
   const bgColor = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const hoverBg = useColorModeValue('gray.50', 'gray.700');
 
-  const { 
-    register, 
+  const {
+    register,
     handleSubmit,
     watch,
     setValue,
-    formState: { errors } 
+    formState: { errors }
   } = useForm({
     defaultValues: initialData || {
       tieuDe: '',
@@ -58,55 +57,55 @@ const FormBaoCao = ({
   const selectedDuAn = watch('duAnId');
   const selectedPhanHe = watch('phanHe');
 
-  useEffect(() => {
-    const loadInitialData = async () => {
-      try {
-        setIsLoadingData(true);
-        const [projectsRes] = await Promise.all([
-          getProjects()
-        ]);
-        
-        setDuAns(projectsRes);
+  const loadDuAns = useCallback(async () => {
+    try {
+      setIsLoadingData(true);
+      const projectsRes = await getProjects();
+      setDuAns(projectsRes || []);
+    } catch (error) {
+      toast({
+        title: 'Lỗi tải dự án',
+        description: error.message,
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setIsLoadingData(false);
+    }
+  }, [toast]);
 
-      } catch (error) {
-        toast({
-          title: 'Lỗi khi tải dữ liệu',
-          description: error.message,
-          status: 'error',
-          duration: 3000
-        });
-      } finally {
-        setIsLoadingData(false);
-      }
-    };
-
-    loadInitialData();
+  const loadNhiemVus = useCallback(async (duAnId) => {
+    if (!duAnId) {
+      setNhiemVus([]);
+      return;
+    }
+    
+    try {
+      setIsLoadingData(true);
+      const tasksRes = await getTasks(duAnId);
+      setNhiemVus(tasksRes.data || []);
+    } catch (error) {
+      toast({
+        title: 'Lỗi tải nhiệm vụ',
+        description: error.message,
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      setNhiemVus([]);
+    } finally {
+      setIsLoadingData(false);
+    }
   }, [toast]);
 
   useEffect(() => {
-    const loadNhiemVu = async () => {
-      if (selectedDuAn) {
-        try {
-          setIsLoadingData(true);
-          const tasksRes = await getTasks(selectedDuAn);
-          setNhiemVus(tasksRes.data);
-        } catch (error) {
-          toast({
-            title: 'Lỗi khi tải nhiệm vụ',
-            description: error.message,
-            status: 'error',
-            duration: 3000
-          });
-        } finally {
-          setIsLoadingData(false);
-        }
-      } else {
-        setNhiemVus([]);
-      }
-    };
+    loadDuAns();
+  }, [loadDuAns]);
 
-    loadNhiemVu();
-  }, [selectedDuAn, toast]);
+  useEffect(() => {
+    loadNhiemVus(selectedDuAn);
+  }, [selectedDuAn, loadNhiemVus]);
 
   const onSubmitForm = async (data) => {
     try {
@@ -114,14 +113,16 @@ const FormBaoCao = ({
       toast({
         title: `${initialData ? 'Cập nhật' : 'Tạo'} báo cáo thành công`,
         status: 'success',
-        duration: 3000
+        duration: 3000,
+        isClosable: true,
       });
     } catch (error) {
       toast({
         title: 'Lỗi',
         description: error.message,
         status: 'error',
-        duration: 3000
+        duration: 3000,
+        isClosable: true,
       });
     }
   };
@@ -133,8 +134,8 @@ const FormBaoCao = ({
       borderWidth="1px"
       borderRadius="lg"
       overflow="hidden"
-      transition="all 0.3s"
-      _hover={{ boxShadow: 'lg' }}
+      transition="all 0.2s ease-in-out"
+      _hover={{ boxShadow: 'xl', transform: 'translateY(-2px)' }}
     >
       <CardBody>
         <VStack
@@ -142,8 +143,9 @@ const FormBaoCao = ({
           onSubmit={handleSubmit(onSubmitForm)}
           spacing={6}
           align="stretch"
+          w="full"
         >
-          <Heading size="md">
+          <Heading size="md" mb={4}>
             {initialData ? 'Cập Nhật Báo Cáo' : 'Tạo Báo Cáo Mới'}
           </Heading>
 
@@ -151,7 +153,7 @@ const FormBaoCao = ({
             <FormControl isInvalid={errors.tieuDe} isRequired>
               <FormLabel>Tiêu đề</FormLabel>
               <Input
-                {...register('tieuDe', { 
+                {...register('tieuDe', {
                   required: 'Vui lòng nhập tiêu đề',
                   minLength: {
                     value: 5,
@@ -159,6 +161,8 @@ const FormBaoCao = ({
                   }
                 })}
                 placeholder="Nhập tiêu đề báo cáo"
+                _hover={{ borderColor: 'blue.500' }}
+                transition="all 0.2s"
               />
               <FormErrorMessage>
                 {errors.tieuDe?.message}
@@ -172,6 +176,8 @@ const FormBaoCao = ({
                   required: 'Vui lòng chọn loại báo cáo'
                 })}
                 placeholder="Chọn loại báo cáo"
+                _hover={{ borderColor: 'blue.500' }}
+                transition="all 0.2s"
               >
                 {LOAI_BAO_CAO.map(loai => (
                   <option key={loai.id} value={loai.id}>
@@ -193,6 +199,8 @@ const FormBaoCao = ({
                   required: 'Vui lòng chọn phân hệ'
                 })}
                 placeholder="Chọn phân hệ"
+                _hover={{ borderColor: 'blue.500' }}
+                transition="all 0.2s"
               >
                 {PHAN_HE.map(ph => (
                   <option key={ph.id} value={ph.id}>
@@ -211,6 +219,8 @@ const FormBaoCao = ({
                 {...register('duAnId')}
                 placeholder="Chọn dự án"
                 isDisabled={!selectedPhanHe || isLoadingData}
+                _hover={{ borderColor: 'blue.500' }}
+                transition="all 0.2s"
               >
                 {duAns.map(duAn => (
                   <option key={duAn.id} value={duAn.id}>
@@ -226,10 +236,12 @@ const FormBaoCao = ({
                 {...register('nhiemVuId')}
                 placeholder="Chọn nhiệm vụ"
                 isDisabled={!selectedDuAn || isLoadingData}
+                _hover={{ borderColor: 'blue.500' }}
+                transition="all 0.2s"
               >
                 {nhiemVus.map(nhiemVu => (
                   <option key={nhiemVu.id} value={nhiemVu.id}>
-                    {nhiemVu.title}
+                    {nhiemVu.title} ({nhiemVu.taskId})
                   </option>
                 ))}
               </Select>
@@ -246,11 +258,13 @@ const FormBaoCao = ({
             />
           </Box>
 
-          <SimpleGrid columns={2} spacing={4}>
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
             <Button
               onClick={onCancel}
               variant="outline"
               isDisabled={isSubmitting}
+              _hover={{ bg: hoverBg }}
+              transition="all 0.2s"
             >
               Hủy
             </Button>
@@ -259,6 +273,8 @@ const FormBaoCao = ({
               colorScheme="blue"
               isLoading={isSubmitting}
               loadingText="Đang xử lý..."
+              _hover={{ transform: 'translateY(-1px)', boxShadow: 'md' }}
+              transition="all 0.2s"
             >
               {initialData ? 'Cập nhật' : 'Tạo báo cáo'}
             </Button>
