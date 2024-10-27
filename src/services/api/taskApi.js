@@ -149,7 +149,6 @@ export const getTasks = async (projectId = null, filters = {}) => {
     let q = collection(db, "tasks");
     const conditions = [];
 
-    // Build query conditions
     if (projectId) {
       conditions.push(where("projectId", "==", projectId));
     }
@@ -162,30 +161,30 @@ export const getTasks = async (projectId = null, filters = {}) => {
       conditions.push(where("status", "==", filters.status));
     }
 
-    // Add default sorting by updatedAt
-    conditions.push(orderBy("updatedAt", "desc"));
-
-    // Apply query conditions
-    if (conditions.length > 0) {
-      q = query(q, ...conditions);
-    }
-
-    const querySnapshot = await getDocs(q);
-    const tasks = [];
+    // Apply query conditions without orderBy temporarily
+    const q2 = conditions.length > 0 ? query(q, ...conditions) : q;
+    const querySnapshot = await getDocs(q2);
+    
+    let tasks = [];
     querySnapshot.forEach((doc) => {
       tasks.push({ id: doc.id, ...doc.data() });
+    });
+
+    // Sort by updatedAt client-side while waiting for index
+    tasks.sort((a, b) => {
+      const timeA = a.updatedAt?.seconds || 0;
+      const timeB = b.updatedAt?.seconds || 0;
+      return timeB - timeA;
     });
 
     // Apply client-side search if provided
     if (filters.search) {
       const searchTerm = filters.search.toLowerCase();
-      return {
-        data: tasks.filter(task => 
-          task.title.toLowerCase().includes(searchTerm) ||
-          task.description?.toLowerCase().includes(searchTerm) ||
-          task.taskId.toLowerCase().includes(searchTerm)
-        )
-      };
+      tasks = tasks.filter(task => 
+        task.title.toLowerCase().includes(searchTerm) ||
+        task.description?.toLowerCase().includes(searchTerm) ||
+        task.taskId.toLowerCase().includes(searchTerm)
+      );
     }
 
     return { data: tasks };
@@ -203,15 +202,22 @@ export const getTasksByAssignee = async (assigneeId) => {
 
     const q = query(
       collection(db, "tasks"),
-      where("assignees", "array-contains", assigneeId),
-      orderBy("updatedAt", "desc")
+      where("assignees", "array-contains", assigneeId)
     );
 
     const querySnapshot = await getDocs(q);
-    const tasks = [];
+    let tasks = [];
     querySnapshot.forEach((doc) => {
       tasks.push({ id: doc.id, ...doc.data() });
     });
+
+    // Sort by updatedAt client-side while waiting for index
+    tasks.sort((a, b) => {
+      const timeA = a.updatedAt?.seconds || 0;
+      const timeB = b.updatedAt?.seconds || 0;
+      return timeB - timeA;
+    });
+
     return { data: tasks };
   } catch (error) {
     throw new Error("Lỗi khi tải danh sách nhiệm vụ: " + error.message);
@@ -227,15 +233,22 @@ export const getTasksByDepartment = async (department) => {
 
     const q = query(
       collection(db, "tasks"),
-      where("department", "==", department),
-      orderBy("updatedAt", "desc")
+      where("department", "==", department)
     );
 
     const querySnapshot = await getDocs(q);
-    const tasks = [];
+    let tasks = [];
     querySnapshot.forEach((doc) => {
       tasks.push({ id: doc.id, ...doc.data() });
     });
+
+    // Sort by updatedAt client-side while waiting for index
+    tasks.sort((a, b) => {
+      const timeA = a.updatedAt?.seconds || 0;
+      const timeB = b.updatedAt?.seconds || 0;
+      return timeB - timeA;
+    });
+
     return { data: tasks };
   } catch (error) {
     throw new Error("Lỗi khi tải danh sách nhiệm vụ: " + error.message);
