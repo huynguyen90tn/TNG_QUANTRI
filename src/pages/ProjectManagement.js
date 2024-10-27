@@ -1,685 +1,347 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Box,
-  Heading,
-  Button,
-  VStack,
-  useToast,
   Container,
-  useDisclosure,
-  Select,
-  Input,
+  Heading,
+  Text,
+  Image,
+  useColorModeValue,
   Flex,
-  Spacer,
+  VStack,
+  chakra,
+  shouldForwardProp,
+  useDisclosure,
+  Button,
   Modal,
   ModalOverlay,
   ModalContent,
   ModalBody,
   ModalCloseButton,
-  Stack,
   useBreakpointValue,
-  Text,
-  Skeleton,
   Center,
-  Image,
-  SimpleGrid,
-  Collapse,
-  FormControl,
-  FormLabel,
-  ChakraProvider,
-  extendTheme,
 } from "@chakra-ui/react";
-import {
-  AddIcon,
-  RepeatIcon,
-  ChevronDownIcon,
-  ChevronUpIcon,
-} from "@chakra-ui/icons";
+import { motion, isValidMotionProp } from "framer-motion";
 import { useAuth } from "../hooks/useAuth";
-import ProjectList from "../components/projects/ProjectList";
 import ProjectForm from "../components/projects/ProjectForm";
-import {
-  getProjects,
-  createProject,
-  updateProject,
-} from "../services/api/projectApi";
+import ProjectList from "../components/projects/ProjectList";
+import { getProjects, createProject, updateProject } from "../services/api/projectApi";
 
-// Cấu hình chủ đề
-const theme = extendTheme({
-  config: {
-    initialColorMode: "dark",
-    useSystemColorMode: false,
-  },
-  styles: {
-    global: {
-      body: {
-        bg: "gray.900",
-        color: "whiteAlpha.900",
-      },
-    },
-  },
-  colors: {
-    gray: {
-      900: "#1a202c",
-      800: "#2d3748",
-      700: "#4a5568",
-    },
-  },
+// Create chakra components with motion
+const ChakraBox = chakra(motion.div, {
+  shouldForwardProp: (prop) => isValidMotionProp(prop) || shouldForwardProp(prop),
 });
 
-// Hằng số
-const PROJECT_STATUSES = [
-  { value: "đang-chờ", label: "Đang Chờ" },
-  { value: "đang-thực-hiện", label: "Đang Thực Hiện" },
-  { value: "hoàn-thành", label: "Hoàn Thành" },
-  { value: "tạm-dừng", label: "Tạm Dừng" },
+const WelcomeQuotes = [
+  "Không có gì là không thể với một trái tim quyết tâm 💖",
+  "Mỗi thất bại đều là một bước tiến tới thành công 🏆",
+  "Hãy tin vào chính mình, bạn mạnh mẽ hơn bạn nghĩ 💪",
+  "Hôm nay là cơ hội để trở nên tuyệt vời hơn 🌟",
+  "Thử thách chính là cơ hội để trưởng thành 🌱",
+  "Hành trình ngàn dặm bắt đầu từ một bước chân 👣",
+  "Mọi điều tốt đẹp đều bắt đầu từ niềm tin 🌈",
+  "Đừng bao giờ từ bỏ ước mơ của bạn, nó đáng giá! 🌠",
+  "Đam mê là chìa khóa để vượt qua mọi khó khăn 🔑",
+  "Thành công là không từ bỏ, không bỏ cuộc 🚀",
+  "Mỗi ngày đều là một cơ hội mới để thay đổi 🌅",
+  "Điều gì đến từ trái tim sẽ chạm tới trái tim ❤️",
+  "Mạnh mẽ lên, bạn đã làm rất tốt rồi 💯",
+  "Hãy sống trọn từng khoảnh khắc của ngày hôm nay ⏳",
+  "Thành công không có điểm dừng, chỉ có đường đi ✨",
+  "Hãy tạo dựng tương lai của bạn ngay từ bây giờ 🕰️",
+  "Khám phá giới hạn của bạn và phá vỡ chúng 💥",
+  "Sáng tạo là bước đầu để làm nên kỳ tích 🎨",
+  "Chỉ cần kiên trì, bạn sẽ chạm tới vinh quang 🏅",
+  "Những giấc mơ lớn cần một trái tim lớn ❤️",
+  "Mỗi ngày là một trang mới để viết câu chuyện của bạn 📖",
+  "Khó khăn là bàn đạp để ta vươn lên cao hơn 🌄",
+  "Để thành công, hãy bắt đầu từ điều nhỏ nhất 🌱",
+  "Mọi điều kỳ diệu đều có thể xảy ra nếu bạn tin vào nó ✨",
+  "Chỉ có giới hạn mà bạn tự đặt ra cho mình 🏔️",
+  "Dám nghĩ lớn, dám thực hiện lớn 🌍",
+  "Hạnh phúc nằm ở hành trình, không phải đích đến 🎈",
+  "Mỗi ngày là cơ hội để thay đổi cuộc đời bạn 🎉",
+  "Hãy là người tạo ra thay đổi bạn muốn thấy 🌐",
+  "Giữ niềm tin vào những điều tốt đẹp sẽ đến 🌟",
+  "Thành công không chỉ là đích đến, mà là quá trình 🚴",
+  "Càng khó khăn, bạn càng mạnh mẽ 🌌",
+  "Không có đường tắt đến thành công, chỉ có làm việc chăm chỉ 🔨",
+  "Bắt đầu ngày mới với sự tự tin và năng lượng tích cực 🌞",
+  "Hãy làm điều bạn yêu và yêu điều bạn làm ❤️",
+  "Chấp nhận thử thách, nó sẽ giúp bạn trưởng thành 📈",
+  "Vinh quang chỉ đến với những người không bao giờ từ bỏ 🏅",
+  "Cuộc sống là những bước đi đầy thử thách, hãy tiếp tục tiến về phía trước 🛤️",
+  "Mỗi quyết định của bạn đều tạo nên tương lai 🌅",
+  "Điều bạn làm hôm nay sẽ quyết định ngày mai 🌄",
+  "Hãy dũng cảm với những giấc mơ của mình 💫",
+  "Cứ bước đi, thành công sẽ chờ bạn phía trước 🚶",
+  "Hãy luôn tự tin và không ngừng cố gắng 💯",
+  "Cuộc sống là một món quà, hãy trân trọng từng phút giây 🎁",
+  "Thành công không phải là một sự may mắn, mà là sự kiên trì 📌",
+  "Đôi khi, im lặng là cách thể hiện sức mạnh tuyệt vời nhất 🧘",
+  "Khám phá và tạo dựng con đường riêng của bạn 🛤️",
+  "Đừng chờ đợi cơ hội, hãy tự tạo ra nó 🔨",
+  "Mỗi ngày là một chương mới trong cuộc đời bạn 📖",
+  "Sự kiên nhẫn là chìa khóa dẫn đến thành công 🗝️",
+  "Chỉ cần bạn không ngừng cố gắng, mọi điều đều có thể 🌠",
+  "Hãy dũng cảm đối mặt với thử thách, nó sẽ giúp bạn trưởng thành 🌱",
+  "Mỗi hành động đều có sức mạnh thay đổi cuộc đời bạn ⚡",
+  "Thời gian không chờ đợi ai, hãy hành động ngay bây giờ ⏳",
+  "Hãy sống như thể hôm nay là ngày cuối cùng của bạn 🌅",
+  "Không có thất bại, chỉ có bài học để trưởng thành 📚",
+  "Mọi giấc mơ đều xứng đáng được theo đuổi 💫",
+  "Hãy tin vào những điều tốt đẹp sẽ đến với bạn ✨",
+  "Dù khó khăn đến đâu, chỉ cần bạn không bỏ cuộc 💪",
+  "Mỗi ngày là một cơ hội mới để làm tốt hơn 🌞",
+  "Hãy làm hết sức mình, kết quả sẽ không phụ lòng bạn 🌈",
+  "Sức mạnh lớn nhất là từ niềm tin vào bản thân 💖",
+  "Thành công bắt đầu từ những suy nghĩ tích cực 💭",
+  "Mỗi giấc mơ đều xứng đáng được hiện thực hóa 🌠",
+  "Đừng bao giờ từ bỏ đam mê, nó sẽ đưa bạn tới đỉnh cao 🚀",
+  "Hãy đối diện với mọi thử thách bằng nụ cười 😊",
+  "Cơ hội không tự đến, hãy tự tạo nên chúng 🔨",
+  "Sự khác biệt làm nên bạn, hãy tỏa sáng 🌟",
+  "Mỗi ngày là một cơ hội để trưởng thành và thành công 🌱",
+  "Dũng cảm không phải không sợ hãi, mà là vượt qua nó 💪",
+  "Đường đến thành công không phải là dễ dàng, nhưng đáng giá 🏆",
+  "Chỉ cần bạn có niềm tin, không gì là không thể 🌌",
+  "Chỉ có bạn mới quyết định được giới hạn của chính mình 🏔️",
+  "Sống hết mình, yêu hết lòng, và tin tưởng tuyệt đối 🌈",
+  "Sống chậm lại, nhìn ngắm xung quanh và tận hưởng từng khoảnh khắc 🌅",
+  "Hãy luôn nỗ lực, không ngừng hoàn thiện bản thân 📈",
+  "Dù đi chậm, nhưng đừng bao giờ dừng lại 🛤️",
+  "Mỗi ngày là một cơ hội để viết lên câu chuyện của bạn ✍️",
+  "Làm việc chăm chỉ và đam mê sẽ dẫn đến thành công 🏅",
+  "Sự kiên trì tạo nên kỳ tích 📌",
+  "Hãy hành động vì ước mơ của bạn mỗi ngày 🌠",
+  "Hãy là phiên bản tốt nhất của chính mình 🎉",
+  "Không có điều gì là dễ dàng, chỉ có bạn không bỏ cuộc 🔥",
+  "Hành động ngày hôm nay là thành công của ngày mai 💪",
+  "Thành công không phải là điểm đến, mà là cả hành trình 🛤️",
+  "Hãy tự tin, kiên trì và quyết tâm đến cùng 🎯",
+  "Chỉ cần bạn tin tưởng vào bản thân, không gì là không thể 🌈",
+  "Mỗi thử thách là một bước tiến về phía mục tiêu 🧗",
+  "Đam mê và kiên trì là con đường đến thành công 🏆",
+  "Hãy tạo nên một ngày tuyệt vời với tinh thần lạc quan 🌞",
+  "Mọi nỗ lực đều xứng đáng, chỉ cần bạn không bỏ cuộc 🌟",
+  "Hãy là ánh sáng trong chính câu chuyện của bạn 🌟",
+  "Chẳng có điều gì là giới hạn, trừ khi bạn tự đặt ra nó 🌌",
+  "Chỉ cần một bước tiến tới, bạn sẽ gần hơn tới ước mơ 🌠",
+  "Hãy luôn nỗ lực và không bao giờ từ bỏ đam mê 💥",
+  "Sống với đam mê, bạn sẽ không bao giờ làm việc một ngày nào 🎉",
+  "Đừng lo sợ thất bại, nó là một phần của hành trình 🌊",
+  "Hãy mạnh mẽ và không ngừng phấn đấu mỗi ngày 🌅",
+  "Hành trình của bạn chỉ mới bắt đầu, tiếp tục vươn xa 🚀",
+  "Hãy tin rằng điều tốt đẹp sẽ đến với bạn 💖",
 ];
-
-const IMPLEMENTATION_STATUSES = [
-  { value: "not_started", label: "Chưa triển khai" },
-  { value: "in_progress", label: "Đang triển khai" },
-  { value: "completed", label: "Đã hoàn thành" },
-  { value: "on_hold", label: "Tạm dừng" },
-];
-
-const PROGRESS_RANGES = [
-  { value: "0-25", label: "0% - 25%" },
-  { value: "26-50", label: "26% - 50%" },
-  { value: "51-75", label: "51% - 75%" },
-  { value: "76-100", label: "76% - 100%" },
-];
-
-const INITIAL_FILTERS = {
-  search: "",
-  status: "",
-  implementation: "",
-  startDate: "",
-  endDate: "",
-  progress: "",
-};
-
-// Component hiển thị khi đang tải
-const ProjectsSkeleton = () => (
-  <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-    {[1, 2, 3].map((i) => (
-      <Box
-        key={i}
-        borderWidth="1px"
-        borderRadius="lg"
-        overflow="hidden"
-        p={4}
-        bg="gray.800"
-      >
-        <Skeleton
-          height="24px"
-          width="50%"
-          mb={4}
-          startColor="gray.700"
-          endColor="gray.600"
-        />
-        <Skeleton
-          height="16px"
-          mb={2}
-          startColor="gray.700"
-          endColor="gray.600"
-        />
-        <Skeleton
-          height="16px"
-          width="60%"
-          mb={4}
-          startColor="gray.700"
-          endColor="gray.600"
-        />
-        <Skeleton
-          height="8px"
-          mb={2}
-          startColor="gray.700"
-          endColor="gray.600"
-        />
-        <Skeleton
-          height="8px"
-          width="80%"
-          startColor="gray.700"
-          endColor="gray.600"
-        />
-      </Box>
-    ))}
-  </SimpleGrid>
-);
-
-// Component hiển thị khi không có dự án
-const EmptyState = ({ onCreateNew, isAdmin }) => (
-  <Center minH="60vh" p={8} bg="gray.800" borderRadius="xl">
-    <VStack spacing={6}>
-      <Image
-        src="/empty-projects.png"
-        alt="No projects"
-        boxSize="200px"
-        fallbackSrc="https://via.placeholder.com/200"
-      />
-      <Heading size="lg" textAlign="center" color="gray.300">
-        Chưa có dự án nào
-      </Heading>
-      <Text color="gray.400" textAlign="center">
-        {isAdmin
-          ? "Hãy tạo dự án đầu tiên của bạn"
-          : "Hiện tại chưa có dự án nào được tạo"}
-      </Text>
-      {isAdmin && (
-        <Button
-          leftIcon={<AddIcon />}
-          colorScheme="blue"
-          size="lg"
-          onClick={onCreateNew}
-        >
-          Tạo Dự Án Mới
-        </Button>
-      )}
-    </VStack>
-  </Center>
-);
-
-// Component hiển thị khi xảy ra lỗi
-const ErrorState = ({ error, onRetry }) => (
-  <Center minH="60vh" bg="gray.800" borderRadius="xl">
-    <VStack spacing={6}>
-      <Heading size="md" color="red.300">
-        Đã xảy ra lỗi
-      </Heading>
-      <Text color="gray.400" textAlign="center">
-        {error || "Không thể tải dự án. Vui lòng thử lại."}
-      </Text>
-      <Button leftIcon={<RepeatIcon />} colorScheme="blue" onClick={onRetry}>
-        Thử lại
-      </Button>
-    </VStack>
-  </Center>
-);
 
 const ProjectManagement = () => {
   const [projects, setProjects] = useState([]);
-  const [filteredProjects, setFilteredProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [editingProject, setEditingProject] = useState(null);
-  const [filters, setFilters] = useState(INITIAL_FILTERS);
-  const [isAdvancedFilterOpen, setIsAdvancedFilterOpen] = useState(false);
+  const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
+  const [isTextVisible, setIsTextVisible] = useState(true);
 
   const { user } = useAuth();
-  const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
 
-  // Giá trị responsive
-  const modalSize = useBreakpointValue({
-    base: "full",
-    md: "90vw",
-    lg: "95vw",
-  });
-  const headerHeight = useBreakpointValue({ base: "320px", md: "280px" });
-  const modalPadding = useBreakpointValue({ base: "3", md: "6" });
+  const bgColor = useColorModeValue("gray.900", "gray.900");
+  const textColor = useColorModeValue("whiteAlpha.900", "whiteAlpha.900");
+  const gradientText = "linear(to-r, blue.400, purple.500, pink.500)";
 
+  const modalSize = useBreakpointValue({ base: "full", md: "90vw", lg: "95vw" });
+
+  // Handle quote animation
+  useEffect(() => {
+    const textTimer = setInterval(() => {
+      setIsTextVisible(false);
+      setTimeout(() => {
+        setCurrentQuoteIndex((prev) => (prev + 1) % WelcomeQuotes.length);
+        setIsTextVisible(true);
+      }, 1000);
+    }, 5000);
+
+    return () => clearInterval(textTimer);
+  }, []);
+
+  // Fetch projects
   const fetchProjects = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const fetchedProjects = await getProjects();
-
-      if (!Array.isArray(fetchedProjects)) {
-        throw new Error("Dữ liệu nhận được không hợp lệ");
-      }
-
-      const normalizedProjects = fetchedProjects.map((project) => ({
-        ...project,
-        id: project.id || `temp-${Date.now()}`,
-        name: project.name || "Untitled Project",
-        description: project.description || "No description available",
-        videoUrl: project.videoUrl || "",
-        status: project.status || "đang-chờ",
-        implementation: project.implementation || "not_started",
-        progress: Number(project.progress) || 0,
-        startDate: project.startDate || "",
-        endDate: project.endDate || "",
-      }));
-
-      setProjects(normalizedProjects);
-      setFilteredProjects(normalizedProjects);
+      const response = await getProjects();
+      setProjects(response || []);
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Đã xảy ra lỗi không xác định";
-      setError(message);
-      toast({
-        title: "Lỗi tải dự án",
-        description: message,
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
+      setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, []);
 
   useEffect(() => {
     fetchProjects();
   }, [fetchProjects]);
 
-  const handleFilterChange = useCallback((field, value) => {
-    setFilters((prev) => ({ ...prev, [field]: value }));
-  }, []);
-
-  const handleResetFilters = useCallback(() => {
-    setFilters(INITIAL_FILTERS);
-    setIsAdvancedFilterOpen(false);
-  }, []);
-
-  // Áp dụng bộ lọc
-  useEffect(() => {
+  // Handle project operations
+  const handleCreateProject = useCallback(async (projectData) => {
     try {
-      let result = [...projects];
-
-      // Lọc theo tìm kiếm
-      if (filters.search) {
-        const searchLower = filters.search.toLowerCase();
-        result = result.filter(
-          (project) =>
-            (project.name?.toLowerCase() || "").includes(searchLower) ||
-            (project.description?.toLowerCase() || "").includes(searchLower),
-        );
-      }
-
-      // Lọc theo trạng thái
-      if (filters.status) {
-        result = result.filter((project) => project.status === filters.status);
-      }
-
-      // Lọc theo tình trạng triển khai
-      if (filters.implementation) {
-        result = result.filter(
-          (project) => project.implementation === filters.implementation,
-        );
-      }
-
-      // Lọc theo tiến độ
-      if (filters.progress) {
-        const [min, max] = filters.progress.split("-").map(Number);
-        result = result.filter(
-          (project) => project.progress >= min && project.progress <= max,
-        );
-      }
-
-      // Lọc theo ngày bắt đầu
-      if (filters.startDate) {
-        result = result.filter(
-          (project) => project.startDate >= filters.startDate,
-        );
-      }
-
-      // Lọc theo ngày kết thúc
-      if (filters.endDate) {
-        result = result.filter((project) => project.endDate <= filters.endDate);
-      }
-
-      setFilteredProjects(result);
-    } catch (err) {
-      console.error("Lỗi bộ lọc:", err);
-      setFilteredProjects(projects);
+      setLoading(true);
+      await createProject(projectData);
+      await fetchProjects();
+      onClose();
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
     }
-  }, [filters, projects]);
+  }, [fetchProjects, onClose]);
 
-  const handleEditProject = useCallback(
-    (project) => {
-      setEditingProject(project);
-      onOpen();
-    },
-    [onOpen],
-  );
+  const handleUpdateProject = useCallback(async (projectData) => {
+    try {
+      if (!editingProject?.id) return;
+      setLoading(true);
+      await updateProject(editingProject.id, projectData);
+      await fetchProjects();
+      setEditingProject(null);
+      onClose();
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [editingProject, fetchProjects, onClose]);
 
-  const handleCreateProject = useCallback(
-    async (projectData) => {
-      try {
-        setLoading(true);
-        await createProject({
-          ...projectData,
-          implementation: "not_started",
-        });
-        await fetchProjects();
-        onClose();
-        toast({
-          title: "Tạo dự án thành công",
-          status: "success",
-          duration: 3000,
-        });
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Đã xảy ra lỗi không xác định";
-        toast({
-          title: "Lỗi tạo dự án",
-          description: message,
-          status: "error",
-          duration: 3000,
-        });
-      } finally {
-        setLoading(false);
-      }
-    },
-    [fetchProjects, onClose, toast],
-  );
-
-  const handleUpdateProject = useCallback(
-    async (projectData) => {
-      try {
-        if (!editingProject?.id) {
-          throw new Error("Không tìm thấy ID dự án");
-        }
-        setLoading(true);
-        await updateProject(editingProject.id, projectData);
-        await fetchProjects();
-        setEditingProject(null);
-        onClose();
-        toast({
-          title: "Cập nhật dự án thành công",
-          status: "success",
-          duration: 3000,
-        });
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Đã xảy ra lỗi không xác định";
-        toast({
-          title: "Lỗi cập nhật dự án",
-          description: message,
-          status: "error",
-          duration: 3000,
-        });
-      } finally {
-        setLoading(false);
-      }
-    },
-    [editingProject, fetchProjects, onClose, toast],
-  );
+  const handleEditProject = useCallback((project) => {
+    setEditingProject(project);
+    onOpen();
+  }, [onOpen]);
 
   const handleCloseModal = useCallback(() => {
     setEditingProject(null);
     onClose();
   }, [onClose]);
 
-  const renderContent = () => {
-    if (loading && !projects.length) {
-      return <ProjectsSkeleton />;
-    }
-
-    if (error) {
-      return <ErrorState error={error} onRetry={fetchProjects} />;
-    }
-
-    if (!loading && !projects.length) {
-      return (
-        <EmptyState
-          onCreateNew={() => {
-            setEditingProject(null);
-            onOpen();
-          }}
-          isAdmin={user?.role === "admin-tong"}
-        />
-      );
-    }
-
-    return (
-      <ProjectList
-        projects={filteredProjects}
-        onEdit={handleEditProject}
-        userRole={user?.role}
-        isLoading={loading}
-      />
-    );
-  };
-
   return (
-    <ChakraProvider theme={theme}>
-      <Box minH="100vh" bg="gray.900">
-        {/* Header cố định */}
-        <Box
-          position="fixed"
-          top="0"
-          left="0"
-          right="0"
-          bg="gray.800"
-          boxShadow="dark-lg"
-          zIndex="sticky"
-          p={4}
+    <Box minH="100vh" bg={bgColor} color={textColor}>
+      {/* Welcome Section */}
+      <Container maxW="7xl" py={8}>
+        <ChakraBox
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1 }}
+          textAlign="center"
+          mb={8}
         >
-          <Container maxW="7xl">
-            <Flex
-              direction={{ base: "column", md: "row" }}
-              align={{ base: "stretch", md: "center" }}
-              gap={4}
-            >
-              <Heading size="lg" color="blue.300">
-                Quản Lý Dự Án
-              </Heading>
-              <Spacer display={{ base: "none", md: "block" }} />
-              {user?.role === "admin-tong" && (
-                <Button
-                  leftIcon={<AddIcon />}
-                  colorScheme="blue"
-                  onClick={() => {
-                    setEditingProject(null);
-                    onOpen();
-                  }}
-                  width={{ base: "100%", md: "auto" }}
-                >
-                  Tạo Dự Án Mới
-                </Button>
-              )}
-            </Flex>
-
-            {/* Bảng điều khiển bộ lọc */}
-            <Box
-              mt={4}
-              p={4}
-              bg="gray.700"
-              borderRadius="lg"
-              borderWidth="1px"
-              borderColor="gray.600"
-            >
-              <Stack spacing={4}>
-                <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
-                  <Input
-                    placeholder="Tìm kiếm dự án..."
-                    value={filters.search}
-                    onChange={(e) =>
-                      handleFilterChange("search", e.target.value)
-                    }
-                    bg="gray.800"
-                    _placeholder={{ color: "gray.400" }}
-                  />
-
-                  <Select
-                    placeholder="Trạng thái"
-                    value={filters.status}
-                    onChange={(e) =>
-                      handleFilterChange("status", e.target.value)
-                    }
-                    bg="gray.800"
-                    color="white"
-                  >
-                    {PROJECT_STATUSES.map((status) => (
-                      <option key={status.value} value={status.value}>
-                        {status.label}
-                      </option>
-                    ))}
-                  </Select>
-
-                  <Select
-                    placeholder="Tình trạng triển khai"
-                    value={filters.implementation}
-                    onChange={(e) =>
-                      handleFilterChange("implementation", e.target.value)
-                    }
-                    bg="gray.800"
-                    color="white"
-                  >
-                    {IMPLEMENTATION_STATUSES.map((status) => (
-                      <option key={status.value} value={status.value}>
-                        {status.label}
-                      </option>
-                    ))}
-                  </Select>
-                </SimpleGrid>
-
-                {/* Nút mở rộng bộ lọc nâng cao */}
-                <Button
-                  variant="ghost"
-                  rightIcon={
-                    isAdvancedFilterOpen ? (
-                      <ChevronUpIcon />
-                    ) : (
-                      <ChevronDownIcon />
-                    )
-                  }
-                  onClick={() => setIsAdvancedFilterOpen(!isAdvancedFilterOpen)}
-                  size="sm"
-                  color="white"
-                  _hover={{ bg: "gray.600" }}
-                >
-                  Bộ lọc nâng cao
-                </Button>
-
-                {/* Bộ lọc nâng cao */}
-                <Collapse in={isAdvancedFilterOpen}>
-                  <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
-                    <FormControl>
-                      <FormLabel color="gray.300">Từ ngày</FormLabel>
-                      <Input
-                        type="date"
-                        value={filters.startDate}
-                        onChange={(e) =>
-                          handleFilterChange("startDate", e.target.value)
-                        }
-                        bg="gray.800"
-                        color="white"
-                      />
-                    </FormControl>
-
-                    <FormControl>
-                      <FormLabel color="gray.300">Đến ngày</FormLabel>
-                      <Input
-                        type="date"
-                        value={filters.endDate}
-                        onChange={(e) =>
-                          handleFilterChange("endDate", e.target.value)
-                        }
-                        bg="gray.800"
-                        color="white"
-                      />
-                    </FormControl>
-
-                    <FormControl>
-                      <FormLabel color="gray.300">Tiến độ</FormLabel>
-                      <Select
-                        value={filters.progress}
-                        onChange={(e) =>
-                          handleFilterChange("progress", e.target.value)
-                        }
-                        bg="gray.800"
-                        color="white"
-                      >
-                        <option value="">Tất cả</option>
-                        {PROGRESS_RANGES.map((range) => (
-                          <option key={range.value} value={range.value}>
-                            {range.label}
-                          </option>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </SimpleGrid>
-                </Collapse>
-
-                {/* Nút đặt lại bộ lọc */}
-                <Flex justify="flex-end">
-                  <Button
-                    leftIcon={<RepeatIcon />}
-                    variant="ghost"
-                    onClick={handleResetFilters}
-                    size="sm"
-                    color="white"
-                    _hover={{ bg: "gray.600" }}
-                  >
-                    Đặt lại bộ lọc
-                  </Button>
-                </Flex>
-              </Stack>
-            </Box>
-          </Container>
-        </Box>
-
-        {/* Nội dung chính */}
-        <Container maxW="7xl" pt={headerHeight} pb={8} px={{ base: 2, md: 4 }}>
-          {renderContent()}
-
-          {/* Modal */}
-          <Modal
-            isOpen={isOpen}
-            onClose={handleCloseModal}
-            size="full"
-            scrollBehavior="inside"
+          <Heading
+            fontSize={{ base: "2xl", md: "4xl" }}
+            bgGradient={gradientText}
+            bgClip="text"
+            letterSpacing="wider"
+            mb={4}
           >
-            <ModalOverlay bg="blackAlpha.800" />
-            <ModalContent
-              width={modalSize}
-              maxWidth={modalSize}
-              margin="auto"
-              height={{ base: "100vh", md: "90vh" }}
-              my={{ base: 0, md: "5vh" }}
-              bg="gray.800"
-              color="white"
-            >
-              <ModalCloseButton
-                position="fixed"
-                top={4}
-                right={4}
-                zIndex="modal"
-                color="white"
-              />
-              <ModalBody
-                p={0}
-                position="relative"
-                height="100%"
-                overflow="auto"
-              >
-                <Box
-                  p={modalPadding}
-                  height="100%"
-                  overflow="auto"
-                  bg="gray.800"
-                  sx={{
-                    "&::-webkit-scrollbar": {
-                      width: "4px",
-                    },
-                    "&::-webkit-scrollbar-track": {
-                      width: "6px",
-                      bg: "gray.700",
-                    },
-                    "&::-webkit-scrollbar-thumb": {
-                      background: "gray.500",
-                      borderRadius: "24px",
-                    },
-                  }}
-                >
-                  <ProjectForm
-                    onSubmit={
-                      editingProject ? handleUpdateProject : handleCreateProject
-                    }
-                    initialData={editingProject}
-                    onCancel={handleCloseModal}
-                    userRole={user?.role}
-                  />
-                </Box>
-              </ModalBody>
-            </ModalContent>
-          </Modal>
-        </Container>
-      </Box>
-    </ChakraProvider>
+            Chào mừng {user?.role === "admin-tong" ? "Admin" : "Thành viên"}{" "}
+            {user?.displayName || ""}
+          </Heading>
+        </ChakraBox>
+
+        {/* Logo */}
+        <Flex justify="center" align="center" my={6}>
+          <ChakraBox
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+          >
+            <Image
+              src="/images/LOGOTNG.png"
+              alt="TNG Logo"
+              width={{ base: "120px", md: "150px" }}
+              height="auto"
+              filter="drop-shadow(0 0 20px rgba(0, 100, 255, 0.3))"
+            />
+          </ChakraBox>
+        </Flex>
+
+        {/* Animated Quotes */}
+        <ChakraBox
+          animate={{
+            opacity: isTextVisible ? 1 : 0,
+            y: isTextVisible ? 0 : 20,
+          }}
+          transition={{ duration: 0.5 }}
+          textAlign="center"
+          height="50px"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          mb={8}
+        >
+          <Text
+            color="blue.300"
+            fontSize={{ base: "md", md: "lg" }}
+            fontWeight="medium"
+          >
+            {WelcomeQuotes[currentQuoteIndex]}
+          </Text>
+        </ChakraBox>
+
+        {/* Decorative Lines */}
+        <VStack spacing={4} mb={12}>
+          {[1, 2, 3].map((i) => (
+            <ChakraBox
+              key={i}
+              width={`${100 - i * 20}%`}
+              height="2px"
+              bgGradient="linear(to-r, transparent, blue.500, transparent)"
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: 1 }}
+              transition={{ duration: 1, delay: i * 0.2 }}
+            />
+          ))}
+        </VStack>
+
+        {/* Projects List */}
+        {loading ? (
+          <Center>
+            <Text>Đang tải...</Text>
+          </Center>
+        ) : error ? (
+          <Center>
+            <Text color="red.300">{error}</Text>
+          </Center>
+        ) : (
+          <ProjectList
+            projects={projects}
+            onEdit={handleEditProject}
+            userRole={user?.role}
+            onCreateProject={() => {
+              setEditingProject(null);
+              onOpen();
+            }}
+          />
+        )}
+      </Container>
+
+      {/* Project Form Modal */}
+      <Modal
+        isOpen={isOpen}
+        onClose={handleCloseModal}
+        size={modalSize}
+        scrollBehavior="inside"
+      >
+        <ModalOverlay bg="blackAlpha.800" />
+        <ModalContent bg={bgColor} maxW={modalSize}>
+          <ModalCloseButton color={textColor} />
+          <ModalBody p={6}>
+            <ProjectForm
+              onSubmit={editingProject ? handleUpdateProject : handleCreateProject}
+              initialData={editingProject}
+              onCancel={handleCloseModal}
+              userRole={user?.role}
+            />
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+    </Box>
   );
 };
 
