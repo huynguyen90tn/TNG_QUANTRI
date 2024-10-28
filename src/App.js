@@ -7,7 +7,6 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import PropTypes from 'prop-types';
 import { AuthProvider, useAuth } from "./hooks/useAuth";
 import Layout from "./components/layout/Layout";
 import theme from "./styles/theme";
@@ -20,10 +19,7 @@ import MemberDashboard from "./pages/dashboard/MemberDashboard";
 import ProjectManagement from "./pages/ProjectManagement";
 import TaskManagementPage from "./pages/TaskManagementPage";
 import TaskListPage from "./pages/TaskListPage";
-import QuanLyNhiemVuPage from "./pages/quan_ly_nhiem_vu/QuanLyNhiemVuPage";
-import ChiTietNhiemVuPage from "./pages/quan_ly_nhiem_vu/ChiTietNhiemVuPage";
-import ThongKeNhiemVuPage from "./pages/quan_ly_nhiem_vu/ThongKeNhiemVuPage";
-import QuanLyChiTietPage from "./pages/quan_ly_chi_tiet/QuanLyChiTietPage";
+import QuanLyChiTietPage from "./modules/quan_ly_chi_tiet/pages/QuanLyChiTietPage";
 
 // Auth Pages
 import TaoTaiKhoanThanhVien from "./pages/auth/TaoTaiKhoanThanhVien";
@@ -39,13 +35,23 @@ import ChiTietBaoCao from "./components/bao_cao/components/chi_tiet_bao_cao";
 import BaoCaoTheoDuAn from "./components/bao_cao/components/bao_cao_theo_du_an";
 import BaoCaoTheoNhiemVu from "./components/bao_cao/components/bao_cao_theo_nhiem_vu";
 
+// Quản lý Chi Tiết Components
+import BangDuAn from "./modules/quan_ly_chi_tiet/components/bang_du_an";
+import ChiTietDuAn from "./modules/quan_ly_chi_tiet/components/chi_tiet_du_an";
+import BangNhiemVu from "./modules/quan_ly_chi_tiet/components/bang_nhiem_vu";
+import ChiTietNhiemVu from "./modules/quan_ly_chi_tiet/components/chi_tiet_nhiem_vu";
+import BangTinhNang from "./modules/quan_ly_chi_tiet/components/bang_tinh_nang";
+import ChiTietTinhNang from "./modules/quan_ly_chi_tiet/components/chi_tiet_tinh_nang";
+import BangTongHop from "./modules/quan_ly_chi_tiet/components/bang_tong_hop";
+import BieuDoTienDo from "./modules/quan_ly_chi_tiet/components/bieu_do_tien_do";
+
 const ProtectedRoute = ({ children, requiredRole }) => {
   const { user, loading } = useAuth();
 
   if (loading) {
     return (
       <Center h="100vh">
-        <Spinner size="xl" color="brand.500" thickness="4px" />
+        <Spinner size="xl" />
       </Center>
     );
   }
@@ -57,18 +63,13 @@ const ProtectedRoute = ({ children, requiredRole }) => {
   return children;
 };
 
-ProtectedRoute.propTypes = {
-  children: PropTypes.node.isRequired,
-  requiredRole: PropTypes.arrayOf(PropTypes.string).isRequired,
-};
-
 const AppRoutes = () => {
   const { loading } = useAuth();
 
   if (loading) {
     return (
       <Center h="100vh">
-        <Spinner size="xl" color="brand.500" thickness="4px" />
+        <Spinner size="xl" />
       </Center>
     );
   }
@@ -226,7 +227,7 @@ const AppRoutes = () => {
         }
       />
 
-      {/* Quản Lý Chi Tiết Routes */}
+      {/* Quản lý Chi Tiết Routes */}
       <Route
         path="/quan-ly-chi-tiet"
         element={
@@ -243,63 +244,62 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute requiredRole={["admin-tong", "admin-con", "member"]}>
             <Layout>
-              <QuanLyNhiemVuPage />
+              <BangTinhNang />
             </Layout>
           </ProtectedRoute>
         }
       />
 
       <Route
-        path="/quan-ly-chi-tiet/backend"
+        path="/quan-ly-chi-tiet/du-an/:duAnId"
         element={
           <ProtectedRoute requiredRole={["admin-tong", "admin-con", "member"]}>
             <Layout>
-              <ChiTietNhiemVuPage />
+              <ChiTietDuAn />
             </Layout>
           </ProtectedRoute>
         }
       />
 
       <Route
-        path="/quan-ly-chi-tiet/kiem-thu"
+        path="/quan-ly-chi-tiet/nhiem-vu/:nhiemVuId"
         element={
           <ProtectedRoute requiredRole={["admin-tong", "admin-con", "member"]}>
             <Layout>
-              <ChiTietNhiemVuPage />
+              <ChiTietNhiemVu />
             </Layout>
           </ProtectedRoute>
         }
       />
 
       <Route
-        path="/quan-ly-chi-tiet/thong-ke"
-        element={
-          <ProtectedRoute requiredRole={["admin-tong", "admin-con"]}>
-            <Layout>
-              <ThongKeNhiemVuPage />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      {/* Routes sau khi xác thực mật khẩu */}
-      <Route
-        path="/quan-ly-nhiem-vu-chi-tiet"
+        path="/quan-ly-chi-tiet/tinh-nang/:tinhNangId"
         element={
           <ProtectedRoute requiredRole={["admin-tong", "admin-con", "member"]}>
             <Layout>
-              <QuanLyNhiemVuPage />
+              <ChiTietTinhNang />
             </Layout>
           </ProtectedRoute>
         }
       />
 
       <Route
-        path="/quan-ly-du-an/:projectId/nhiem-vu-chi-tiet"
+        path="/quan-ly-chi-tiet/tong-hop/:nhiemVuId"
         element={
           <ProtectedRoute requiredRole={["admin-tong", "admin-con", "member"]}>
             <Layout>
-              <QuanLyNhiemVuPage />
+              <BangTongHop />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/quan-ly-chi-tiet/tien-do/:nhiemVuId"
+        element={
+          <ProtectedRoute requiredRole={["admin-tong", "admin-con", "member"]}>
+            <Layout>
+              <BieuDoTienDo />
             </Layout>
           </ProtectedRoute>
         }
