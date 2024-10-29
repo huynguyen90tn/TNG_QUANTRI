@@ -1,5 +1,5 @@
 // src/pages/TaskManagementPage.js
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   Box,
@@ -23,27 +23,30 @@ import {
 } from "@chakra-ui/react";
 import { ChevronRightIcon, AddIcon } from "@chakra-ui/icons";
 import { Link } from "react-router-dom";
-import BangTinhNang from "../components/quan_ly_nhiem_vu_chi_tiet/components/bang_tinh_nang";
-import BangBackend from "../components/quan_ly_nhiem_vu_chi_tiet/components/bang_backend";
-import BangKiemThu from "../components/quan_ly_nhiem_vu_chi_tiet/components/bang_kiem_thu";
-import BangTongHop from "../components/quan_ly_nhiem_vu_chi_tiet/components/bang_tong_hop";
-import { useQuanLyNhiemVu } from "../components/quan_ly_nhiem_vu_chi_tiet/hooks/useQuanLyNhiemVu";
+import BangTinhNang from '../modules/quan_ly_chi_tiet/components/bang_tinh_nang';
+import BangTongHop from '../modules/quan_ly_chi_tiet/components/bang_tong_hop';
 
 const TaskManagementPage = () => {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
   const bgColor = useColorModeValue("white", "gray.800");
-  const { fetchProject, loading } = useQuanLyNhiemVu();
-  const [projectInfo, setProjectInfo] = React.useState(null);
-  const [activeTab, setActiveTab] = React.useState(0);
+  const [projectInfo, setProjectInfo] = useState(null);
+  const [activeTab, setActiveTab] = useState(0);
+  const [loading, setLoading] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const loadProjectInfo = async () => {
       if (projectId) {
+        setLoading(true);
         try {
-          const data = await fetchProject(projectId);
-          setProjectInfo(data);
+          // Giả lập việc fetch dữ liệu
+          const mockData = {
+            id: projectId,
+            name: `Dự án ${projectId}`,
+            description: "Mô tả dự án"
+          };
+          setProjectInfo(mockData);
         } catch (error) {
           toast({
             title: "Lỗi",
@@ -52,17 +55,19 @@ const TaskManagementPage = () => {
             duration: 3000,
             isClosable: true,
           });
+        } finally {
+          setLoading(false);
         }
       }
     };
     loadProjectInfo();
-  }, [projectId, fetchProject, toast]);
+  }, [projectId, toast]);
 
   const handleAddNew = () => {
     const paths = {
-      0: "/quan-ly-nhiem-vu-chi-tiet/tinh-nang/them-moi",
-      1: "/quan-ly-nhiem-vu-chi-tiet/backend/them-moi",
-      2: "/quan-ly-nhiem-vu-chi-tiet/kiem-thu/them-moi",
+      0: "/quan-ly-chi-tiet/tinh-nang/them-moi",
+      1: "/quan-ly-chi-tiet/backend/them-moi",
+      2: "/quan-ly-chi-tiet/kiem-thu/them-moi",
     };
     navigate(paths[activeTab]);
   };
@@ -139,10 +144,10 @@ const TaskManagementPage = () => {
                   <BangTinhNang projectId={projectId} />
                 </TabPanel>
                 <TabPanel>
-                  <BangBackend projectId={projectId} />
+                  <BangTinhNang projectId={projectId} phanHe="backend" />
                 </TabPanel>
                 <TabPanel>
-                  <BangKiemThu projectId={projectId} />
+                  <BangTinhNang projectId={projectId} phanHe="kiemThu" />
                 </TabPanel>
                 <TabPanel>
                   <BangTongHop projectId={projectId} />

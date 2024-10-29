@@ -4,7 +4,8 @@ import projectReducer from "./slices/projectSlice";
 import authReducer from "./slices/authSlice";
 import themeReducer from "./slices/themeSlice";
 import attendanceReducer from "./slices/attendanceSlice";
-import nhiemVuReducer from "../components/quan_ly_nhiem_vu_chi_tiet/store/nhiem_vu_slice";
+import nhiemVuReducer from '../modules/quan_ly_chi_tiet/store/nhiem_vu_slice';
+import tinhNangReducer from '../modules/quan_ly_chi_tiet/store/tinh_nang_slice';
 
 const store = configureStore({
   reducer: {
@@ -13,6 +14,7 @@ const store = configureStore({
     theme: themeReducer,
     attendance: attendanceReducer,
     nhiemVu: nhiemVuReducer,
+    tinhNang: tinhNangReducer
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
