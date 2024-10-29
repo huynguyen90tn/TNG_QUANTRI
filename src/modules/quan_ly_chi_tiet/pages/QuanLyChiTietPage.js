@@ -1,3 +1,8 @@
+<<<<<<< HEAD
+=======
+// src/modules/quan_ly_chi_tiet/pages/QuanLyChiTietPage.js
+
+>>>>>>> 196d2d5b368655c311d9c94154c3206ed15c18be
 import React, { useState, useEffect } from 'react';
 import {
   Container,
@@ -67,18 +72,81 @@ const QuanLyChiTietPage = () => {
   const textColor = useColorModeValue('gray.600', 'gray.200');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
 
+<<<<<<< HEAD
+=======
+  // Kiểm tra trạng thái xác thực khi component mount
+>>>>>>> 196d2d5b368655c311d9c94154c3206ed15c18be
   useEffect(() => {
     const authStatus = localStorage.getItem('chiTietAuth');
     if (authStatus === 'true') {
       setIsAuthenticated(true);
     }
   }, []);
+<<<<<<< HEAD
+=======
+
+  const features = [
+    {
+      title: 'Tính năng',
+      icon: FaListAlt,
+      path: '/quan-ly-chi-tiet/tinh-nang',
+      color: 'pink.500',
+      description: 'Quản lý chi tiết tính năng và module',
+    },
+    {
+      title: 'Backend',
+      icon: FaCodeBranch,
+      path: '/quan-ly-chi-tiet/backend',
+      color: 'orange.500',
+      description: 'Quản lý API và cơ sở dữ liệu',
+    },
+    {
+      title: 'Kiểm thử',
+      icon: FaBug,
+      path: '/quan-ly-chi-tiet/kiem-thu',
+      color: 'red.500',
+      description: 'Quản lý testing và debug',
+    },
+    {
+      title: 'Thống kê',
+      icon: FaChartPie,
+      path: '/quan-ly-chi-tiet/thong-ke',
+      color: 'cyan.500',
+      description: 'Xem báo cáo và phân tích',
+    },
+  ];
+
+  const containerVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.5,
+        staggerChildren: 0.1,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, x: -20 },
+    visible: {
+      opacity: 1,
+      x: 0,
+      transition: { duration: 0.3 },
+    },
+  };
+>>>>>>> 196d2d5b368655c311d9c94154c3206ed15c18be
 
   const handlePasswordSubmit = () => {
     setIsLoading(true);
     setTimeout(() => {
       if (password === 'codetng') {
         setIsAuthenticated(true);
+<<<<<<< HEAD
+=======
+        // Lưu trạng thái xác thực vào localStorage
+>>>>>>> 196d2d5b368655c311d9c94154c3206ed15c18be
         localStorage.setItem('chiTietAuth', 'true');
         toast({
           title: 'Xác thực thành công',
@@ -98,6 +166,7 @@ const QuanLyChiTietPage = () => {
     }, 1000);
   };
 
+<<<<<<< HEAD
   const handleLogout = () => {
     localStorage.removeItem('chiTietAuth');
     setIsAuthenticated(false);
@@ -107,6 +176,13 @@ const QuanLyChiTietPage = () => {
 
   const handleFeatureClick = (path) => {
     navigate(path);
+=======
+  // Hàm đăng xuất khỏi khu vực chi tiết
+  const handleLogout = () => {
+    localStorage.removeItem('chiTietAuth');
+    setIsAuthenticated(false);
+    navigate('/');
+>>>>>>> 196d2d5b368655c311d9c94154c3206ed15c18be
   };
 
   if (!isAuthenticated) {
