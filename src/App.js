@@ -2,7 +2,7 @@ import React from "react";
 import { ChakraProvider, Spinner, Center } from "@chakra-ui/react";
 import {
   BrowserRouter as Router,
-  Routes, 
+  Routes,
   Route,
   Navigate,
 } from "react-router-dom";
@@ -24,7 +24,7 @@ import QuanLyChiTietPage from "./modules/quan_ly_chi_tiet/pages/QuanLyChiTietPag
 import TaoTaiKhoanThanhVien from "./pages/auth/TaoTaiKhoanThanhVien";
 import TaoTaiKhoanQuanTri from "./pages/auth/TaoTaiKhoanQuanTri";
 
-// Components
+// Components 
 import AttendanceTable from "./components/attendance/AttendanceTable";
 import AttendanceForm from "./components/attendance/AttendanceForm";
 
@@ -44,7 +44,6 @@ import ChiTietTinhNang from "./modules/quan_ly_chi_tiet/components/chi_tiet_tinh
 import BangTongHop from "./modules/quan_ly_chi_tiet/components/bang_tong_hop";
 import BieuDoTienDo from "./modules/quan_ly_chi_tiet/components/bieu_do_tien_do";
 
-<<<<<<< HEAD
 // Backend Components
 import BangBackend from "./modules/quan_ly_chi_tiet/components/bang_backend";
 import ChiTietBackend from "./modules/quan_ly_chi_tiet/components/chi_tiet_backend";
@@ -63,8 +62,6 @@ import ChiTietThongKe from "./modules/quan_ly_chi_tiet/components/chi_tiet_thong
 import BieuDoThongKe from "./modules/quan_ly_chi_tiet/components/bieu_do_thong_ke";
 import BaoCaoThongKe from "./modules/quan_ly_chi_tiet/components/bao_cao_thong_ke";
 
-=======
->>>>>>> 196d2d5b368655c311d9c94154c3206ed15c18be
 const ProtectedRoute = ({ children, requiredRole }) => {
   const { user, loading } = useAuth();
 
@@ -201,7 +198,7 @@ const AppRoutes = () => {
         }
       />
 
-      {/* Shared Routes - Project Management */}
+      {/* Shared Routes */}
       <Route
         path="/quan-ly-du-an"
         element={
@@ -273,7 +270,6 @@ const AppRoutes = () => {
 
       <Route
         path="/quan-ly-chi-tiet/du-an/:duAnId"
-<<<<<<< HEAD
         element={
           <ProtectedRoute requiredRole={["admin-tong", "admin-con", "member"]}>
             <Layout>
@@ -334,19 +330,12 @@ const AppRoutes = () => {
           <ProtectedRoute requiredRole={["admin-tong", "admin-con", "member"]}>
             <Layout>
               <BangBackend />
-=======
-        element={
-          <ProtectedRoute requiredRole={["admin-tong", "admin-con", "member"]}>
-            <Layout>
-              <ChiTietDuAn />
->>>>>>> 196d2d5b368655c311d9c94154c3206ed15c18be
             </Layout>
           </ProtectedRoute>
         }
       />
 
       <Route
-<<<<<<< HEAD
         path="/quan-ly-chi-tiet/backend/:backendId"
         element={
           <ProtectedRoute requiredRole={["admin-tong", "admin-con", "member"]}>
@@ -358,7 +347,7 @@ const AppRoutes = () => {
       />
 
       <Route
-        path="/quan-ly-chi-tiet/backend/them-moi"
+        path="/quan-ly-chi-tiet/backend/them-moi"  
         element={
           <ProtectedRoute requiredRole={["admin-tong", "admin-con", "member"]}>
             <Layout>
@@ -386,20 +375,12 @@ const AppRoutes = () => {
           <ProtectedRoute requiredRole={["admin-tong", "admin-con", "member"]}>
             <Layout>
               <BangKiemThu />
-=======
-        path="/quan-ly-chi-tiet/nhiem-vu/:nhiemVuId"
-        element={
-          <ProtectedRoute requiredRole={["admin-tong", "admin-con", "member"]}>
-            <Layout>
-              <ChiTietNhiemVu />
->>>>>>> 196d2d5b368655c311d9c94154c3206ed15c18be
             </Layout>
           </ProtectedRoute>
         }
       />
 
-      <Route
-<<<<<<< HEAD
+      <Route 
         path="/quan-ly-chi-tiet/kiem-thu/:kiemThuId"
         element={
           <ProtectedRoute requiredRole={["admin-tong", "admin-con", "member"]}>
@@ -444,57 +425,35 @@ const AppRoutes = () => {
         }
       />
 
-<Route
+      {/* Tiếp tục phần Thống kê Routes */}
+      <Route
         path="/quan-ly-chi-tiet/thong-ke/:thongKeId"
         element={
           <ProtectedRoute requiredRole={["admin-tong", "admin-con", "member"]}>
             <Layout>
               <ChiTietThongKe />
-=======
-        path="/quan-ly-chi-tiet/tinh-nang/:tinhNangId"
-        element={
-          <ProtectedRoute requiredRole={["admin-tong", "admin-con", "member"]}>
-            <Layout>
-              <ChiTietTinhNang />
->>>>>>> 196d2d5b368655c311d9c94154c3206ed15c18be
             </Layout>
           </ProtectedRoute>
         }
       />
 
       <Route
-<<<<<<< HEAD
         path="/quan-ly-chi-tiet/thong-ke/bieu-do"
         element={
           <ProtectedRoute requiredRole={["admin-tong", "admin-con", "member"]}>
             <Layout>
               <BieuDoThongKe />
-=======
-        path="/quan-ly-chi-tiet/tong-hop/:nhiemVuId"
-        element={
-          <ProtectedRoute requiredRole={["admin-tong", "admin-con", "member"]}>
-            <Layout>
-              <BangTongHop />
->>>>>>> 196d2d5b368655c311d9c94154c3206ed15c18be
             </Layout>
           </ProtectedRoute>
         }
       />
 
       <Route
-<<<<<<< HEAD
         path="/quan-ly-chi-tiet/thong-ke/bao-cao"
         element={
           <ProtectedRoute requiredRole={["admin-tong", "admin-con", "member"]}>
             <Layout>
               <BaoCaoThongKe />
-=======
-        path="/quan-ly-chi-tiet/tien-do/:nhiemVuId"
-        element={
-          <ProtectedRoute requiredRole={["admin-tong", "admin-con", "member"]}>
-            <Layout>
-              <BieuDoTienDo />
->>>>>>> 196d2d5b368655c311d9c94154c3206ed15c18be
             </Layout>
           </ProtectedRoute>
         }
