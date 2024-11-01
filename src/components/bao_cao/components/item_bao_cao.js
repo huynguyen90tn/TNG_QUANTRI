@@ -1,4 +1,3 @@
-// src/components/bao_cao/components/item_bao_cao.js
 import React, { useMemo } from 'react';
 import {
   Card,
@@ -14,7 +13,7 @@ import {
   useColorModeValue,
   Flex,
   Spacer,
-  Avatar,
+  Divider
 } from '@chakra-ui/react';
 import { 
   ViewIcon, 
@@ -23,7 +22,6 @@ import {
   CheckIcon,
   CloseIcon,
   ExternalLinkIcon,
-  EmailIcon,
 } from '@chakra-ui/icons';
 import { motion } from 'framer-motion';
 import { TRANG_THAI_BAO_CAO } from '../constants/trang_thai';
@@ -44,7 +42,6 @@ const ItemBaoCao = ({
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const textColor = useColorModeValue('gray.600', 'gray.400');
   const userInfoBg = useColorModeValue('gray.50', 'gray.700');
-  const timeBg = useColorModeValue('blue.50', 'blue.900');
 
   const cardVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -68,24 +65,13 @@ const ItemBaoCao = ({
 
   const formatDateTime = (dateString) => {
     const date = new Date(dateString);
-    const today = new Date();
-    
-    const formatTime = date.toLocaleTimeString('vi-VN', { 
-      hour: '2-digit', 
-      minute: '2-digit' 
+    return date.toLocaleString('vi-VN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
     });
-
-    if (date.toDateString() === today.toDateString()) {
-      return `Hôm nay, ${formatTime}`;
-    }
-
-    const yesterday = new Date(today);
-    yesterday.setDate(today.getDate() - 1);
-    if (date.toDateString() === yesterday.toDateString()) {
-      return `Hôm qua, ${formatTime}`;
-    }
-
-    return `${date.toLocaleDateString('vi-VN')} ${formatTime}`;
   };
 
   const renderBadges = () => (
@@ -102,59 +88,32 @@ const ItemBaoCao = ({
     </HStack>
   );
 
-  const renderLinks = () => (
-    <HStack spacing={2} color={textColor} fontSize="sm">
-      {baoCao.duAnInfo && (
-        <Link href={`/du-an/${baoCao.duAnInfo.id}`} isExternal>
-          <HStack>
-            <ExternalLinkIcon boxSize={3} />
-            <Text>Dự án: {baoCao.duAnInfo.ten}</Text>
-          </HStack>
-        </Link>
-      )}
-      {baoCao.nhiemVuInfo && (
-        <Link href={`/nhiem-vu/${baoCao.nhiemVuInfo.id}`} isExternal>
-          <HStack>
-            <ExternalLinkIcon boxSize={3} />
-            <Text>Nhiệm vụ: {baoCao.nhiemVuInfo.ten}</Text>
-          </HStack>
-        </Link>
-      )}
-    </HStack>
-  );
-
   const renderUserInfo = () => (
     <Flex
       bg={userInfoBg}
-      p={2}
+      p={3}
       borderRadius="md"
       align="center"
-      gap={2}
-      wrap="wrap"
+      justify="space-between"
     >
-      <Avatar 
-        size="sm" 
-        name={baoCao.nguoiTaoInfo?.ten || 'User'} 
-        src={baoCao.nguoiTaoInfo?.avatar} 
-      />
-      <VStack spacing={0} align="start">
-        <Text fontWeight="medium" fontSize="sm">
+      {/* Người nhận báo cáo - Bên trái */}
+      <Box>
+        <Text fontSize="sm" color={textColor}>Người nhận:</Text>
+        <Text fontWeight="bold">
+          {baoCao.nguoiNhanInfo?.ten || 'Chưa xác định'}
+        </Text>
+      </Box>
+
+      <Divider orientation="vertical" mx={4} />
+
+      {/* Người gửi báo cáo - Bên phải */}
+      <Box textAlign="right">
+        <Text fontSize="sm" color={textColor}>Người gửi:</Text>
+        <Text fontWeight="bold">
           {baoCao.nguoiTaoInfo?.ten || 'Chưa xác định'}
         </Text>
-        <HStack spacing={1} color={textColor} fontSize="xs">
-          <EmailIcon />
-          <Text>{baoCao.nguoiTaoInfo?.email || 'Không có email'}</Text>
-        </HStack>
-      </VStack>
-      <Spacer />
-      <Box 
-        bg={timeBg} 
-        px={3} 
-        py={1} 
-        borderRadius="full"
-      >
-        <Text fontSize="xs" fontWeight="medium">
-          {formatDateTime(baoCao.ngayTao)}
+        <Text fontSize="sm" color={textColor}>
+          Mã số: {baoCao.nguoiTaoInfo?.maSo || 'N/A'}
         </Text>
       </Box>
     </Flex>
@@ -226,6 +185,27 @@ const ItemBaoCao = ({
     </HStack>
   );
 
+  const renderLinks = () => (
+    <HStack spacing={2} color={textColor} fontSize="sm">
+      {baoCao.duAnInfo && (
+        <Link href={`/du-an/${baoCao.duAnInfo.id}`} isExternal>
+          <HStack>
+            <ExternalLinkIcon boxSize={3} />
+            <Text>Dự án: {baoCao.duAnInfo.ten}</Text>
+          </HStack>
+        </Link>
+      )}
+      {baoCao.nhiemVuInfo && (
+        <Link href={`/nhiem-vu/${baoCao.nhiemVuInfo.id}`} isExternal>
+          <HStack>
+            <ExternalLinkIcon boxSize={3} />
+            <Text>Nhiệm vụ: {baoCao.nhiemVuInfo.ten}</Text>
+          </HStack>
+        </Link>
+      )}
+    </HStack>
+  );
+
   return (
     <MotionCard
       variants={cardVariants}
@@ -239,7 +219,6 @@ const ItemBaoCao = ({
       overflow="hidden"
       cursor="pointer"
       onClick={(e) => {
-        // Chỉ mở xem chi tiết khi click vào vùng không phải button
         if (e.target.tagName !== 'BUTTON') {
           onXem(baoCao);
         }
@@ -247,25 +226,32 @@ const ItemBaoCao = ({
     >
       <CardBody>
         <VStack align="stretch" spacing={4}>
-          {/* Thông tin người tạo và thời gian */}
+          {/* Thông tin người nhận và người gửi */}
           {renderUserInfo()}
 
-          {/* Tiêu đề và badges */}
-          <Flex align="center" gap={4} wrap="wrap">
-            <VStack align="start" spacing={2} flex={1}>
-              <Text fontSize="lg" fontWeight="bold">
-                {baoCao.tieuDe}
-              </Text>
-              {renderBadges()}
-            </VStack>
-            <Spacer />
-            {renderActions()}
+          {/* ID Báo cáo và Thời gian */}
+          <Flex justify="space-between" fontSize="sm" color={textColor}>
+            <Text>ID: {baoCao.reportId || 'N/A'}</Text>
+            <Text>{formatDateTime(baoCao.ngayTao)}</Text>
           </Flex>
+
+          {/* Tiêu đề và badges */}
+          <Box>
+            <Text fontSize="lg" fontWeight="bold" mb={2}>
+              {baoCao.tieuDe}
+            </Text>
+            {renderBadges()}
+          </Box>
 
           {/* Links dự án và nhiệm vụ */}
           {(baoCao.duAnInfo || baoCao.nhiemVuInfo) && (
             <Box>{renderLinks()}</Box>
           )}
+
+          {/* Các nút hành động */}
+          <Flex justify="flex-end">
+            {renderActions()}
+          </Flex>
 
           {/* Ghi chú */}
           {baoCao.ghiChu && (
