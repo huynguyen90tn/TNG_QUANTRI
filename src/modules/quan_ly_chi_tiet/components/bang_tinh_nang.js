@@ -1,4 +1,6 @@
-import React, { useEffect, useState, useCallback } from 'react';
+// Link file: src/modules/quan_ly_chi_tiet/components/bang_tinh_nang.js
+
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   Box,
   Table,
@@ -73,12 +75,12 @@ const BangTinhNang = ({ nhiemVuId }) => {
   }, [nhiemVuId, layDanhSachTinhNang]);
 
   const handleXoaTinhNang = useCallback(async () => {
-    if (selectedTinhNang) {
+    if (selectedTinhNang?.id) {
       await xoaTinhNang(selectedTinhNang.id);
       xoaTinhNangModal.onClose();
       setSelectedTinhNang(null);
     }
-  }, [selectedTinhNang, xoaTinhNang, xoaTinhNangModal]);
+  }, [selectedTinhNang?.id, xoaTinhNang, xoaTinhNangModal]);
 
   const handleFilter = useCallback((e) => {
     const { name, value } = e.target;
@@ -97,6 +99,17 @@ const BangTinhNang = ({ nhiemVuId }) => {
     setSelectedTinhNang(tinhNang);
     xoaTinhNangModal.onOpen();
   }, [xoaTinhNangModal]);
+
+  const nguoiPhuTrachList = useMemo(() => Array.from(
+    new Set(
+      danhSachTinhNang.flatMap(tinhNang => [
+        tinhNang.frontend?.nguoiPhuTrach,
+        tinhNang.backend?.nguoiPhuTrach,
+        tinhNang.kiemThu?.nguoiPhuTrach,
+        tinhNang.kiemThu?.nguoiKiemThu
+      ]).filter(Boolean)
+    )
+  ), [danhSachTinhNang]);
 
   const getFilteredTinhNang = useCallback(() => {
     return danhSachTinhNang.filter(tinhNang => {
@@ -132,23 +145,22 @@ const BangTinhNang = ({ nhiemVuId }) => {
 
       const searchTerm = filters.search.toLowerCase();
       const matchSearch = !searchTerm ||
-        tinhNang.tenTinhNang.toLowerCase().includes(searchTerm) ||
-        tinhNang.moTa.toLowerCase().includes(searchTerm);
+        (tinhNang.tenTinhNang?.toLowerCase().includes(searchTerm) ||
+        tinhNang.moTa?.toLowerCase().includes(searchTerm));
 
       return matchPhanHe && matchTrangThai && matchNguoiPhuTrach && matchSearch;
     });
   }, [danhSachTinhNang, filters]);
 
-  const nguoiPhuTrachList = Array.from(
-    new Set(
-      danhSachTinhNang.flatMap(tinhNang => [
-        tinhNang.frontend?.nguoiPhuTrach,
-        tinhNang.backend?.nguoiPhuTrach,
-        tinhNang.kiemThu?.nguoiPhuTrach,
-        tinhNang.kiemThu?.nguoiKiemThu
-      ]).filter(Boolean)
-    )
-  );
+  const handleCloseThemMoi = useCallback(() => {
+    themTinhNangModal.onClose();
+    setSelectedTinhNang(null);
+  }, [themTinhNangModal]);
+
+  const handleCloseXoaModal = useCallback(() => {
+    xoaTinhNangModal.onClose();
+    setSelectedTinhNang(null);
+  }, [xoaTinhNangModal]);
 
   return (
     <Box>
@@ -248,7 +260,7 @@ const BangTinhNang = ({ nhiemVuId }) => {
             <Tbody>
               {getFilteredTinhNang().map(tinhNang => {
                 const tienDoChung = Math.round(
-                  (tinhNang.frontend.tienDo + tinhNang.backend.tienDo + tinhNang.kiemThu.tienDo) / 3
+                  (tinhNang.frontend?.tienDo + tinhNang.backend?.tienDo + tinhNang.kiemThu?.tienDo) / 3
                 );
 
                 return (
@@ -264,38 +276,38 @@ const BangTinhNang = ({ nhiemVuId }) => {
 
                     <Td>
                       <VStack align="start" spacing={2}>
-                        <Badge colorScheme={getStatusColor(tinhNang.frontend.trangThai)}>
-                          {tinhNang.frontend.trangThai}
+                        <Badge colorScheme={getStatusColor(tinhNang.frontend?.trangThai)}>
+                          {tinhNang.frontend?.trangThai}
                         </Badge>
                         <HStack spacing={2}>
                           <Progress
-                            value={tinhNang.frontend.tienDo}
+                            value={tinhNang.frontend?.tienDo}
                             size="sm"
                             width="100px"
                             colorScheme="blue"
                           />
-                          <Text fontSize="sm">{tinhNang.frontend.tienDo}%</Text>
+                          <Text fontSize="sm">{tinhNang.frontend?.tienDo}%</Text>
                         </HStack>
-                        <Text fontSize="xs">{tinhNang.frontend.nguoiPhuTrach}</Text>
+                        <Text fontSize="xs">{tinhNang.frontend?.nguoiPhuTrach}</Text>
                       </VStack>
                     </Td>
 
                     <Td>
                       <VStack align="start" spacing={2}>
-                        <Badge colorScheme={getStatusColor(tinhNang.backend.trangThai)}>
-                          {tinhNang.backend.trangThai}
+                        <Badge colorScheme={getStatusColor(tinhNang.backend?.trangThai)}>
+                          {tinhNang.backend?.trangThai}
                         </Badge>
                         <HStack spacing={2}>
                           <Progress
-                            value={tinhNang.backend.tienDo}
+                            value={tinhNang.backend?.tienDo}
                             size="sm"
                             width="100px"
                             colorScheme="green"
                           />
-                          <Text fontSize="sm">{tinhNang.backend.tienDo}%</Text>
+                          <Text fontSize="sm">{tinhNang.backend?.tienDo}%</Text>
                         </HStack>
-                        <Text fontSize="xs">{tinhNang.backend.nguoiPhuTrach}</Text>
-                        {tinhNang.backend.apiEndpoints?.length > 0 && (
+                        <Text fontSize="xs">{tinhNang.backend?.nguoiPhuTrach}</Text>
+                        {tinhNang.backend?.apiEndpoints?.length > 0 && (
                           <HStack spacing={1}>
                             {tinhNang.backend.apiEndpoints.map((api, index) => (
                               <Tag key={`${api}-${index}`} size="sm" colorScheme="gray">
@@ -309,22 +321,22 @@ const BangTinhNang = ({ nhiemVuId }) => {
 
                     <Td>
                       <VStack align="start" spacing={2}>
-                        <Badge colorScheme={getStatusColor(tinhNang.kiemThu.trangThai)}>
-                          {tinhNang.kiemThu.trangThai}
+                        <Badge colorScheme={getStatusColor(tinhNang.kiemThu?.trangThai)}>
+                          {tinhNang.kiemThu?.trangThai}
                         </Badge>
                         <HStack spacing={2}>
                           <Progress
-                            value={tinhNang.kiemThu.tienDo}
+                            value={tinhNang.kiemThu?.tienDo}
                             size="sm"
                             width="100px"
                             colorScheme="purple"
                           />
-                          <Text fontSize="sm">{tinhNang.kiemThu.tienDo}%</Text>
+                          <Text fontSize="sm">{tinhNang.kiemThu?.tienDo}%</Text>
                         </HStack>
                         <Text fontSize="xs">
-                          {tinhNang.kiemThu.nguoiPhuTrach || tinhNang.kiemThu.nguoiKiemThu}
+                          {tinhNang.kiemThu?.nguoiPhuTrach || tinhNang.kiemThu?.nguoiKiemThu}
                         </Text>
-                        {tinhNang.kiemThu.loaiTest?.length > 0 && (
+                        {tinhNang.kiemThu?.loaiTest?.length > 0 && (
                           <HStack spacing={1}>
                             {tinhNang.kiemThu.loaiTest.map(loai => (
                               <Tag key={loai} size="sm" colorScheme="purple">
@@ -361,56 +373,55 @@ const BangTinhNang = ({ nhiemVuId }) => {
                           <MenuItem
                             icon={<ViewIcon />}
                             onClick={() => navigate(`/tinh-nang/${tinhNang.id}`)}
-                          >
-                            Xem chi tiết
-                          </MenuItem>
-                          <MenuItem
-                            icon={<EditIcon />}
-                            onClick={() => handleEditClick(tinhNang)}
-                          >
-                            Chỉnh sửa
-                          </MenuItem>
-                          <MenuItem
-                            icon={<DeleteIcon />}color="red.500"
-                            onClick={() => handleDeleteClick(tinhNang)}
-                          >
-                            Xóa
-                          </MenuItem>
-                        </MenuList>
-                      </Menu>
-                    </Td>
-                  </Tr>
-                );
-              })}
-            </Tbody>
-          </Table>
-        </Box>
-      </VStack>
-
-      {/* Modals */}
-      <ThemTinhNangModal
-        isOpen={themTinhNangModal.isOpen}
-        onClose={() => {
-          themTinhNangModal.onClose();
-          setSelectedTinhNang(null);
-        }}
-        nhiemVuId={nhiemVuId}
-        tinhNangHienTai={selectedTinhNang}
-        phanHeActive={filters.phanHe}
-      />
-
-      <XacNhanXoaModal
-        isOpen={xoaTinhNangModal.isOpen}
-        onClose={() => {
-          xoaTinhNangModal.onClose();
-          setSelectedTinhNang(null);
-        }}
-        title="Xóa tính năng"
-        message={`Bạn có chắc chắn muốn xóa tính năng "${selectedTinhNang?.tenTinhNang}" không?`}
-        onConfirm={handleXoaTinhNang}
-      />
-    </Box>
-  );
-};
-
-export default BangTinhNang;
+                            >
+                              Xem chi tiết
+                            </MenuItem>
+                            <MenuItem
+                              icon={<EditIcon />}
+                              onClick={() => handleEditClick(tinhNang)}
+                            >
+                              Chỉnh sửa
+                            </MenuItem>
+                            <MenuItem
+                              icon={<DeleteIcon />}
+                              color="red.500"
+                              onClick={() => handleDeleteClick(tinhNang)}
+                            >
+                              Xóa
+                            </MenuItem>
+                          </MenuList>
+                        </Menu>
+                      </Td>
+                    </Tr>
+                  );
+                })}
+              </Tbody>
+            </Table>
+          </Box>
+        </VStack>
+  
+        {/* Modals */}
+        <ThemTinhNangModal
+          isOpen={themTinhNangModal.isOpen}
+          onClose={handleCloseThemMoi}
+          nhiemVuId={nhiemVuId}
+          tinhNangHienTai={selectedTinhNang}
+          phanHeActive={filters.phanHe}
+          onSuccess={() => {
+            layDanhSachTinhNang(nhiemVuId);
+            handleCloseThemMoi();
+          }}
+        />
+  
+        <XacNhanXoaModal
+          isOpen={xoaTinhNangModal.isOpen}
+          onClose={handleCloseXoaModal}
+          title="Xóa tính năng"
+          message={`Bạn có chắc chắn muốn xóa tính năng "${selectedTinhNang?.tenTinhNang}" không?`}
+          onConfirm={handleXoaTinhNang}
+        />
+      </Box>
+    );
+  };
+  
+  export default BangTinhNang;

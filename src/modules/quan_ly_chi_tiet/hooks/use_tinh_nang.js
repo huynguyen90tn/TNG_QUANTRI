@@ -1,4 +1,6 @@
-import { useState, useCallback, useEffect } from 'react';
+// Link file: src/modules/quan_ly_chi_tiet/hooks/use_tinh_nang.js
+
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useToast } from '@chakra-ui/react';
 import { Timestamp } from 'firebase/firestore';
@@ -14,7 +16,7 @@ import {
   setFilters
 } from '../store/tinh_nang_slice';
 
-const defaultState = {
+const DEFAULT_STATE = {
   danhSachTinhNang: [],
   tinhNangHienTai: null,
   loading: false,
@@ -39,6 +41,7 @@ export const useTinhNang = () => {
   const toast = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const state = useSelector((state) => state.tinhNang || DEFAULT_STATE);
   const {
     danhSachTinhNang,
     tinhNangHienTai,
@@ -46,16 +49,38 @@ export const useTinhNang = () => {
     error,
     filters,
     thongKe
-  } = useSelector((state) => state.tinhNang || defaultState);
+  } = state;
+
+  const clearStateOnUnmount = useCallback(() => {
+    dispatch(setDanhSachTinhNang([]));
+    dispatch(setTinhNangHienTai(null));
+    dispatch(setError(null));
+    dispatch(setFilters(DEFAULT_STATE.filters));
+  }, [dispatch]);
 
   useEffect(() => {
-    return () => {
-      dispatch(setDanhSachTinhNang([]));
-      dispatch(setTinhNangHienTai(null));
-      dispatch(setError(null));
-      dispatch(setFilters(defaultState.filters));
-    };
-  }, [dispatch]);
+    return clearStateOnUnmount;
+  }, [clearStateOnUnmount]);
+
+  const showErrorToast = useCallback((message) => {
+    toast({
+      title: 'Lỗi',
+      description: message,
+      status: 'error',
+      duration: 3000,
+      isClosable: true
+    });
+  }, [toast]);
+
+  const showSuccessToast = useCallback((message) => {
+    toast({
+      title: 'Thành công',
+      description: message,
+      status: 'success',
+      duration: 3000,
+      isClosable: true
+    });
+  }, [toast]);
 
   const layDanhSachTinhNang = useCallback(async (nhiemVuId) => {
     if (!nhiemVuId) return;
@@ -65,19 +90,14 @@ export const useTinhNang = () => {
       const danhSach = await tinhNangService.getDanhSachTinhNang(nhiemVuId);
       dispatch(setDanhSachTinhNang(danhSach));
     } catch (err) {
-      console.error('Lỗi khi lấy danh sách tính năng:', err);
+      const errorMessage = 'Không thể lấy danh sách tính năng';
+      console.error(errorMessage, err);
       dispatch(setError(err.message));
-      toast({
-        title: 'Lỗi',
-        description: 'Không thể lấy danh sách tính năng',
-        status: 'error',
-        duration: 3000,
-        isClosable: true
-      });
+      showErrorToast(errorMessage);
     } finally {
       dispatch(setLoading(false));
     }
-  }, [dispatch, toast]);
+  }, [dispatch, showErrorToast]);
 
   const layChiTietTinhNang = useCallback(async (tinhNangId) => {
     if (!tinhNangId) return null;
@@ -88,20 +108,21 @@ export const useTinhNang = () => {
       dispatch(setTinhNangHienTai(tinhNang));
       return tinhNang;
     } catch (err) {
-      console.error('Lỗi khi lấy chi tiết tính năng:', err);
+      const errorMessage = 'Không thể lấy thông tin tính năng';
+      console.error(errorMessage, err);
       dispatch(setError(err.message));
-      toast({
-        title: 'Lỗi', 
-        description: 'Không thể lấy thông tin tính năng',
-        status: 'error',
-        duration: 3000,
-        isClosable: true
-      });
+      showErrorToast(errorMessage);
       return null;
     } finally {
       dispatch(setLoading(false));
     }
-  }, [dispatch, toast]);
+  }, [dispatch, showErrorToast]);
+
+  const initializePhanHe = useMemo(() => ({
+    nguoiPhuTrach: '',
+    trangThai: 'MOI',
+    tienDo: 0
+  }), []);
 
   const themTinhNang = useCallback(async (tinhNangData) => {
     try {
@@ -110,22 +131,16 @@ export const useTinhNang = () => {
       const docData = {
         ...tinhNangData,
         frontend: {
-          nguoiPhuTrach: '',
-          trangThai: 'MOI',
-          tienDo: 0,
+          ...initializePhanHe,
           ...(tinhNangData.frontend || {})
         },
         backend: {
-          nguoiPhuTrach: '',
-          trangThai: 'MOI',
-          tienDo: 0,
+          ...initializePhanHe,
           apiEndpoints: [],
           ...(tinhNangData.backend || {})
         },
         kiemThu: {
-          nguoiPhuTrach: '',
-          trangThai: 'MOI', 
-          tienDo: 0,
+          ...initializePhanHe,
           loaiTest: [],
           ...(tinhNangData.kiemThu || {})
         },
@@ -135,30 +150,17 @@ export const useTinhNang = () => {
 
       const tinhNangMoi = await tinhNangService.themTinhNang(docData);
       dispatch(themTinhNangMoi(tinhNangMoi));
-
-      toast({
-        title: 'Thành công',
-        description: 'Đã thêm tính năng mới',
-        status: 'success',
-        duration: 3000,
-        isClosable: true
-      });
-
+      showSuccessToast('Đã thêm tính năng mới');
       return tinhNangMoi;
     } catch (err) {
-      console.error('Lỗi khi thêm tính năng:', err);
-      toast({
-        title: 'Lỗi',
-        description: 'Không thể thêm tính năng mới',
-        status: 'error',
-        duration: 3000,
-        isClosable: true
-      });
+      const errorMessage = 'Không thể thêm tính năng mới';
+      console.error(errorMessage, err);
+      showErrorToast(errorMessage);
       throw err;
     } finally {
       setIsSubmitting(false);
     }
-  }, [dispatch, toast]);
+  }, [dispatch, initializePhanHe, showSuccessToast, showErrorToast]);
 
   const capNhatTienDo = useCallback(async (tinhNangId, phanHe, tienDoData) => {
     if (!tinhNangId || !phanHe) return;
@@ -167,30 +169,17 @@ export const useTinhNang = () => {
       setIsSubmitting(true);
       const ketQua = await tinhNangService.capNhatTienDo(tinhNangId, phanHe, tienDoData);
       dispatch(capNhatTienDoPhanHe({ tinhNangId, phanHe, tienDoData }));
-      
-      toast({
-        title: 'Thành công',
-        description: `Đã cập nhật tiến độ ${phanHe}`,
-        status: 'success',
-        duration: 3000,
-        isClosable: true
-      });
-
+      showSuccessToast(`Đã cập nhật tiến độ ${phanHe}`);
       return ketQua;
     } catch (err) {
-      console.error('Lỗi khi cập nhật tiến độ:', err);
-      toast({
-        title: 'Lỗi',
-        description: 'Không thể cập nhật tiến độ',
-        status: 'error',
-        duration: 3000,
-        isClosable: true
-      });
+      const errorMessage = 'Không thể cập nhật tiến độ';
+      console.error(errorMessage, err);
+      showErrorToast(errorMessage);
       throw err;
     } finally {
       setIsSubmitting(false);
     }
-  }, [dispatch, toast]);
+  }, [dispatch, showSuccessToast, showErrorToast]);
 
   const xoaTinhNang = useCallback(async (tinhNangId) => {
     if (!tinhNangId) return;
@@ -199,28 +188,16 @@ export const useTinhNang = () => {
       setIsSubmitting(true);
       await tinhNangService.xoaTinhNang(tinhNangId);
       dispatch(xoaTinhNangAction(tinhNangId));
-      
-      toast({
-        title: 'Thành công',
-        description: 'Đã xóa tính năng',
-        status: 'success',
-        duration: 3000,
-        isClosable: true
-      });
+      showSuccessToast('Đã xóa tính năng');
     } catch (err) {
-      console.error('Lỗi khi xóa tính năng:', err);
-      toast({
-        title: 'Lỗi',
-        description: 'Không thể xóa tính năng',
-        status: 'error',
-        duration: 3000,
-        isClosable: true
-      });
+      const errorMessage = 'Không thể xóa tính năng';
+      console.error(errorMessage, err);
+      showErrorToast(errorMessage);
       throw err;
     } finally {
       setIsSubmitting(false);
     }
-  }, [dispatch, toast]);
+  }, [dispatch, showSuccessToast, showErrorToast]);
 
   const layTienDoTheoNgay = useCallback(async (nhiemVuId, startDate, endDate) => {
     if (!nhiemVuId || !startDate || !endDate) return [];
@@ -229,19 +206,14 @@ export const useTinhNang = () => {
       dispatch(setLoading(true));
       return await tinhNangService.getTienDoTheoNgay(nhiemVuId, startDate, endDate);
     } catch (err) {
-      console.error('Lỗi khi lấy tiến độ theo ngày:', err);
-      toast({
-        title: 'Lỗi',
-        description: 'Không thể lấy dữ liệu tiến độ',
-        status: 'error',
-        duration: 3000,
-        isClosable: true
-      });
+      const errorMessage = 'Không thể lấy dữ liệu tiến độ';
+      console.error(errorMessage, err);
+      showErrorToast(errorMessage);
       return [];
     } finally {
       dispatch(setLoading(false));
     }
-  }, [dispatch, toast]);
+  }, [dispatch, showErrorToast]);
 
   return {
     danhSachTinhNang,

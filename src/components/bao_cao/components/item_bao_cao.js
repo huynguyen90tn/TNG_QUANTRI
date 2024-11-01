@@ -1,6 +1,5 @@
- 
 // src/components/bao_cao/components/item_bao_cao.js
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Card,
   CardBody,
@@ -12,10 +11,10 @@ import {
   Tooltip,
   Box,
   Link,
-  Button,
   useColorModeValue,
   Flex,
   Spacer,
+  Avatar,
 } from '@chakra-ui/react';
 import { 
   ViewIcon, 
@@ -23,7 +22,8 @@ import {
   DeleteIcon,
   CheckIcon,
   CloseIcon,
-  ExternalLinkIcon 
+  ExternalLinkIcon,
+  EmailIcon,
 } from '@chakra-ui/icons';
 import { motion } from 'framer-motion';
 import { TRANG_THAI_BAO_CAO } from '../constants/trang_thai';
@@ -43,6 +43,8 @@ const ItemBaoCao = ({
   const bgColor = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
   const textColor = useColorModeValue('gray.600', 'gray.400');
+  const userInfoBg = useColorModeValue('gray.50', 'gray.700');
+  const timeBg = useColorModeValue('blue.50', 'blue.900');
 
   const cardVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -58,9 +60,33 @@ const ItemBaoCao = ({
     }
   };
 
-  const trangThai = TRANG_THAI_BAO_CAO[baoCao.trangThai];
-  const loaiBaoCao = LOAI_BAO_CAO.find(l => l.id === baoCao.loaiBaoCao);
-  const phanHe = PHAN_HE.find(p => p.id === baoCao.phanHe);
+  const { trangThai, loaiBaoCao, phanHe } = useMemo(() => ({
+    trangThai: TRANG_THAI_BAO_CAO[baoCao.trangThai],
+    loaiBaoCao: LOAI_BAO_CAO.find(l => l.id === baoCao.loaiBaoCao),
+    phanHe: PHAN_HE.find(p => p.id === baoCao.phanHe)
+  }), [baoCao.trangThai, baoCao.loaiBaoCao, baoCao.phanHe]);
+
+  const formatDateTime = (dateString) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    
+    const formatTime = date.toLocaleTimeString('vi-VN', { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+
+    if (date.toDateString() === today.toDateString()) {
+      return `Hôm nay, ${formatTime}`;
+    }
+
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    if (date.toDateString() === yesterday.toDateString()) {
+      return `Hôm qua, ${formatTime}`;
+    }
+
+    return `${date.toLocaleDateString('vi-VN')} ${formatTime}`;
+  };
 
   const renderBadges = () => (
     <HStack spacing={2} wrap="wrap">
@@ -95,6 +121,43 @@ const ItemBaoCao = ({
         </Link>
       )}
     </HStack>
+  );
+
+  const renderUserInfo = () => (
+    <Flex
+      bg={userInfoBg}
+      p={2}
+      borderRadius="md"
+      align="center"
+      gap={2}
+      wrap="wrap"
+    >
+      <Avatar 
+        size="sm" 
+        name={baoCao.nguoiTaoInfo?.ten || 'User'} 
+        src={baoCao.nguoiTaoInfo?.avatar} 
+      />
+      <VStack spacing={0} align="start">
+        <Text fontWeight="medium" fontSize="sm">
+          {baoCao.nguoiTaoInfo?.ten || 'Chưa xác định'}
+        </Text>
+        <HStack spacing={1} color={textColor} fontSize="xs">
+          <EmailIcon />
+          <Text>{baoCao.nguoiTaoInfo?.email || 'Không có email'}</Text>
+        </HStack>
+      </VStack>
+      <Spacer />
+      <Box 
+        bg={timeBg} 
+        px={3} 
+        py={1} 
+        borderRadius="full"
+      >
+        <Text fontSize="xs" fontWeight="medium">
+          {formatDateTime(baoCao.ngayTao)}
+        </Text>
+      </Box>
+    </Flex>
   );
 
   const renderActions = () => (
@@ -176,13 +239,18 @@ const ItemBaoCao = ({
       overflow="hidden"
       cursor="pointer"
       onClick={(e) => {
+        // Chỉ mở xem chi tiết khi click vào vùng không phải button
         if (e.target.tagName !== 'BUTTON') {
           onXem(baoCao);
         }
       }}
     >
       <CardBody>
-        <VStack align="stretch" spacing={3}>
+        <VStack align="stretch" spacing={4}>
+          {/* Thông tin người tạo và thời gian */}
+          {renderUserInfo()}
+
+          {/* Tiêu đề và badges */}
           <Flex align="center" gap={4} wrap="wrap">
             <VStack align="start" spacing={2} flex={1}>
               <Text fontSize="lg" fontWeight="bold">
@@ -194,10 +262,12 @@ const ItemBaoCao = ({
             {renderActions()}
           </Flex>
 
+          {/* Links dự án và nhiệm vụ */}
           {(baoCao.duAnInfo || baoCao.nhiemVuInfo) && (
             <Box>{renderLinks()}</Box>
           )}
 
+          {/* Ghi chú */}
           {baoCao.ghiChu && (
             <Text 
               color={textColor} 
@@ -207,20 +277,6 @@ const ItemBaoCao = ({
               {baoCao.ghiChu}
             </Text>
           )}
-
-          <HStack 
-            justify="space-between" 
-            fontSize="sm" 
-            color={textColor}
-            pt={2}
-          >
-            <Text>
-              Người tạo: {baoCao.nguoiTaoInfo?.ten}
-            </Text>
-            <Text>
-              {new Date(baoCao.ngayTao).toLocaleDateString('vi-VN')}
-            </Text>
-          </HStack>
         </VStack>
       </CardBody>
     </MotionCard>

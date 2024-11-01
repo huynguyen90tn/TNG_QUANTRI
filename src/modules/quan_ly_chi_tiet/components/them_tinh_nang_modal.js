@@ -1,6 +1,6 @@
-// src/modules/quan_ly_chi_tiet/components/them_tinh_nang_modal.js
+// Link file: src/modules/quan_ly_chi_tiet/components/them_tinh_nang_modal.js
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback, useMemo } from 'react';
 import {
   Modal,
   ModalOverlay,
@@ -36,6 +36,37 @@ import { useForm, Controller } from 'react-hook-form';
 import { useTinhNang } from '../hooks/use_tinh_nang';
 import { LOAI_KIEM_THU } from '../constants/loai_kiem_thu';
 
+const TRANG_THAI_PHAN_HE = {
+  frontend: ['Mới', 'Đang thực hiện', 'Hoàn thành'],
+  backend: ['Mới', 'Đang thực hiện', 'Hoàn thành'],
+  kiemThu: ['Mới', 'Đang thực hiện', 'Hoàn thành']
+};
+
+const DEFAULT_VALUES = {
+  tenTinhNang: '',
+  moTa: '',
+  frontend: {
+    nguoiPhuTrach: '',
+    trangThai: 'Mới',
+    tienDo: 0,
+    ghiChu: ''
+  },
+  backend: {
+    nguoiPhuTrach: '',
+    trangThai: 'Mới',
+    tienDo: 0,
+    ghiChu: '',
+    apiEndpoints: ['']
+  },
+  kiemThu: {
+    nguoiPhuTrach: '',
+    trangThai: 'Mới',
+    tienDo: 0,
+    ghiChu: '',
+    loaiTest: []
+  }
+};
+
 const ThemTinhNangModal = ({
   isOpen,
   onClose,
@@ -47,13 +78,6 @@ const ThemTinhNangModal = ({
   const { themTinhNang, capNhatTinhNang, isSubmitting } = useTinhNang();
   const isEditing = Boolean(tinhNangHienTai);
 
-  // Định nghĩa các trạng thái cho từng phân hệ
-  const TRANG_THAI_PHAN_HE = {
-    frontend: ['Mới', 'Đang thực hiện', 'Hoàn thành'],
-    backend: ['Mới', 'Đang thực hiện', 'Hoàn thành'],
-    kiemThu: ['Mới', 'Đang thực hiện', 'Hoàn thành']
-  };
-
   const {
     register,
     handleSubmit,
@@ -63,58 +87,45 @@ const ThemTinhNangModal = ({
     setValue,
     formState: { errors }
   } = useForm({
-    defaultValues: {
-      tenTinhNang: '',
-      moTa: '',
-      frontend: {
-        nguoiPhuTrach: '',
-        trangThai: 'Mới',
-        tienDo: 0,
-        ghiChu: ''
-      },
-      backend: {
-        nguoiPhuTrach: '',
-        trangThai: 'Mới',
-        tienDo: 0,
-        ghiChu: '',
-        apiEndpoints: ['']
-      },
-      kiemThu: {
-        nguoiPhuTrach: '',
-        trangThai: 'Mới',
-        tienDo: 0,
-        ghiChu: '',
-        loaiTest: []
-      }
-    }
+    defaultValues: DEFAULT_VALUES
   });
+
+  const resetForm = useCallback(() => {
+    reset(DEFAULT_VALUES);
+  }, [reset]);
 
   useEffect(() => {
     if (tinhNangHienTai) {
       reset({
-        tenTinhNang: tinhNangHienTai.tenTinhNang,
-        moTa: tinhNangHienTai.moTa,
+        tenTinhNang: tinhNangHienTai.tenTinhNang || '',
+        moTa: tinhNangHienTai.moTa || '',
         frontend: {
+          ...DEFAULT_VALUES.frontend,
           ...tinhNangHienTai.frontend
         },
         backend: {
+          ...DEFAULT_VALUES.backend,
           ...tinhNangHienTai.backend,
-          apiEndpoints: tinhNangHienTai.backend.apiEndpoints || ['']
+          apiEndpoints: tinhNangHienTai.backend?.apiEndpoints || ['']
         },
         kiemThu: {
+          ...DEFAULT_VALUES.kiemThu,
           ...tinhNangHienTai.kiemThu,
-          loaiTest: tinhNangHienTai.kiemThu.loaiTest || []
+          loaiTest: tinhNangHienTai.kiemThu?.loaiTest || []
         }
       });
+    } else {
+      resetForm();
     }
-  }, [tinhNangHienTai, reset]);
+  }, [tinhNangHienTai, resetForm]);
 
   const watchLoaiTest = watch('kiemThu.loaiTest', []);
-  const watchTrangThai = {
+  
+  const watchTrangThai = useMemo(() => ({
     frontend: watch('frontend.trangThai'),
     backend: watch('backend.trangThai'),
     kiemThu: watch('kiemThu.trangThai')
-  };
+  }), [watch]);
 
   useEffect(() => {
     Object.entries(watchTrangThai).forEach(([phanHe, trangThai]) => {
@@ -124,19 +135,38 @@ const ThemTinhNangModal = ({
     });
   }, [watchTrangThai, setValue]);
 
-  const handleClose = () => {
-    reset();
+  const handleClose = useCallback(() => {
+    resetForm();
     onClose();
-  };
+  }, [resetForm, onClose]);
+
+  const handleLoaiTestChange = useCallback((loaiTest) => {
+    const currentLoaiTest = watchLoaiTest;
+    const newLoaiTest = currentLoaiTest.includes(loaiTest)
+      ? currentLoaiTest.filter((item) => item !== loaiTest)
+      : [...currentLoaiTest, loaiTest];
+    setValue('kiemThu.loaiTest', newLoaiTest);
+  }, [watchLoaiTest, setValue]);
 
   const onSubmit = async (data) => {
+    if (!nhiemVuId) {
+      toast({
+        title: 'Lỗi',
+        description: 'Thiếu thông tin nhiệm vụ',
+        status: 'error',
+        duration: 3000,
+        isClosable: true
+      });
+      return;
+    }
+
     try {
       const tinhNangData = {
         ...data,
         nhiemVuId
       };
 
-      if (isEditing) {
+      if (isEditing && tinhNangHienTai?.id) {
         await capNhatTinhNang(tinhNangHienTai.id, tinhNangData);
         toast({
           title: 'Thành công',
@@ -159,20 +189,12 @@ const ThemTinhNangModal = ({
     } catch (error) {
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: error.message || 'Có lỗi xảy ra',
         status: 'error',
         duration: 3000,
         isClosable: true
       });
     }
-  };
-
-  const handleLoaiTestChange = (loaiTest) => {
-    const currentLoaiTest = watchLoaiTest;
-    const newLoaiTest = currentLoaiTest.includes(loaiTest)
-      ? currentLoaiTest.filter((item) => item !== loaiTest)
-      : [...currentLoaiTest, loaiTest];
-    setValue('kiemThu.loaiTest', newLoaiTest);
   };
 
   return (
@@ -541,6 +563,7 @@ const ThemTinhNangModal = ({
               type="submit"
               isLoading={isSubmitting}
               loadingText="Đang xử lý..."
+              isDisabled={watchTrangThai.kiemThu === 'Hoàn thành' && watchLoaiTest.length === 0}
             >
               {isEditing ? 'Cập nhật' : 'Thêm mới'}
             </Button>
@@ -551,4 +574,4 @@ const ThemTinhNangModal = ({
   );
 };
 
-export default ThemTinhNangModal;
+export default React.memo(ThemTinhNangModal);

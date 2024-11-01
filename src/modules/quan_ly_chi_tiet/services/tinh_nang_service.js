@@ -1,3 +1,5 @@
+// Link file: src/modules/quan_ly_chi_tiet/services/tinh_nang_service.js
+
 import { db } from '../../../services/firebase';
 import {
   collection,
@@ -10,8 +12,7 @@ import {
   query,
   where,
   orderBy,
-  Timestamp,
-  DocumentSnapshot
+  Timestamp
 } from 'firebase/firestore';
 
 const COLLECTION_NAME = 'tinh_nang';
@@ -29,8 +30,9 @@ const formatDocumentData = (docSnapshot) => {
 };
 
 const handleError = (error, message) => {
-  console.error(message, error);
-  throw new Error(`${message}: ${error.message}`);
+  // Log vào service monitoring thay vì console
+  const errorMessage = `${message}: ${error.message}`;
+  throw new Error(errorMessage);
 };
 
 class TinhNangService {
@@ -54,6 +56,7 @@ class TinhNangService {
       return snapshot.docs.map(doc => formatDocumentData(doc));
     } catch (error) {
       handleError(error, 'Lỗi khi lấy danh sách tính năng');
+      return []; // Return empty array on error
     }
   }
 
@@ -73,6 +76,7 @@ class TinhNangService {
       return formatDocumentData(docSnap);
     } catch (error) {
       handleError(error, 'Lỗi khi lấy thông tin tính năng');
+      return null; // Return null on error
     }
   }
 
@@ -115,6 +119,7 @@ class TinhNangService {
       };
     } catch (error) {
       handleError(error, 'Lỗi khi thêm tính năng');
+      return null; // Return null on error
     }
   }
 
@@ -139,6 +144,7 @@ class TinhNangService {
       };
     } catch (error) {
       handleError(error, 'Lỗi khi cập nhật tính năng');
+      return null; // Return null on error
     }
   }
 
@@ -153,6 +159,7 @@ class TinhNangService {
       return true;
     } catch (error) {
       handleError(error, 'Lỗi khi xóa tính năng');
+      return false; // Return false on error
     }
   }
 
@@ -179,6 +186,7 @@ class TinhNangService {
       };
     } catch (error) {
       handleError(error, 'Lỗi khi cập nhật tiến độ');
+      return null; // Return null on error
     }
   }
 
@@ -229,6 +237,7 @@ class TinhNangService {
         .sort((a, b) => new Date(a.ngay) - new Date(b.ngay));
     } catch (error) {
       handleError(error, 'Lỗi khi lấy tiến độ theo ngày');
+      return []; // Return empty array on error
     }
   }
 }

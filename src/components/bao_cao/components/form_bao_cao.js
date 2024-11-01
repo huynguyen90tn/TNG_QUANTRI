@@ -1,3 +1,4 @@
+// src/components/bao_cao/components/form_bao_cao.js
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   VStack,
@@ -13,13 +14,24 @@ import {
   Heading,
   FormErrorMessage,
   useColorModeValue,
-  Box
+  Box,
+  Divider,
+  Text
 } from '@chakra-ui/react';
 import { useForm } from 'react-hook-form';
 import { getProjects } from '../../../services/api/projectApi';
 import { getTasks } from '../../../services/api/taskApi';
 import { LOAI_BAO_CAO, PHAN_HE } from '../constants/loai_bao_cao';
 import TrinhSoanThao from './trinh_soan_thao';
+
+const generateReportId = (prefix = 'RPT') => {
+  const date = new Date();
+  const year = date.getFullYear().toString().slice(-2);
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+  return `${prefix}${year}${month}${day}${random}`;
+};
 
 const FormBaoCao = ({ 
   initialData, 
@@ -44,15 +56,28 @@ const FormBaoCao = ({
     formState: { errors }
   } = useForm({
     defaultValues: initialData || {
+      reportId: generateReportId(),
       tieuDe: '',
+      nguoiTaoTen: '',
+      nguoiTaoMaSo: '',
+      nguoiNhan: '',
       loaiBaoCao: '',
       phanHe: '',
       duAnId: '',
       nhiemVuId: '',
       noiDung: '',
-      ghiChu: ''
+      ghiChu: '',
+      linkBaoCao: ''
     }
   });
+
+  useEffect(() => {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    if (currentUser) {
+      setValue('nguoiTaoTen', currentUser.fullName || '');
+      setValue('nguoiTaoMaSo', currentUser.memberCode || '');
+    }
+  }, [setValue]);
 
   const selectedDuAn = watch('duAnId');
   const selectedPhanHe = watch('phanHe');
@@ -107,9 +132,31 @@ const FormBaoCao = ({
     loadNhiemVus(selectedDuAn);
   }, [selectedDuAn, loadNhiemVus]);
 
-  const onSubmitForm = async (data) => {
+  // Xử lý submit form 
+  const handleFormSubmit = async (data) => {
     try {
-      await onSubmit(data);
+      const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+      
+      const enhancedData = {
+        ...data,
+        reportId: data.reportId || generateReportId(),
+        nguoiTaoInfo: {
+          ten: data.nguoiTaoTen,
+          maSo: data.nguoiTaoMaSo,
+          department: currentUser?.department || ''
+        },
+        nguoiNhanInfo: {
+          ten: data.nguoiNhan
+        }
+      };
+
+      // Xóa các trường tạm
+      delete enhancedData.nguoiTaoTen;
+      delete enhancedData.nguoiTaoMaSo; 
+      delete enhancedData.nguoiNhan;
+
+      await onSubmit(enhancedData);
+
       toast({
         title: `${initialData ? 'Cập nhật' : 'Tạo'} báo cáo thành công`,
         status: 'success',
@@ -140,7 +187,7 @@ const FormBaoCao = ({
       <CardBody>
         <VStack
           as="form"
-          onSubmit={handleSubmit(onSubmitForm)}
+          onSubmit={handleSubmit(handleFormSubmit)}
           spacing={6}
           align="stretch"
           w="full"
@@ -149,26 +196,77 @@ const FormBaoCao = ({
             {initialData ? 'Cập Nhật Báo Cáo' : 'Tạo Báo Cáo Mới'}
           </Heading>
 
-          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-            <FormControl isInvalid={errors.tieuDe} isRequired>
-              <FormLabel>Tiêu đề</FormLabel>
+          <Text fontSize="sm" color="gray.500" fontWeight="medium">
+            ID Báo cáo: {watch('reportId')}
+          </Text>
+
+          <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6}>
+            <FormControl isInvalid={errors.nguoiTaoTen} isRequired>
+              <FormLabel>Người tạo báo cáo</FormLabel>
               <Input
-                {...register('tieuDe', {
-                  required: 'Vui lòng nhập tiêu đề',
-                  minLength: {
-                    value: 5,
-                    message: 'Tiêu đề phải có ít nhất 5 ký tự'
-                  }
+                {...register('nguoiTaoTen', {
+                  required: 'Vui lòng nhập tên người tạo báo cáo'
                 })}
-                placeholder="Nhập tiêu đề báo cáo"
+                placeholder="Nhập tên người tạo"
                 _hover={{ borderColor: 'blue.500' }}
                 transition="all 0.2s"
               />
               <FormErrorMessage>
-                {errors.tieuDe?.message}
+                {errors.nguoiTaoTen?.message}
               </FormErrorMessage>
             </FormControl>
 
+            <FormControl isInvalid={errors.nguoiTaoMaSo} isRequired>
+              <FormLabel>Mã số thành viên</FormLabel>
+              <Input
+                {...register('nguoiTaoMaSo', {
+                  required: 'Vui lòng nhập mã số thành viên'
+                })}
+                placeholder="Nhập mã số thành viên"
+                _hover={{ borderColor: 'blue.500' }}
+                transition="all 0.2s"
+              />
+              <FormErrorMessage>
+                {errors.nguoiTaoMaSo?.message}
+              </FormErrorMessage>
+            </FormControl>
+
+            <FormControl isInvalid={errors.nguoiNhan} isRequired>
+              <FormLabel>Người nhận báo cáo</FormLabel>
+              <Input
+                {...register('nguoiNhan', {
+                  required: 'Vui lòng nhập tên người nhận báo cáo'
+                })}
+                placeholder="Nhập tên người nhận"
+                _hover={{ borderColor: 'blue.500' }}
+                transition="all 0.2s"
+              />
+              <FormErrorMessage>
+                {errors.nguoiNhan?.message}
+              </FormErrorMessage>
+            </FormControl>
+          </SimpleGrid>
+
+          <FormControl isInvalid={errors.tieuDe} isRequired>
+            <FormLabel>Tiêu đề</FormLabel>
+            <Input
+              {...register('tieuDe', {
+                required: 'Vui lòng nhập tiêu đề',
+                minLength: {
+                  value: 5,
+                  message: 'Tiêu đề phải có ít nhất 5 ký tự'
+                }
+              })}
+              placeholder="Nhập tiêu đề báo cáo"
+              _hover={{ borderColor: 'blue.500' }}
+              transition="all 0.2s"
+            />
+            <FormErrorMessage>
+              {errors.tieuDe?.message}
+            </FormErrorMessage>
+          </FormControl>
+
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
             <FormControl isInvalid={errors.loaiBaoCao} isRequired>
               <FormLabel>Loại báo cáo</FormLabel>
               <Select
@@ -189,9 +287,7 @@ const FormBaoCao = ({
                 {errors.loaiBaoCao?.message}
               </FormErrorMessage>
             </FormControl>
-          </SimpleGrid>
 
-          <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6}>
             <FormControl isInvalid={errors.phanHe} isRequired>
               <FormLabel>Phân hệ</FormLabel>
               <Select
@@ -212,7 +308,9 @@ const FormBaoCao = ({
                 {errors.phanHe?.message}
               </FormErrorMessage>
             </FormControl>
+          </SimpleGrid>
 
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
             <FormControl>
               <FormLabel>Dự án</FormLabel>
               <Select
@@ -257,6 +355,18 @@ const FormBaoCao = ({
               height="300px"
             />
           </Box>
+
+          <FormControl>
+            <FormLabel>Link báo cáo</FormLabel>
+            <Input
+              {...register('linkBaoCao')}
+              placeholder="Nhập link báo cáo (nếu có)"
+              _hover={{ borderColor: 'blue.500' }}
+              transition="all 0.2s"
+            />
+          </FormControl>
+
+          <Divider />
 
           <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
             <Button
