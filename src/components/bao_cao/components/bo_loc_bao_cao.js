@@ -1,4 +1,3 @@
- 
 // src/components/bao_cao/components/bo_loc_bao_cao.js
 import React from 'react';
 import {
@@ -7,31 +6,58 @@ import {
   FormControl,
   Input,
   Select,
-  useMediaQuery,
   VStack,
   SimpleGrid,
   Button,
-  IconButton,
-  Tooltip,
   useColorModeValue,
   Collapse,
-  Box,
   useDisclosure,
+  HStack,
+  Icon,
+  Text,
+  Badge,
+  Modal,
+  ModalOverlay,
+  ModalContent,
 } from '@chakra-ui/react';
-import { SearchIcon, CloseIcon, ChevronDownIcon, ChevronUpIcon } from '@chakra-ui/icons';
+import { 
+  ChevronDownIcon, 
+  ChevronUpIcon,
+  CalendarIcon,
+  WarningIcon,
+  TimeIcon
+} from '@chakra-ui/icons';
+import { 
+  FaFilter, 
+  FaUserTimes, 
+  FaCalendarAlt,
+  FaBuilding,
+  FaTasks,
+  FaList
+} from 'react-icons/fa';
 import { LOAI_BAO_CAO, PHAN_HE } from '../constants/loai_bao_cao';
 import { TRANG_THAI_BAO_CAO } from '../constants/trang_thai';
+import DanhSachChuaBaoCao from './danh_sach_chua_bao_cao';
 
 const BoLocBaoCao = ({ 
   boLoc, 
   onFilter,
   onResetFilter 
 }) => {
-  const [isMobile] = useMediaQuery("(max-width: 768px)");
-  const { isOpen, onToggle } = useDisclosure({ defaultIsOpen: !isMobile });
-  
-  const bgColor = useColorModeValue('white', 'gray.800');
-  const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const { isOpen, onToggle } = useDisclosure({ defaultIsOpen: true });
+  const { 
+    isOpen: isOpenModal, 
+    onOpen: onOpenModal, 
+    onClose: onCloseModal 
+  } = useDisclosure();
+
+  // Theme colors
+  const bgColor = useColorModeValue('gray.800', 'gray.900');
+  const cardBg = useColorModeValue('gray.700', 'gray.800');
+  const borderColor = useColorModeValue('gray.600', 'gray.700');
+  const textColor = useColorModeValue('gray.100', 'gray.50');
+  const iconColor = useColorModeValue('blue.300', 'blue.200');
+  const warningColor = useColorModeValue('red.400', 'red.300');
 
   const [localFilter, setLocalFilter] = React.useState(boLoc);
 
@@ -48,98 +74,95 @@ const BoLocBaoCao = ({
 
   const handleResetFilter = () => {
     const resetFilter = {
-      tuKhoa: '',
-      loaiBaoCao: '',
+      ngay: '',
+      thang: '',
+      nam: new Date().getFullYear(),
       phanHe: '',
       trangThai: '',
-      tuNgay: '',
-      denNgay: '',
+      loaiBaoCao: ''
     };
     setLocalFilter(resetFilter);
     onResetFilter(resetFilter);
   };
 
   return (
-    <Card
-      bg={bgColor}
-      borderColor={borderColor}
-      borderWidth="1px"
-      borderRadius="lg"
-      mb={4}
-      shadow="sm"
-      transition="all 0.3s"
-      _hover={{ shadow: 'md' }}
-    >
-      <CardBody>
-        <VStack spacing={4} align="stretch">
-          {/* Thanh tìm kiếm luôn hiển thị */}
-          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-            <FormControl>
-              <Input
-                placeholder="Tìm kiếm báo cáo..."
-                value={localFilter.tuKhoa}
-                onChange={(e) => handleChangeFilter('tuKhoa', e.target.value)}
-                leftElement={
-                  <SearchIcon color="gray.500" ml={2} />
-                }
-              />
-            </FormControl>
-            <SimpleGrid columns={2} spacing={2}>
-              <Button
-                colorScheme="blue"
-                onClick={handleApplyFilter}
-                leftIcon={<SearchIcon />}
-                isFullWidth={isMobile}
-              >
-                Tìm kiếm
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleResetFilter}
-                leftIcon={<CloseIcon />}
-                isFullWidth={isMobile}
-              >
-                Đặt lại
-              </Button>
-            </SimpleGrid>
-          </SimpleGrid>
+    <>
+      <Card
+        bg={cardBg}
+        borderColor={borderColor}
+        borderWidth="1px"
+        borderRadius="xl"
+        mb={4}
+        overflow="hidden"
+        transition="all 0.3s"
+      >
+        <CardBody>
+          <VStack spacing={4} align="stretch">
+            <HStack justify="space-between" wrap="wrap" spacing={4}>
+              <HStack>
+                <Icon as={FaFilter} color={iconColor} boxSize={5} />
+                <Text color={textColor} fontSize="lg" fontWeight="bold">
+                  Bộ lọc báo cáo
+                </Text>
+              </HStack>
 
-          {/* Nút mở rộng/thu gọn bộ lọc */}
-          <Button
-            onClick={onToggle}
-            variant="ghost"
-            width="full"
-            rightIcon={isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
-          >
-            {isOpen ? 'Thu gọn bộ lọc' : 'Mở rộng bộ lọc'}
-          </Button>
+              <Button
+                leftIcon={<FaUserTimes />}
+                colorScheme="red"
+                variant="solid"
+                onClick={onOpenModal}
+                size="md"
+                _hover={{ transform: 'translateY(-2px)', shadow: 'lg' }}
+              >
+                Danh sách chưa báo cáo
+              </Button>
+            </HStack>
 
-          {/* Bộ lọc mở rộng */}
-          <Collapse in={isOpen}>
-            <SimpleGrid 
-              columns={{ base: 1, md: 2, lg: 3 }} 
-              spacing={4}
-              pt={4}
-            >
+            <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
               <FormControl>
-                <Select
-                  value={localFilter.loaiBaoCao}
-                  onChange={(e) => handleChangeFilter('loaiBaoCao', e.target.value)}
-                  placeholder="Chọn loại báo cáo"
-                >
-                  {LOAI_BAO_CAO.map((loai) => (
-                    <option key={loai.id} value={loai.id}>
-                      {loai.icon} {loai.label}
-                    </option>
-                  ))}
-                </Select>
+                <HStack spacing={2} mb={2}>
+                  <Icon as={FaCalendarAlt} color={iconColor} />
+                  <Text color={textColor} fontSize="sm">Thời gian</Text>
+                </HStack>
+                <SimpleGrid columns={2} spacing={2}>
+                  <Input
+                    type="date"
+                    value={localFilter.ngay}
+                    onChange={(e) => handleChangeFilter('ngay', e.target.value)}
+                    bg={bgColor}
+                    color={textColor}
+                    borderColor={borderColor}
+                    _hover={{ borderColor: iconColor }}
+                  />
+                  <Select
+                    value={localFilter.thang}
+                    onChange={(e) => handleChangeFilter('thang', e.target.value)}
+                    placeholder="Chọn tháng"
+                    bg={bgColor}
+                    color={textColor}
+                    borderColor={borderColor}
+                    _hover={{ borderColor: iconColor }}
+                  >
+                    {Array.from({length: 12}, (_, i) => (
+                      <option key={i + 1} value={i + 1}>Tháng {i + 1}</option>
+                    ))}
+                  </Select>
+                </SimpleGrid>
               </FormControl>
 
               <FormControl>
+                <HStack spacing={2} mb={2}>
+                  <Icon as={FaBuilding} color={iconColor} />
+                  <Text color={textColor} fontSize="sm">Phân hệ</Text>
+                </HStack>
                 <Select
                   value={localFilter.phanHe}
                   onChange={(e) => handleChangeFilter('phanHe', e.target.value)}
                   placeholder="Chọn phân hệ"
+                  bg={bgColor}
+                  color={textColor}
+                  borderColor={borderColor}
+                  _hover={{ borderColor: iconColor }}
                 >
                   {PHAN_HE.map((ph) => (
                     <option key={ph.id} value={ph.id}>
@@ -150,10 +173,18 @@ const BoLocBaoCao = ({
               </FormControl>
 
               <FormControl>
+                <HStack spacing={2} mb={2}>
+                  <Icon as={FaTasks} color={iconColor} />
+                  <Text color={textColor} fontSize="sm">Trạng thái</Text>
+                </HStack>
                 <Select
                   value={localFilter.trangThai}
                   onChange={(e) => handleChangeFilter('trangThai', e.target.value)}
                   placeholder="Chọn trạng thái"
+                  bg={bgColor}
+                  color={textColor}
+                  borderColor={borderColor}
+                  _hover={{ borderColor: iconColor }}
                 >
                   {Object.values(TRANG_THAI_BAO_CAO).map((trangThai) => (
                     <option key={trangThai.id} value={trangThai.id}>
@@ -163,28 +194,63 @@ const BoLocBaoCao = ({
                 </Select>
               </FormControl>
 
-              <FormControl>
-                <Input
-                  type="date"
-                  value={localFilter.tuNgay}
-                  onChange={(e) => handleChangeFilter('tuNgay', e.target.value)}
-                  placeholder="Từ ngày"
-                />
-              </FormControl>
-
-              <FormControl>
-                <Input
-                  type="date"
-                  value={localFilter.denNgay}
-                  onChange={(e) => handleChangeFilter('denNgay', e.target.value)}
-                  placeholder="Đến ngày"
-                />
+              <FormControl gridColumn={{ md: 'span 3' }}>
+                <HStack spacing={2} mb={2}>
+                  <Icon as={FaList} color={iconColor} />
+                  <Text color={textColor} fontSize="sm">Loại báo cáo</Text>
+                </HStack>
+                <Select
+                  value={localFilter.loaiBaoCao}
+                  onChange={(e) => handleChangeFilter('loaiBaoCao', e.target.value)}
+                  placeholder="Chọn loại báo cáo"
+                  bg={bgColor}
+                  color={textColor}
+                  borderColor={borderColor}
+                  _hover={{ borderColor: iconColor }}
+                >
+                  {LOAI_BAO_CAO.map((loai) => (
+                    <option key={loai.id} value={loai.id}>
+                      {loai.icon} {loai.label}
+                    </option>
+                  ))}
+                </Select>
               </FormControl>
             </SimpleGrid>
-          </Collapse>
-        </VStack>
-      </CardBody>
-    </Card>
+
+            <HStack justify="flex-end" spacing={4} pt={2}>
+              <Button
+                variant="outline"
+                onClick={handleResetFilter}
+                color={textColor}
+                borderColor={borderColor}
+                _hover={{ bg: `${iconColor}20` }}
+              >
+                Đặt lại
+              </Button>
+              <Button
+                colorScheme="blue"
+                onClick={handleApplyFilter}
+                _hover={{ transform: 'translateY(-2px)', shadow: 'lg' }}
+              >
+                Áp dụng
+              </Button>
+            </HStack>
+          </VStack>
+        </CardBody>
+      </Card>
+
+      <Modal
+        isOpen={isOpenModal}
+        onClose={onCloseModal}
+        size="6xl"
+        scrollBehavior="inside"
+      >
+        <ModalOverlay backdropFilter="blur(10px)" />
+        <ModalContent bg={bgColor} minH="80vh">
+          <DanhSachChuaBaoCao onClose={onCloseModal} />
+        </ModalContent>
+      </Modal>
+    </>
   );
 };
 
