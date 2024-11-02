@@ -13,6 +13,7 @@ import {
   datLaiLoi,
   datLaiThongBao,
 } from '../store/thanh_vien_slice';
+import { thanhVienService } from '../services/thanh_vien_service';
 
 export const useThanhVien = () => {
   const dispatch = useDispatch();
@@ -39,47 +40,57 @@ export const useThanhVien = () => {
     boLoc,
   } = thanhVienState;
 
-  // Thêm hàm layDanhSach
   const layDanhSach = useCallback(async () => {
     try {
       await dispatch(layDanhSachThanhVien()).unwrap();
     } catch (error) {
+      dispatch(datLaiLoi(error.message));
       console.error('Lỗi khi lấy danh sách thành viên:', error);
     }
   }, [dispatch]);
 
   const themMoi = useCallback(async (data) => {
     try {
-      await dispatch(themThanhVien(data)).unwrap();
-      return true;
+      const ketQua = await dispatch(themThanhVien(data)).unwrap();
+      dispatch(datLaiThongBao('Thêm thành viên thành công'));
+      return ketQua;
     } catch (error) {
+      dispatch(datLaiLoi(error.message));
       return false;
     }
   }, [dispatch]);
 
   const capNhat = useCallback(async (id, data) => {
     try {
-      await dispatch(capNhatThanhVien({ id, data })).unwrap();
-      return true;
+      await thanhVienService.capNhatThanhVien(id, data);
+      const ketQua = await dispatch(capNhatThanhVien({ id, data })).unwrap();
+      dispatch(datLaiThongBao('Cập nhật thành viên thành công'));
+      await layDanhSach(); // Tải lại danh sách sau khi cập nhật
+      return ketQua;
     } catch (error) {
+      dispatch(datLaiLoi(error.message));
       return false;
     }
-  }, [dispatch]);
+  }, [dispatch, layDanhSach]);
 
   const capNhatTrangThai = useCallback(async (id, trangThai) => {
     try {
-      await dispatch(capNhatTrangThaiThanhVien({ id, trangThai })).unwrap();
-      return true;
+      const ketQua = await dispatch(capNhatTrangThaiThanhVien({ id, trangThai })).unwrap();
+      dispatch(datLaiThongBao('Cập nhật trạng thái thành công'));
+      return ketQua;
     } catch (error) {
+      dispatch(datLaiLoi(error.message));
       return false;
     }
   }, [dispatch]);
 
   const xoa = useCallback(async (id) => {
     try {
-      await dispatch(xoaThanhVien(id)).unwrap();
-      return true;
+      const ketQua = await dispatch(xoaThanhVien(id)).unwrap();
+      dispatch(datLaiThongBao('Xóa thành viên thành công'));
+      return ketQua;
     } catch (error) {
+      dispatch(datLaiLoi(error.message));
       return false;
     }
   }, [dispatch]);
@@ -101,6 +112,32 @@ export const useThanhVien = () => {
     dispatch(datLaiLoi());
   }, [dispatch]);
 
+  const capNhatThongTin = useCallback(async (id, data) => {
+    try {
+      const ketQua = await capNhat(id, data);
+      if (ketQua) {
+        await layDanhSach();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      dispatch(datLaiLoi(error.message));
+      return false;
+    }
+  }, [capNhat, layDanhSach, dispatch]);
+
+  useEffect(() => {
+    if (loi) {
+      console.error('Lỗi:', loi);
+    }
+  }, [loi]);
+
+  useEffect(() => {
+    if (thongBao) {
+      console.log('Thông báo:', thongBao);
+    }
+  }, [thongBao]);
+
   return {
     danhSach,
     danhSachLoc,
@@ -108,9 +145,10 @@ export const useThanhVien = () => {
     loi,
     thongBao,
     boLoc,
-    layDanhSach, // Thêm hàm này vào return
+    layDanhSach,
     themMoi,
     capNhat,
+    capNhatThongTin, // Thêm hàm mới
     capNhatTrangThai,
     xoa,
     locDanhSach,

@@ -1,3 +1,4 @@
+// src/modules/quan_ly_chi_tiet/components/bao_cao_thong_ke.js
 import React from 'react';
 import {
   Box,
@@ -17,7 +18,7 @@ import {
 
 const BaoCaoThongKe = () => {
   return (
-    <Box p={4}>
+    <Box padding={4}>
       <VStack spacing={6} align="stretch">
         <Card>
           <CardHeader>
