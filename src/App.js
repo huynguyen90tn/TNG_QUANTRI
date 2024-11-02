@@ -1,5 +1,3 @@
-// Link file: src/App.js
-
 import React from 'react';
 import { ChakraProvider, Spinner, Center } from '@chakra-ui/react';
 import {
@@ -9,9 +7,12 @@ import {
   Navigate,
   useLocation
 } from 'react-router-dom';
+import { Provider } from 'react-redux';
+import store from './store';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import Layout from './components/layout/Layout';
 import theme from './styles/theme';
+import { ThanhVienRoutes } from './routes/thanh_vien_routes';
 
 // Pages
 import HomePage from './pages/HomePage';
@@ -505,6 +506,9 @@ const AppRoutes = () => {
         }
       />
 
+      {/* Thành Viên Routes */}
+      {ThanhVienRoutes()}
+
       {/* Fallback Route */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
@@ -513,13 +517,15 @@ const AppRoutes = () => {
 
 const App = () => {
   return (
-    <ChakraProvider theme={theme}>
-      <AuthProvider>
-        <Router>
-          <AppRoutes />
-        </Router>
-      </AuthProvider>
-    </ChakraProvider>
+    <Provider store={store}>
+      <ChakraProvider theme={theme}>
+        <AuthProvider>
+          <Router>
+            <AppRoutes />
+          </Router>
+        </AuthProvider>
+      </ChakraProvider>
+    </Provider>
   );
 };
 

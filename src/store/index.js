@@ -1,25 +1,39 @@
-// src/store/index.js
-import { configureStore } from "@reduxjs/toolkit";
-import projectReducer from "./slices/projectSlice";
-import authReducer from "./slices/authSlice";
-import themeReducer from "./slices/themeSlice";
-import attendanceReducer from "./slices/attendanceSlice";
-import nhiemVuReducer from '../modules/quan_ly_chi_tiet/store/nhiem_vu_slice';
-import tinhNangReducer from '../modules/quan_ly_chi_tiet/store/tinh_nang_slice';
+// Link file: src/store/index.js
+import { configureStore } from '@reduxjs/toolkit';
+import attendanceReducer from './slices/attendanceSlice';
+import authReducer from './slices/authSlice';
+import projectReducer from './slices/projectSlice';
+import themeReducer from './slices/themeSlice';
+import thanhVienReducer from '../modules/quan_ly_thanh_vien/store/thanh_vien_slice';
+
+const rootReducer = {
+  projects: projectReducer,
+  attendance: attendanceReducer,
+  auth: authReducer,
+  theme: themeReducer,
+  thanhVien: thanhVienReducer,
+};
 
 const store = configureStore({
-  reducer: {
-    projects: projectReducer,
-    auth: authReducer,
-    theme: themeReducer,
-    attendance: attendanceReducer,
-    nhiemVu: nhiemVuReducer,
-    tinhNang: tinhNangReducer
-  },
+  reducer: rootReducer,
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
-      serializableCheck: false,
+      serializableCheck: {
+        ignoredActions: [
+          'attendance/addAttendanceRecord',
+          'projects/fetchProjects/fulfilled',
+          'auth/loginSuccess',
+          'thanhVien/themThanhVien',
+        ],
+        ignoredPaths: [
+          'attendance.attendanceRecords.timestamp',
+          'projects.currentProject',
+          'auth.user',
+          'thanhVien.danhSach',
+        ],
+      },
     }),
+  devTools: process.env.NODE_ENV !== 'production',
 });
 
 export default store;

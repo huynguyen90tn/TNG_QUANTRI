@@ -33,7 +33,8 @@ import {
   FaTasks,
   FaChartLine,
   FaListAlt,
-  FaFileAlt, // Thêm FaFileAlt
+  FaFileAlt,
+  FaUserFriends, // Icon mới cho quản lý thành viên
 } from "react-icons/fa";
 import { useAuth } from "../../hooks/useAuth";
 import { getTasks } from "../../services/api/taskApi";
@@ -219,7 +220,7 @@ const AdminTongDashboard = () => {
         </SimpleGrid>
 
         {/* Các nút điều hướng nhanh */}
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 5 }} spacing={6} mb={8}>
+        <SimpleGrid columns={{ base: 1, md: 2, lg: 6 }} spacing={6} mb={8}>
           <QuickActionButton
             icon={<FaUserPlus />}
             label="Tạo tài khoản quản trị"
@@ -245,7 +246,13 @@ const AdminTongDashboard = () => {
             colorScheme="orange"
           />
           <QuickActionButton
-            icon={<FaFileAlt />} // Nút Báo cáo mới
+            icon={<FaUserFriends />}
+            label="Quản lý thành viên"
+            onClick={() => navigate("/quan-ly-thanh-vien")}
+            colorScheme="cyan"
+          />
+          <QuickActionButton
+            icon={<FaFileAlt />}
             label="Báo cáo"
             onClick={() => navigate("/bao-cao-ngay")}
             colorScheme="teal"

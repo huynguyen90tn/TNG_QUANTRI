@@ -1,3 +1,4 @@
+// Link file: src/store/slices/projectSlice.js
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import {
   getProjects,

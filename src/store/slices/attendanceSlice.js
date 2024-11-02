@@ -1,5 +1,5 @@
-// src/store/slices/attendanceSlice.js
-import { createSlice } from "@reduxjs/toolkit";
+// Link file: src/store/slices/attendanceSlice.js
+import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
   attendanceRecords: [],
@@ -8,7 +8,7 @@ const initialState = {
 };
 
 const attendanceSlice = createSlice({
-  name: "attendance",
+  name: 'attendance',
   initialState,
   reducers: {
     addAttendanceRecord: (state, action) => {
@@ -26,6 +26,5 @@ const attendanceSlice = createSlice({
   },
 });
 
-export const { addAttendanceRecord, setLoading, setError } =
-  attendanceSlice.actions;
+export const { addAttendanceRecord, setLoading, setError } = attendanceSlice.actions;
 export default attendanceSlice.reducer;
