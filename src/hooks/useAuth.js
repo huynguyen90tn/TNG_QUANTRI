@@ -1,4 +1,7 @@
 // File: src/hooks/use_auth.js
+// Link tham khảo: https://firebase.google.com/docs/auth
+// Link tham khảo: https://firebase.google.com/docs/firestore
+
 import React, { useState, useEffect, useContext, createContext } from 'react';
 import { auth, db } from '../services/firebase';
 import {
@@ -11,12 +14,25 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 const AuthContext = createContext();
 
+const mapUserData = (firebaseUser, userData) => ({
+  id: firebaseUser.uid,
+  email: firebaseUser.email,
+  displayName: userData.fullName || firebaseUser.displayName,
+  role: userData.role,
+  department: userData.department,
+  position: userData.position,
+  status: userData.status,
+  phoneNumber: userData.phoneNumber,
+  avatar: userData.avatar,
+  memberCode: userData.memberCode,
+  createdAt: userData.createdAt,
+  updatedAt: userData.updatedAt,
+});
+
 export const AuthProvider = ({ children }) => {
-  const auth = useProvideAuth();
+  const authContextValue = useProvideAuth();
   return (
-    <AuthContext.Provider value={auth}>
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={authContextValue}>{children}</AuthContext.Provider>
   );
 };
 
@@ -39,14 +55,7 @@ function useProvideAuth() {
           const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
           if (userDoc.exists()) {
             const userData = userDoc.data();
-            setUser({
-              ...firebaseUser,
-              role: userData.role,
-              department: userData.department,
-              fullName: userData.fullName,
-              position: userData.position,
-              status: userData.status,
-            });
+            setUser(mapUserData(firebaseUser, userData));
           } else {
             console.error('Không tìm thấy dữ liệu người dùng trong Firestore');
             setUser(null);
@@ -70,20 +79,13 @@ function useProvideAuth() {
       setLoading(true);
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
-      
+
       if (!userDoc.exists()) {
         throw new Error('Không tìm thấy dữ liệu người dùng trong Firestore');
       }
 
       const userData = userDoc.data();
-      const userWithRole = {
-        ...userCredential.user,
-        role: userData.role,
-        department: userData.department,
-        fullName: userData.fullName,
-        position: userData.position,
-        status: userData.status,
-      };
+      const userWithRole = mapUserData(userCredential.user, userData);
 
       setUser(userWithRole);
       return userWithRole;
@@ -121,16 +123,16 @@ function useProvideAuth() {
         fullName: userData.fullName,
         position: userData.position,
         status: 'active',
+        phoneNumber: userData.phoneNumber || '',
+        avatar: userData.avatar || '',
+        memberCode: userData.memberCode || '',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
 
       await setDoc(doc(db, 'users', newUser.uid), userDataToSave);
 
-      const userWithRole = {
-        ...newUser,
-        ...userDataToSave,
-      };
+      const userWithRole = mapUserData(newUser, userDataToSave);
 
       setUser(userWithRole);
       return userWithRole;
@@ -151,4 +153,4 @@ function useProvideAuth() {
   };
 }
 
-export default useAuth;
+export default useProvideAuth;

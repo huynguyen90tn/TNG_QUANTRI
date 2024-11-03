@@ -1,6 +1,8 @@
-// src/modules/quan_ly_nghi_phep/components/chi_tiet_don_nghi_phep.js
+// File: src/modules/quan_ly_nghi_phep/components/chi_tiet_don_nghi_phep.js
+// Link tham khảo: https://chakra-ui.com/docs/components/modal
+// Link tham khảo về xử lý form: https://chakra-ui.com/docs/components/form-control
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Modal,
   ModalOverlay,
@@ -17,88 +19,127 @@ import {
   Textarea,
   useToast,
   Divider,
+  FormControl,
+  FormLabel,
 } from '@chakra-ui/react';
 import { useAuth } from '../../../hooks/useAuth';
-import { nghiPhepService } from '../services/nghi_phep_service';
+import nghiPhepService from '../services/nghi_phep_service';
 import {
   TRANG_THAI_LABEL,
   TRANG_THAI_COLOR,
-  LOAI_NGHI_PHEP_LABEL
+  LOAI_NGHI_PHEP_LABEL,
+  HANH_DONG,
 } from '../constants/trang_thai_don';
 
-const ChiTietDonNghiPhep = ({
-  isOpen,
-  onClose,
-  donNghiPhep,
-  onUpdateStatus
-}) => {
+const ChiTietDonNghiPhep = ({ isOpen, onClose, donNghiPhep, onUpdateStatus }) => {
   const { user } = useAuth();
   const toast = useToast();
   const [approverNote, setApproverNote] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
   const isAdminTong = user?.role === 'admin-tong';
-  const canApprove = isAdminTong && donNghiPhep.status === 'CHO_DUYET';
-  const canCancel = donNghiPhep.userId === user?.id && donNghiPhep.status === 'CHO_DUYET';
+  const canApprove = isAdminTong && donNghiPhep?.status === 'CHO_DUYET';
+  const canCancel =
+    donNghiPhep?.userId === user?.id && donNghiPhep?.status === 'CHO_DUYET';
 
-  const handleUpdateStatus = async (newStatus) => {
-    try {
-      setIsProcessing(true);
-
-      const result = await nghiPhepService.capNhatTrangThai(donNghiPhep.id, {
-        status: newStatus,
-        approverNote,
-        approverId: user.id,
-        approverName: user.displayName
-      });
-
-      if (onUpdateStatus) {
-        onUpdateStatus(result);
-      }
-
-      toast({
-        title: 'Cập nhật thành công',
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      });
-
-      onClose();
-    } catch (error) {
-      toast({
-        title: 'Lỗi',
-        description: error.message,
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
-    } finally {
+  useEffect(() => {
+    if (!isOpen) {
+      setApproverNote('');
       setIsProcessing(false);
     }
-  };
+  }, [isOpen]);
 
-  const handleCancel = async () => {
+  const validateUpdateData = useCallback(() => {
+    if (!user?.id || !user?.displayName || !user?.role || !user?.department) {
+      throw new Error('Thiếu thông tin người phê duyệt');
+    }
+    if (!donNghiPhep?.id) {
+      throw new Error('Thiếu thông tin đơn nghỉ phép');
+    }
+  }, [user, donNghiPhep]);
+
+  const handleUpdateStatus = useCallback(
+    async (newStatus) => {
+      try {
+        validateUpdateData();
+        setIsProcessing(true);
+
+        const updateData = {
+          status: newStatus,
+          approverNote: approverNote.trim(),
+          approverId: user.id,
+          approverName: user.displayName,
+          approverRole: user.role,
+          approverEmail: user.email,
+          approverDepartment: user.department,
+          action: newStatus === 'DA_DUYET' ? HANH_DONG.PHE_DUYET : HANH_DONG.TU_CHOI,
+        };
+
+        console.log('Thông tin cập nhật:', updateData);
+
+        const result = await nghiPhepService.capNhatTrangThai(donNghiPhep.id, updateData);
+
+        if (result) {
+          if (onUpdateStatus) {
+            onUpdateStatus(result);
+          }
+
+          toast({
+            title: 'Cập nhật thành công',
+            description: `Đã ${
+              newStatus === 'DA_DUYET' ? 'phê duyệt' : 'từ chối'
+            } đơn nghỉ phép`,
+            status: 'success',
+            duration: 3000,
+            isClosable: true,
+          });
+
+          onClose();
+        }
+      } catch (error) {
+        console.error('Lỗi khi cập nhật:', error);
+        toast({
+          title: 'Lỗi',
+          description: error.message || 'Không thể cập nhật trạng thái đơn',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+      } finally {
+        setIsProcessing(false);
+      }
+    },
+    [validateUpdateData, approverNote, user, donNghiPhep, onUpdateStatus, toast, onClose],
+  );
+
+  const handleCancel = useCallback(async () => {
     try {
+      if (!donNghiPhep?.id) {
+        throw new Error('Thiếu thông tin đơn nghỉ phép');
+      }
       setIsProcessing(true);
 
       const result = await nghiPhepService.huyDon(donNghiPhep.id);
 
-      if (onUpdateStatus) {
-        onUpdateStatus(result);
+      if (result) {
+        if (onUpdateStatus) {
+          onUpdateStatus(result);
+        }
+
+        toast({
+          title: 'Hủy đơn thành công',
+          status: 'info',
+          duration: 3000,
+          isClosable: true,
+        });
+
+        onClose();
       }
-
-      toast({
-        title: 'Hủy đơn thành công',
-        status: 'info',
-        duration: 3000,
-        isClosable: true,
-      });
-
-      onClose();
     } catch (error) {
+      console.error('Lỗi khi hủy đơn:', error);
       toast({
         title: 'Lỗi',
-        description: error.message,
+        description: error.message || 'Không thể hủy đơn',
         status: 'error',
         duration: 3000,
         isClosable: true,
@@ -106,7 +147,9 @@ const ChiTietDonNghiPhep = ({
     } finally {
       setIsProcessing(false);
     }
-  };
+  }, [donNghiPhep, onUpdateStatus, toast, onClose]);
+
+  if (!donNghiPhep) return null;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
@@ -114,7 +157,6 @@ const ChiTietDonNghiPhep = ({
       <ModalContent>
         <ModalHeader>Chi tiết đơn xin nghỉ phép</ModalHeader>
         <ModalCloseButton />
-
         <ModalBody>
           <VStack spacing={4} align="stretch">
             <HStack justify="space-between">
@@ -142,39 +184,47 @@ const ChiTietDonNghiPhep = ({
 
             <VStack align="flex-start" spacing={2}>
               <Text fontWeight="bold">Chi tiết đơn xin nghỉ:</Text>
-              <Text>Loại nghỉ phép: {LOAI_NGHI_PHEP_LABEL[donNghiPhep.leaveType]}</Text>
               <Text>
-                Thời gian: Từ {new Date(donNghiPhep.startDate).toLocaleDateString('vi-VN')}
-                {' '}đến {new Date(donNghiPhep.endDate).toLocaleDateString('vi-VN')}
+                Loại nghỉ phép: {LOAI_NGHI_PHEP_LABEL[donNghiPhep.leaveType]}
+              </Text>
+              <Text>
+                Thời gian: Từ{' '}
+                {new Date(donNghiPhep.startDate).toLocaleDateString('vi-VN')} đến{' '}
+                {new Date(donNghiPhep.endDate).toLocaleDateString('vi-VN')}
               </Text>
               <Text>Số ngày nghỉ: {donNghiPhep.totalDays} ngày</Text>
               <Text>Lý do: {donNghiPhep.reason}</Text>
             </VStack>
 
             {donNghiPhep.status !== 'CHO_DUYET' && (
-              <VStack align="flex-start" spacing={2}>
-                <Text fontWeight="bold">Thông tin phê duyệt:</Text>
-                <Text>Người phê duyệt: {donNghiPhep.approverName}</Text>
-                <Text>
-                  Thời gian phê duyệt:{' '}
-                  {donNghiPhep.approvedAt?.toLocaleDateString('vi-VN')}
-                </Text>
-                {donNghiPhep.approverNote && (
-                  <Text>Ghi chú: {donNghiPhep.approverNote}</Text>
-                )}
-              </VStack>
+              <>
+                <Divider />
+                <VStack align="flex-start" spacing={2}>
+                  <Text fontWeight="bold">Thông tin phê duyệt:</Text>
+                  <Text>Người phê duyệt: {donNghiPhep.approverName}</Text>
+                  <Text>
+                    Thời gian phê duyệt:{' '}
+                    {donNghiPhep.approvedAt
+                      ? new Date(donNghiPhep.approvedAt).toLocaleDateString('vi-VN')
+                      : ''}
+                  </Text>
+                  {donNghiPhep.approverNote && (
+                    <Text>Ghi chú: {donNghiPhep.approverNote}</Text>
+                  )}
+                </VStack>
+              </>
             )}
 
-{canApprove && (
-              <VStack align="stretch" spacing={2}>
-                <Text fontWeight="bold">Ghi chú phê duyệt:</Text>
+            {canApprove && (
+              <FormControl>
+                <FormLabel>Ghi chú phê duyệt:</FormLabel>
                 <Textarea
                   value={approverNote}
                   onChange={(e) => setApproverNote(e.target.value)}
                   placeholder="Nhập ghi chú phê duyệt (nếu có)"
                   rows={3}
                 />
-              </VStack>
+              </FormControl>
             )}
           </VStack>
         </ModalBody>
@@ -201,7 +251,7 @@ const ChiTietDonNghiPhep = ({
                 </Button>
               </>
             )}
-            
+
             {canCancel && (
               <Button
                 colorScheme="gray"
@@ -212,7 +262,7 @@ const ChiTietDonNghiPhep = ({
                 Hủy đơn
               </Button>
             )}
-            
+
             <Button variant="ghost" onClick={onClose}>
               Đóng
             </Button>
