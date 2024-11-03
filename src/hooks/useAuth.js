@@ -1,4 +1,4 @@
-// src/hooks/use_auth.js
+// File: src/hooks/use_auth.js
 import React, { useState, useEffect, useContext, createContext } from 'react';
 import { auth, db } from '../services/firebase';
 import {
@@ -12,14 +12,20 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const authContext = useProvideAuth();
+  const auth = useProvideAuth();
   return (
-    <AuthContext.Provider value={authContext}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={auth}>
+      {children}
+    </AuthContext.Provider>
   );
 };
 
 export const useAuth = () => {
-  return useContext(AuthContext);
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth phải được sử dụng trong AuthProvider');
+  }
+  return context;
 };
 
 function useProvideAuth() {
@@ -28,8 +34,8 @@ function useProvideAuth() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        try {
+      try {
+        if (firebaseUser) {
           const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
           if (userDoc.exists()) {
             const userData = userDoc.data();
@@ -45,14 +51,15 @@ function useProvideAuth() {
             console.error('Không tìm thấy dữ liệu người dùng trong Firestore');
             setUser(null);
           }
-        } catch (error) {
-          console.error('Lỗi khi lấy dữ liệu người dùng:', error);
+        } else {
           setUser(null);
         }
-      } else {
+      } catch (error) {
+        console.error('Lỗi khi lấy dữ liệu người dùng:', error);
         setUser(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -64,21 +71,22 @@ function useProvideAuth() {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
       
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        const userWithRole = {
-          ...userCredential.user,
-          role: userData.role,
-          department: userData.department,
-          fullName: userData.fullName,
-          position: userData.position,
-          status: userData.status,
-        };
-        setUser(userWithRole);
-        return userWithRole;
-      } else {
+      if (!userDoc.exists()) {
         throw new Error('Không tìm thấy dữ liệu người dùng trong Firestore');
       }
+
+      const userData = userDoc.data();
+      const userWithRole = {
+        ...userCredential.user,
+        role: userData.role,
+        department: userData.department,
+        fullName: userData.fullName,
+        position: userData.position,
+        status: userData.status,
+      };
+
+      setUser(userWithRole);
+      return userWithRole;
     } catch (error) {
       console.error('Lỗi đăng nhập:', error);
       throw error;
@@ -88,8 +96,8 @@ function useProvideAuth() {
   };
 
   const logout = async () => {
-    setLoading(true);
     try {
+      setLoading(true);
       await signOut(auth);
       setUser(null);
     } catch (error) {
@@ -106,7 +114,7 @@ function useProvideAuth() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const newUser = userCredential.user;
 
-      await setDoc(doc(db, 'users', newUser.uid), {
+      const userDataToSave = {
         email: newUser.email,
         role: userData.role,
         department: userData.department,
@@ -115,13 +123,15 @@ function useProvideAuth() {
         status: 'active',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-      });
+      };
+
+      await setDoc(doc(db, 'users', newUser.uid), userDataToSave);
 
       const userWithRole = {
         ...newUser,
-        ...userData,
-        status: 'active',
+        ...userDataToSave,
       };
+
       setUser(userWithRole);
       return userWithRole;
     } catch (error) {

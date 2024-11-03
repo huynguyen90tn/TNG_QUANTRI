@@ -1,4 +1,4 @@
-// src/pages/dashboard/MemberDashboard.js
+// File: src/pages/dashboard/MemberDashboard.js
 import React, { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -36,6 +36,7 @@ import {
   FaCog,
   FaLock,
   FaUsers,
+  FaCalendarAlt, // Icon cho nghỉ phép
 } from "react-icons/fa";
 import { useAuth } from "../../hooks/useAuth";
 import AttendanceForm from "../../components/attendance/AttendanceForm";
@@ -110,7 +111,7 @@ const MemberDashboard = () => {
       icon: FaChartBar,
       label: "Báo cáo",
       path: "/bao-cao-ngay",
-      colorScheme: "teal",
+      colorScheme: "teal", 
     },
     {
       icon: FaUsers,
@@ -118,6 +119,12 @@ const MemberDashboard = () => {
       path: "/quan-ly-thanh-vien",
       colorScheme: "cyan",
     },
+    {
+      icon: FaCalendarAlt,
+      label: "Quản lý nghỉ phép",
+      path: "/quan-ly-nghi-phep",
+      colorScheme: "pink",
+    }
   ];
 
   return (

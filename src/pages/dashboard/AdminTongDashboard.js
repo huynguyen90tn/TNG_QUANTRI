@@ -1,4 +1,4 @@
-// src/pages/dashboard/AdminTongDashboard.js
+// File: src/pages/dashboard/AdminTongDashboard.js
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -34,7 +34,8 @@ import {
   FaChartLine,
   FaListAlt,
   FaFileAlt,
-  FaUserFriends, // Icon mới cho quản lý thành viên
+  FaUserFriends,
+  FaCalendarAlt, // Icon cho nghỉ phép
 } from "react-icons/fa";
 import { useAuth } from "../../hooks/useAuth";
 import { getTasks } from "../../services/api/taskApi";
@@ -81,7 +82,7 @@ const AdminTongDashboard = () => {
     } catch (error) {
       toast({
         title: "Lỗi tải dữ liệu",
-        description: error.message,
+        description: error.message || "Không thể tải dữ liệu dashboard",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -102,7 +103,7 @@ const AdminTongDashboard = () => {
     } catch (error) {
       toast({
         title: "Lỗi đăng xuất",
-        description: error.message,
+        description: error.message || "Không thể đăng xuất",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -152,6 +153,52 @@ const AdminTongDashboard = () => {
       {label}
     </Button>
   );
+
+  // Danh sách các nút điều hướng nhanh
+  const quickActions = [
+    {
+      icon: <FaUserPlus />,
+      label: "Tạo tài khoản quản trị",
+      path: "/tao-quan-tri",
+      colorScheme: "blue",
+    },
+    {
+      icon: <FaCalendarCheck />,
+      label: "Quản lý điểm danh",
+      path: "/admin-tong/diem-danh",
+      colorScheme: "green",
+    },
+    {
+      icon: <FaProjectDiagram />,
+      label: "Quản lý dự án",
+      path: "/quan-ly-du-an",
+      colorScheme: "purple",
+    },
+    {
+      icon: <FaListAlt />,
+      label: "Quản lý nhiệm vụ",
+      path: "/quan-ly-nhiem-vu",
+      colorScheme: "orange",
+    },
+    {
+      icon: <FaUserFriends />,
+      label: "Quản lý thành viên",
+      path: "/quan-ly-thanh-vien",
+      colorScheme: "cyan",
+    },
+    {
+      icon: <FaFileAlt />,
+      label: "Báo cáo",
+      path: "/bao-cao-ngay",
+      colorScheme: "teal",
+    },
+    {
+      icon: <FaCalendarAlt />,
+      label: "Quản lý nghỉ phép",
+      path: "/quan-ly-nghi-phep",
+      colorScheme: "pink",
+    },
+  ];
 
   return (
     <Container maxW="1600px" p={4}>
@@ -220,43 +267,16 @@ const AdminTongDashboard = () => {
         </SimpleGrid>
 
         {/* Các nút điều hướng nhanh */}
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 6 }} spacing={6} mb={8}>
-          <QuickActionButton
-            icon={<FaUserPlus />}
-            label="Tạo tài khoản quản trị"
-            onClick={() => navigate("/tao-quan-tri")}
-            colorScheme="blue"
-          />
-          <QuickActionButton
-            icon={<FaCalendarCheck />}
-            label="Quản lý điểm danh"
-            onClick={() => navigate("/admin-tong/diem-danh")}
-            colorScheme="green"
-          />
-          <QuickActionButton
-            icon={<FaProjectDiagram />}
-            label="Quản lý dự án"
-            onClick={() => navigate("/quan-ly-du-an")}
-            colorScheme="purple"
-          />
-          <QuickActionButton
-            icon={<FaListAlt />}
-            label="Quản lý nhiệm vụ"
-            onClick={() => navigate("/quan-ly-nhiem-vu")}
-            colorScheme="orange"
-          />
-          <QuickActionButton
-            icon={<FaUserFriends />}
-            label="Quản lý thành viên"
-            onClick={() => navigate("/quan-ly-thanh-vien")}
-            colorScheme="cyan"
-          />
-          <QuickActionButton
-            icon={<FaFileAlt />}
-            label="Báo cáo"
-            onClick={() => navigate("/bao-cao-ngay")}
-            colorScheme="teal"
-          />
+        <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={6} mb={8}>
+          {quickActions.map((action, index) => (
+            <QuickActionButton
+              key={index}
+              icon={action.icon}
+              label={action.label}
+              onClick={() => navigate(action.path)}
+              colorScheme={action.colorScheme}
+            />
+          ))}
         </SimpleGrid>
       </Box>
     </Container>

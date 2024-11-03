@@ -1,3 +1,4 @@
+// File: src/App.js
 import React from 'react';
 import { ChakraProvider, Spinner, Center } from '@chakra-ui/react';
 import {
@@ -66,9 +67,32 @@ import ChiTietThongKe from './modules/quan_ly_chi_tiet/components/chi_tiet_thong
 import BieuDoThongKe from './modules/quan_ly_chi_tiet/components/bieu_do_thong_ke';
 import BaoCaoThongKe from './modules/quan_ly_chi_tiet/components/bao_cao_thong_ke';
 
+// Quản lý nghỉ phép Components
+import QuanLyNghiPhepPage from './modules/quan_ly_nghi_phep/pages/quan_ly_nghi_phep_page';
+import ChiTietDonNghiPhep from './modules/quan_ly_nghi_phep/components/chi_tiet_don_nghi_phep';
+import FormTaoDonNghiPhep from './modules/quan_ly_nghi_phep/components/form_tao_don_nghi_phep';
+import DanhSachDonNghiPhep from './modules/quan_ly_nghi_phep/components/danh_sach_don_nghi_phep';// File: src/App.js (tiếp theo)
+
+// Constants
+const ROLES = {
+  ADMIN_TONG: 'admin-tong',
+  ADMIN_CON: 'admin-con',
+  MEMBER: 'member'
+};
+
+const SHARED_ROLES = [ROLES.ADMIN_TONG, ROLES.ADMIN_CON, ROLES.MEMBER];
+const ADMIN_ROLES = [ROLES.ADMIN_TONG, ROLES.ADMIN_CON];
+const MEMBER_ONLY = [ROLES.MEMBER];
+
 const LoadingSpinner = () => (
   <Center h="100vh">
-    <Spinner size="xl" />
+    <Spinner 
+      size="xl" 
+      thickness="4px"
+      speed="0.65s"
+      emptyColor="gray.200"
+      color="blue.500"
+    />
   </Center>
 );
 
@@ -80,11 +104,28 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     return <LoadingSpinner />;
   }
 
-  if (!user || (requiredRole && !requiredRole.includes(user.role))) {
+  if (!user) {
     return <Navigate to="/" state={{ from: location }} replace />;
   }
 
+  if (requiredRole && !requiredRole.includes(user.role)) {
+    return (
+      <Navigate 
+        to="/" 
+        state={{ 
+          from: location,
+          message: 'Không có quyền truy cập chức năng này'
+        }} 
+        replace 
+      />
+    );
+  }
+
   return children;
+};
+
+ProtectedRoute.defaultProps = {
+  requiredRole: SHARED_ROLES
 };
 
 const AppRoutes = () => {
@@ -103,7 +144,7 @@ const AppRoutes = () => {
       <Route
         path="/admin-tong"
         element={
-          <ProtectedRoute requiredRole={['admin-tong']}>
+          <ProtectedRoute requiredRole={[ROLES.ADMIN_TONG]}>
             <Layout>
               <AdminTongDashboard />
             </Layout>
@@ -114,9 +155,9 @@ const AppRoutes = () => {
       <Route
         path="/admin-tong/diem-danh"
         element={
-          <ProtectedRoute requiredRole={['admin-tong']}>
+          <ProtectedRoute requiredRole={[ROLES.ADMIN_TONG]}>
             <Layout>
-              <AttendanceTable userRole="admin-tong" />
+              <AttendanceTable userRole={ROLES.ADMIN_TONG} />
             </Layout>
           </ProtectedRoute>
         }
@@ -125,19 +166,17 @@ const AppRoutes = () => {
       <Route
         path="/tao-quan-tri"
         element={
-          <ProtectedRoute requiredRole={['admin-tong']}>
+          <ProtectedRoute requiredRole={[ROLES.ADMIN_TONG]}>
             <Layout>
               <TaoTaiKhoanQuanTri />
             </Layout>
           </ProtectedRoute>
         }
-      />
-
-      {/* Admin Con Routes */}
+      />{/* Admin Con Routes */}
       <Route
         path="/admin-con"
         element={
-          <ProtectedRoute requiredRole={['admin-con']}>
+          <ProtectedRoute requiredRole={[ROLES.ADMIN_CON]}>
             <Layout>
               <AdminConDashboard />
             </Layout>
@@ -148,9 +187,9 @@ const AppRoutes = () => {
       <Route
         path="/admin-con/diem-danh"
         element={
-          <ProtectedRoute requiredRole={['admin-con']}>
+          <ProtectedRoute requiredRole={[ROLES.ADMIN_CON]}>
             <Layout>
-              <AttendanceTable userRole="admin-con" />
+              <AttendanceTable userRole={ROLES.ADMIN_CON} />
             </Layout>
           </ProtectedRoute>
         }
@@ -159,7 +198,7 @@ const AppRoutes = () => {
       <Route
         path="/admin-con/tao-thanh-vien"
         element={
-          <ProtectedRoute requiredRole={['admin-con']}>
+          <ProtectedRoute requiredRole={[ROLES.ADMIN_CON]}>
             <Layout>
               <TaoTaiKhoanThanhVien />
             </Layout>
@@ -171,7 +210,7 @@ const AppRoutes = () => {
       <Route
         path="/member"
         element={
-          <ProtectedRoute requiredRole={['member']}>
+          <ProtectedRoute requiredRole={[ROLES.MEMBER]}>
             <Layout>
               <MemberDashboard />
             </Layout>
@@ -182,7 +221,7 @@ const AppRoutes = () => {
       <Route
         path="/member/diem-danh"
         element={
-          <ProtectedRoute requiredRole={['member']}>
+          <ProtectedRoute requiredRole={[ROLES.MEMBER]}>
             <Layout>
               <AttendanceForm />
             </Layout>
@@ -193,9 +232,9 @@ const AppRoutes = () => {
       <Route
         path="/member/lich-su-diem-danh"
         element={
-          <ProtectedRoute requiredRole={['member']}>
+          <ProtectedRoute requiredRole={[ROLES.MEMBER]}>
             <Layout>
-              <AttendanceTable userRole="member" />
+              <AttendanceTable userRole={ROLES.MEMBER} />
             </Layout>
           </ProtectedRoute>
         }
@@ -205,7 +244,7 @@ const AppRoutes = () => {
       <Route
         path="/quan-ly-du-an"
         element={
-          <ProtectedRoute requiredRole={['admin-tong', 'admin-con', 'member']}>
+          <ProtectedRoute requiredRole={SHARED_ROLES}>
             <Layout>
               <ProjectManagement />
             </Layout>
@@ -213,11 +252,10 @@ const AppRoutes = () => {
         }
       />
 
-      {/* Task Management Routes */}
       <Route
         path="/quan-ly-nhiem-vu"
         element={
-          <ProtectedRoute requiredRole={['admin-tong', 'admin-con', 'member']}>
+          <ProtectedRoute requiredRole={SHARED_ROLES}>
             <Layout>
               <TaskListPage />
             </Layout>
@@ -228,7 +266,7 @@ const AppRoutes = () => {
       <Route
         path="/quan-ly-du-an/:projectId/nhiem-vu"
         element={
-          <ProtectedRoute requiredRole={['admin-tong', 'admin-con', 'member']}>
+          <ProtectedRoute requiredRole={SHARED_ROLES}>
             <Layout>
               <TaskManagementPage />
             </Layout>
@@ -239,9 +277,54 @@ const AppRoutes = () => {
       <Route
         path="/quan-ly-nhiem-vu/:taskId"
         element={
-          <ProtectedRoute requiredRole={['admin-tong', 'admin-con', 'member']}>
+          <ProtectedRoute requiredRole={SHARED_ROLES}>
             <Layout>
               <TaskManagementPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Quản lý nghỉ phép Routes */}
+      <Route
+        path="/quan-ly-nghi-phep"
+        element={
+          <ProtectedRoute requiredRole={SHARED_ROLES}>
+            <Layout>
+              <QuanLyNghiPhepPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/quan-ly-nghi-phep/danh-sach"
+        element={
+          <ProtectedRoute requiredRole={SHARED_ROLES}>
+            <Layout>
+              <DanhSachDonNghiPhep />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/quan-ly-nghi-phep/tao-don"
+        element={
+          <ProtectedRoute requiredRole={[ROLES.MEMBER]}>
+            <Layout>
+              <FormTaoDonNghiPhep />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/quan-ly-nghi-phep/:id"
+        element={
+          <ProtectedRoute requiredRole={SHARED_ROLES}>
+            <Layout>
+              <ChiTietDonNghiPhep />
             </Layout>
           </ProtectedRoute>
         }
@@ -251,76 +334,9 @@ const AppRoutes = () => {
       <Route
         path="/quan-ly-chi-tiet"
         element={
-          <ProtectedRoute requiredRole={['admin-tong', 'admin-con', 'member']}>
+          <ProtectedRoute requiredRole={SHARED_ROLES}>
             <Layout>
               <QuanLyChiTietPage />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      {/* Tính năng Routes */}
-      <Route
-        path="/quan-ly-chi-tiet/nhiem-vu/:nhiemVuId/tinh-nang"
-        element={
-          <ProtectedRoute requiredRole={['admin-tong', 'admin-con', 'member']}>
-            <Layout>
-              <BangTinhNang />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/quan-ly-chi-tiet/du-an/:duAnId"
-        element={
-          <ProtectedRoute requiredRole={['admin-tong', 'admin-con', 'member']}>
-            <Layout>
-              <ChiTietDuAn />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/quan-ly-chi-tiet/nhiem-vu/:nhiemVuId"
-        element={
-          <ProtectedRoute requiredRole={['admin-tong', 'admin-con', 'member']}>
-            <Layout>
-              <ChiTietNhiemVu />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/quan-ly-chi-tiet/tinh-nang/:tinhNangId"
-        element={
-          <ProtectedRoute requiredRole={['admin-tong', 'admin-con', 'member']}>
-            <Layout>
-              <ChiTietTinhNang />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/quan-ly-chi-tiet/tong-hop/:nhiemVuId"
-        element={
-          <ProtectedRoute requiredRole={['admin-tong', 'admin-con', 'member']}>
-            <Layout>
-              <BangTongHop />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/quan-ly-chi-tiet/tien-do/:nhiemVuId"
-        element={
-          <ProtectedRoute requiredRole={['admin-tong', 'admin-con', 'member']}>
-            <Layout>
-              <BieuDoTienDo />
             </Layout>
           </ProtectedRoute>
         }
@@ -330,7 +346,7 @@ const AppRoutes = () => {
       <Route
         path="/quan-ly-chi-tiet/backend"
         element={
-          <ProtectedRoute requiredRole={['admin-tong', 'admin-con', 'member']}>
+          <ProtectedRoute requiredRole={SHARED_ROLES}>
             <Layout>
               <BangBackend />
             </Layout>
@@ -341,7 +357,7 @@ const AppRoutes = () => {
       <Route
         path="/quan-ly-chi-tiet/backend/:backendId"
         element={
-          <ProtectedRoute requiredRole={['admin-tong', 'admin-con', 'member']}>
+          <ProtectedRoute requiredRole={SHARED_ROLES}>
             <Layout>
               <ChiTietBackend />
             </Layout>
@@ -352,7 +368,7 @@ const AppRoutes = () => {
       <Route
         path="/quan-ly-chi-tiet/backend/them-moi"
         element={
-          <ProtectedRoute requiredRole={['admin-tong', 'admin-con', 'member']}>
+          <ProtectedRoute requiredRole={SHARED_ROLES}>
             <Layout>
               <ThemBackend />
             </Layout>
@@ -363,19 +379,17 @@ const AppRoutes = () => {
       <Route
         path="/quan-ly-chi-tiet/backend/chinh-sua/:backendId"
         element={
-          <ProtectedRoute requiredRole={['admin-tong', 'admin-con', 'member']}>
+          <ProtectedRoute requiredRole={SHARED_ROLES}>
             <Layout>
               <ChinhSuaBackend />
             </Layout>
           </ProtectedRoute>
         }
-      />
-
-      {/* Kiểm thử Routes */}
+      />{/* Kiểm thử Routes */}
       <Route
         path="/quan-ly-chi-tiet/kiem-thu"
         element={
-          <ProtectedRoute requiredRole={['admin-tong', 'admin-con', 'member']}>
+          <ProtectedRoute requiredRole={SHARED_ROLES}>
             <Layout>
               <BangKiemThu />
             </Layout>
@@ -386,7 +400,7 @@ const AppRoutes = () => {
       <Route
         path="/quan-ly-chi-tiet/kiem-thu/:kiemThuId"
         element={
-          <ProtectedRoute requiredRole={['admin-tong', 'admin-con', 'member']}>
+          <ProtectedRoute requiredRole={SHARED_ROLES}>
             <Layout>
               <ChiTietKiemThu />
             </Layout>
@@ -397,7 +411,7 @@ const AppRoutes = () => {
       <Route
         path="/quan-ly-chi-tiet/kiem-thu/them-moi"
         element={
-          <ProtectedRoute requiredRole={['admin-tong', 'admin-con', 'member']}>
+          <ProtectedRoute requiredRole={SHARED_ROLES}>
             <Layout>
               <ThemKiemThu />
             </Layout>
@@ -408,7 +422,7 @@ const AppRoutes = () => {
       <Route
         path="/quan-ly-chi-tiet/kiem-thu/chinh-sua/:kiemThuId"
         element={
-          <ProtectedRoute requiredRole={['admin-tong', 'admin-con', 'member']}>
+          <ProtectedRoute requiredRole={SHARED_ROLES}>
             <Layout>
               <ChinhSuaKiemThu />
             </Layout>
@@ -420,7 +434,7 @@ const AppRoutes = () => {
       <Route
         path="/quan-ly-chi-tiet/thong-ke"
         element={
-          <ProtectedRoute requiredRole={['admin-tong', 'admin-con', 'member']}>
+          <ProtectedRoute requiredRole={SHARED_ROLES}>
             <Layout>
               <BangThongKe />
             </Layout>
@@ -428,44 +442,11 @@ const AppRoutes = () => {
         }
       />
 
-      <Route
-        path="/quan-ly-chi-tiet/thong-ke/:thongKeId"
-        element={
-          <ProtectedRoute requiredRole={['admin-tong', 'admin-con', 'member']}>
-            <Layout>
-              <ChiTietThongKe />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/quan-ly-chi-tiet/thong-ke/bieu-do"
-        element={
-          <ProtectedRoute requiredRole={['admin-tong', 'admin-con', 'member']}>
-            <Layout>
-              <BieuDoThongKe />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/quan-ly-chi-tiet/thong-ke/bao-cao"
-        element={
-          <ProtectedRoute requiredRole={['admin-tong', 'admin-con', 'member']}>
-            <Layout>
-              <BaoCaoThongKe />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      {/* Báo Cáo Routes */}
+      {/* Báo cáo Routes */}
       <Route
         path="/bao-cao-ngay"
         element={
-          <ProtectedRoute requiredRole={['admin-tong', 'admin-con', 'member']}>
+          <ProtectedRoute requiredRole={SHARED_ROLES}>
             <Layout>
               <BaoCaoNgay />
             </Layout>
@@ -476,7 +457,7 @@ const AppRoutes = () => {
       <Route
         path="/bao-cao-ngay/:reportId"
         element={
-          <ProtectedRoute requiredRole={['admin-tong', 'admin-con', 'member']}>
+          <ProtectedRoute requiredRole={SHARED_ROLES}>
             <Layout>
               <ChiTietBaoCao />
             </Layout>
@@ -484,38 +465,14 @@ const AppRoutes = () => {
         }
       />
 
-      <Route
-        path="/quan-ly-du-an/:projectId/bao-cao"
-        element={
-          <ProtectedRoute requiredRole={['admin-tong', 'admin-con', 'member']}>
-            <Layout>
-              <BaoCaoTheoDuAn />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/quan-ly-nhiem-vu/:taskId/bao-cao"
-        element={
-          <ProtectedRoute requiredRole={['admin-tong', 'admin-con', 'member']}>
-            <Layout>
-              <BaoCaoTheoNhiemVu />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      {/* Thành Viên Routes */}
+      {/* Import routes từ các modules khác */}
       {ThanhVienRoutes()}
 
       {/* Fallback Route */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
-};
-
-const App = () => {
+};const App = () => {
   return (
     <Provider store={store}>
       <ChakraProvider theme={theme}>
