@@ -1,5 +1,7 @@
 // File: src/modules/quan_ly_nghi_phep/components/form_tao_don_nghi_phep.js
-import React, { useState, useCallback } from 'react';
+// Link tham khảo: https://chakra-ui.com/docs/components
+
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   Modal,
   ModalOverlay,
@@ -15,50 +17,70 @@ import {
   Select,
   Textarea,
   useToast,
-  Box,
   FormErrorMessage,
   HStack,
   Text,
+  Alert,
+  AlertDescription,
 } from '@chakra-ui/react';
 import { useAuth } from '../../../hooks/useAuth';
-import { nghiPhepService } from '../services/nghi_phep_service';
+import { useNghiPhep } from '../hooks/useNghiPhep';
+import { LOAI_NGHI_PHEP } from '../constants/trang_thai_don';
 
-const LOAI_NGHI_PHEP_OPTIONS = [
+const LEAVE_TYPES = [
   { value: 'nghi-phep-nam', label: 'Nghỉ phép năm' },
-  { value: 'nghi-om', label: 'Nghỉ ốm' },
+  { value: 'nghi-om', label: 'Nghỉ ốm' }, 
   { value: 'nghi-thai-san', label: 'Nghỉ thai sản' },
   { value: 'nghi-khong-luong', label: 'Nghỉ không lương' },
-  { value: 'nghi-viec-rieng', label: 'Nghỉ việc riêng' },
+  { value: 'nghi-viec-rieng', label: 'Nghỉ việc riêng' }
 ];
 
-const PHONG_BAN_OPTIONS = [
-  { value: '', label: 'Chọn phân hệ' },
+const DEPARTMENTS = [
   { value: 'thien-minh-duong', label: 'Thiên Minh Đường' },
   { value: 'tay-van-cac', label: 'Tây Vân Các' },
   { value: 'hoa-tam-duong', label: 'Họa Tam Đường' },
   { value: 'ho-ly-son-trang', label: 'Hồ Ly Sơn trang' },
   { value: 'hoa-van-cac', label: 'Hoa Vân Các' },
-  { value: 'tinh-van-cac', label: 'Tinh Vân Các' },
+  { value: 'tinh-van-cac', label: 'Tinh Vân Các' }
 ];
 
-const FormTaoDonNghiPhep = ({ isOpen, onClose }) => {
-  const { user } = useAuth();
+const LeaveRequestForm = ({ isOpen, onClose, onSuccess }) => {
+  const { user, isAuthenticated } = useAuth();
   const toast = useToast();
+  const { themDonNghiPhep, isLoading: isSubmitting } = useNghiPhep();
 
-  const initialFormData = {
-    hoTen: '',
-    maSoNhanVien: '',
-    phongBan: '',
-    loaiNghiPhep: '',
-    ngayBatDau: '',
-    ngayKetThuc: '',
-    lyDo: '',
-    linkTaiLieu: '',
-  };
+  const initialFormData = useMemo(() => ({
+    fullName: user?.displayName || '',
+    employeeId: user?.memberCode || '',
+    department: user?.department || '',
+    leaveType: '',
+    startDate: '',
+    endDate: '',
+    reason: '',
+    attachmentUrl: ''
+  }), [user?.displayName, user?.memberCode, user?.department]);
 
   const [formData, setFormData] = useState(initialFormData);
   const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && !isAuthenticated) {
+      toast({
+        title: 'Cảnh báo',
+        description: 'Vui lòng đăng nhập để thực hiện chức năng này',
+        status: 'warning',
+        duration: 3000,
+        isClosable: true
+      });
+      onClose();
+      return;
+    }
+
+    if (!isOpen) {
+      setFormData(initialFormData);
+      setErrors({});
+    }
+  }, [isOpen, isAuthenticated, initialFormData, onClose, toast]);
 
   const calculateTotalDays = useCallback((startDate, endDate) => {
     if (!startDate || !endDate) return 0;
@@ -69,7 +91,8 @@ const FormTaoDonNghiPhep = ({ isOpen, onClose }) => {
   }, []);
 
   const validateDates = useCallback((startDate, endDate) => {
-    if (!startDate || !endDate) return false;
+    if (!startDate || !endDate) return '';
+    
     const start = new Date(startDate);
     const end = new Date(endDate);
     const today = new Date();
@@ -86,66 +109,107 @@ const FormTaoDonNghiPhep = ({ isOpen, onClose }) => {
 
   const validateForm = useCallback(() => {
     const newErrors = {};
-    if (!formData.hoTen) newErrors.hoTen = 'Vui lòng nhập họ tên';
-    if (!formData.maSoNhanVien) newErrors.maSoNhanVien = 'Vui lòng nhập mã số nhân viên';
-    if (!formData.phongBan) newErrors.phongBan = 'Vui lòng chọn phòng ban';
-    if (!formData.loaiNghiPhep) newErrors.loaiNghiPhep = 'Vui lòng chọn loại nghỉ phép';
-    if (!formData.ngayBatDau) newErrors.ngayBatDau = 'Vui lòng chọn ngày bắt đầu';
-    if (!formData.ngayKetThuc) newErrors.ngayKetThuc = 'Vui lòng chọn ngày kết thúc';
-    
-    const dateError = validateDates(formData.ngayBatDau, formData.ngayKetThuc);
-    if (dateError) {
-      newErrors.ngayKetThuc = dateError;
+
+    if (!formData.fullName) {
+      newErrors.fullName = 'Vui lòng nhập họ tên';
     }
 
-    if (!formData.lyDo) newErrors.lyDo = 'Vui lòng nhập lý do';
-    if (formData.lyDo && formData.lyDo.length < 10) {
-      newErrors.lyDo = 'Lý do phải có ít nhất 10 ký tự';
+    if (!formData.employeeId) {
+      newErrors.employeeId = 'Vui lòng nhập mã nhân viên';
+    }
+
+    if (!formData.department) {
+      newErrors.department = 'Vui lòng chọn phòng ban';
+    }
+
+    if (!formData.leaveType) {
+      newErrors.leaveType = 'Vui lòng chọn loại nghỉ phép';
+    }
+
+    if (!formData.startDate) {
+      newErrors.startDate = 'Vui lòng chọn ngày bắt đầu';
+    }
+
+    if (!formData.endDate) {
+      newErrors.endDate = 'Vui lòng chọn ngày kết thúc';
+    }
+
+    const dateError = validateDates(formData.startDate, formData.endDate);
+    if (dateError) {
+      newErrors.endDate = dateError;
+    }
+
+    if (!formData.reason) {
+      newErrors.reason = 'Vui lòng nhập lý do';
+    } else if (formData.reason.length < 10) {
+      newErrors.reason = 'Lý do phải có ít nhất 10 ký tự';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   }, [formData, validateDates]);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
-
-    try {
-      setIsSubmitting(true);
-      const totalDays = calculateTotalDays(formData.ngayBatDau, formData.ngayKetThuc);
-
-      const donNghiPhep = {
-        hoTen: formData.hoTen,
-        maSoNhanVien: formData.maSoNhanVien,
-        phongBan: formData.phongBan,
-        userId: user.uid,
-        userName: formData.hoTen,
-        userEmail: user.email,
-        department: formData.phongBan,
-        leaveType: formData.loaiNghiPhep,
-        startDate: formData.ngayBatDau,
-        endDate: formData.ngayKetThuc,
-        totalDays,
-        reason: formData.lyDo,
-        attachments: formData.linkTaiLieu ? [{ url: formData.linkTaiLieu }] : [],
-        status: 'CHO_DUYET'
-      };
-
-      await nghiPhepService.themDon(donNghiPhep);
-
+    if (!isAuthenticated) {
       toast({
-        title: 'Tạo đơn thành công',
-        description: `Đơn xin nghỉ phép ${totalDays} ngày đã được gửi và đang chờ duyệt`,
-        status: 'success',
+        title: 'Lỗi',
+        description: 'Vui lòng đăng nhập để thực hiện chức năng này',
+        status: 'error',
         duration: 3000,
         isClosable: true,
       });
+      return;
+    }
 
-      setFormData(initialFormData);
-      onClose();
+    if (!validateForm()) {
+      toast({
+        title: 'Lỗi',
+        description: 'Vui lòng kiểm tra lại thông tin',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    try {
+      const totalDays = calculateTotalDays(formData.startDate, formData.endDate);
+
+      const leaveRequest = {
+        fullName: formData.fullName,
+        employeeId: formData.employeeId,
+        department: formData.department,
+        userId: user.id,
+        userEmail: user.email,
+        leaveType: formData.leaveType,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        totalDays,
+        reason: formData.reason,
+        attachments: formData.attachmentUrl ? [{ url: formData.attachmentUrl }] : []
+      };
+
+      const result = await themDonNghiPhep(leaveRequest);
+
+      if (result) {
+        toast({
+          title: 'Thành công',
+          description: `Đơn xin nghỉ phép ${totalDays} ngày đã được gửi và đang chờ duyệt`,
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+  
+        if (onSuccess) {
+          onSuccess(result);
+        }
+        onClose();
+      }
     } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Lỗi khi gửi đơn nghỉ phép:', error);
       toast({
         title: 'Lỗi',
         description: error.message || 'Không thể tạo đơn nghỉ phép',
@@ -153,10 +217,18 @@ const FormTaoDonNghiPhep = ({ isOpen, onClose }) => {
         duration: 3000,
         isClosable: true,
       });
-    } finally {
-      setIsSubmitting(false);
     }
-  };
+  }, [
+    formData,
+    user,
+    validateForm,
+    calculateTotalDays,
+    themDonNghiPhep,
+    toast,
+    onSuccess,
+    onClose,
+    isAuthenticated
+  ]);
 
   const handleChange = useCallback((e) => {
     const { name, value } = e.target;
@@ -164,7 +236,6 @@ const FormTaoDonNghiPhep = ({ isOpen, onClose }) => {
       ...prev,
       [name]: value
     }));
-    // Clear error when user types
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -173,7 +244,14 @@ const FormTaoDonNghiPhep = ({ isOpen, onClose }) => {
     }
   }, [errors]);
 
-  const totalDays = calculateTotalDays(formData.ngayBatDau, formData.ngayKetThuc);
+  const totalDays = useMemo(() => 
+    calculateTotalDays(formData.startDate, formData.endDate),
+    [formData.startDate, formData.endDate, calculateTotalDays]
+  );
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="xl">
@@ -185,122 +263,133 @@ const FormTaoDonNghiPhep = ({ isOpen, onClose }) => {
           <form onSubmit={handleSubmit}>
             <VStack spacing={4} align="stretch">
               <HStack spacing={4}>
-                <FormControl isInvalid={errors.hoTen}>
+                <FormControl isInvalid={errors.fullName}>
                   <FormLabel>Họ tên</FormLabel>
                   <Input
-                    name="hoTen"
-                    value={formData.hoTen}
+                    name="fullName"
+                    value={formData.fullName}
                     onChange={handleChange}
                     placeholder="Nhập họ tên"
+                    isDisabled={isSubmitting}
                   />
-                  <FormErrorMessage>{errors.hoTen}</FormErrorMessage>
+                  <FormErrorMessage>{errors.fullName}</FormErrorMessage>
                 </FormControl>
 
-                <FormControl isInvalid={errors.maSoNhanVien}>
-                  <FormLabel>Mã số nhân viên</FormLabel>
+                <FormControl isInvalid={errors.employeeId}>
+                  <FormLabel>Mã nhân viên</FormLabel>
                   <Input
-                    name="maSoNhanVien"
-                    value={formData.maSoNhanVien}
+                    name="employeeId"
+                    value={formData.employeeId}
                     onChange={handleChange}
-                    placeholder="Nhập mã số nhân viên"
+                    placeholder="Nhập mã nhân viên"
+                    isDisabled={isSubmitting}
                   />
-                  <FormErrorMessage>{errors.maSoNhanVien}</FormErrorMessage>
+                  <FormErrorMessage>{errors.employeeId}</FormErrorMessage>
                 </FormControl>
               </HStack>
 
-              <FormControl isInvalid={errors.phongBan}>
+              <FormControl isInvalid={errors.department}>
                 <FormLabel>Phòng ban</FormLabel>
                 <Select
-                  name="phongBan"
-                  value={formData.phongBan}
+                  name="department"
+                  value={formData.department}
                   onChange={handleChange}
                   placeholder="Chọn phòng ban"
+                  isDisabled={isSubmitting}
                 >
-                  {PHONG_BAN_OPTIONS.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
+                  {DEPARTMENTS.map(dept => (
+                    <option key={dept.value} value={dept.value}>
+                      {dept.label}
                     </option>
                   ))}
                 </Select>
-                <FormErrorMessage>{errors.phongBan}</FormErrorMessage>
+                <FormErrorMessage>{errors.department}</FormErrorMessage>
               </FormControl>
 
-              <FormControl isInvalid={errors.loaiNghiPhep}>
+              <FormControl isInvalid={errors.leaveType}>
                 <FormLabel>Loại nghỉ phép</FormLabel>
                 <Select
-                  name="loaiNghiPhep"
-                  value={formData.loaiNghiPhep}
+                  name="leaveType"
+                  value={formData.leaveType}
                   onChange={handleChange}
                   placeholder="Chọn loại nghỉ phép"
+                  isDisabled={isSubmitting}
                 >
-                  {LOAI_NGHI_PHEP_OPTIONS.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
+                  {LEAVE_TYPES.map(type => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
                     </option>
                   ))}
                 </Select>
-                <FormErrorMessage>{errors.loaiNghiPhep}</FormErrorMessage>
+                <FormErrorMessage>{errors.leaveType}</FormErrorMessage>
               </FormControl>
 
               <HStack spacing={4}>
-                <FormControl isInvalid={errors.ngayBatDau}>
+                <FormControl isInvalid={errors.startDate}>
                   <FormLabel>Ngày bắt đầu</FormLabel>
                   <Input
-                    name="ngayBatDau"
+                    name="startDate"
                     type="date"
-                    value={formData.ngayBatDau}
+                    value={formData.startDate}
                     onChange={handleChange}
+                    isDisabled={isSubmitting}
                   />
-                  <FormErrorMessage>{errors.ngayBatDau}</FormErrorMessage>
+                  <FormErrorMessage>{errors.startDate}</FormErrorMessage>
                 </FormControl>
 
-                <FormControl isInvalid={errors.ngayKetThuc}>
+                <FormControl isInvalid={errors.endDate}>
                   <FormLabel>Ngày kết thúc</FormLabel>
                   <Input
-                    name="ngayKetThuc"
+                    name="endDate"
                     type="date"
-                    value={formData.ngayKetThuc}
+                    value={formData.endDate}
                     onChange={handleChange}
+                    isDisabled={isSubmitting}
                   />
-                  <FormErrorMessage>{errors.ngayKetThuc}</FormErrorMessage>
+                  <FormErrorMessage>{errors.endDate}</FormErrorMessage>
                 </FormControl>
               </HStack>
 
               {totalDays > 0 && (
-                <Text color="blue.300" fontSize="sm">
-                  Tổng số ngày nghỉ: {totalDays} ngày
-                </Text>
+                <Alert status="info">
+                  <AlertDescription>
+                    Tổng số ngày nghỉ: {totalDays} ngày
+                  </AlertDescription>
+                </Alert>
               )}
 
-              <FormControl isInvalid={errors.lyDo}>
+              <FormControl isInvalid={errors.reason}>
                 <FormLabel>Lý do xin nghỉ</FormLabel>
                 <Textarea
-                  name="lyDo"
-                  value={formData.lyDo}
+                  name="reason"
+                  value={formData.reason}
                   onChange={handleChange}
                   placeholder="Nhập lý do xin nghỉ (tối thiểu 10 ký tự)"
+                  size="sm"
                   rows={4}
+                  isDisabled={isSubmitting}
                 />
-                <FormErrorMessage>{errors.lyDo}</FormErrorMessage>
+                <FormErrorMessage>{errors.reason}</FormErrorMessage>
               </FormControl>
 
               <FormControl>
                 <FormLabel>Link tài liệu đính kèm</FormLabel>
                 <Input
-                  name="linkTaiLieu"
-                  value={formData.linkTaiLieu}
+                  name="attachmentUrl"
+                  value={formData.attachmentUrl}
                   onChange={handleChange}
                   placeholder="Nhập link tài liệu (nếu có)"
+                  isDisabled={isSubmitting}
                 />
               </FormControl>
 
-              <HStack spacing={4} pt={4}>
-                <Button colorScheme="red" onClick={onClose}>
+              <HStack spacing={4} justify="flex-end" pt={4}>
+                <Button variant="outline" onClick={onClose} isDisabled={isSubmitting}>
                   Hủy
                 </Button>
                 <Button
-                  colorScheme="blue"
                   type="submit"
+                  colorScheme="blue"
                   isLoading={isSubmitting}
                   loadingText="Đang gửi..."
                 >
@@ -315,4 +404,4 @@ const FormTaoDonNghiPhep = ({ isOpen, onClose }) => {
   );
 };
 
-export default FormTaoDonNghiPhep;
+export default LeaveRequestForm;

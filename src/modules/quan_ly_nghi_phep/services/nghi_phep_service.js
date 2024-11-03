@@ -16,35 +16,42 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { db } from '../../../services/firebase';
+import { TRANG_THAI_DON } from '../constants/trang_thai_don';
 
 const COLLECTION_NAME = 'leave_requests';
 
 const generateLeaveRequestId = () => {
   const date = new Date();
-  const year = date.getFullYear().toString().substr(-2);
+  const year = date.getFullYear().toString().slice(-2);
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
-  const timestamp = Date.now().toString().slice(-6);
-  return `LR${year}${month}${day}${timestamp}`;
+  const randomId = Math.random().toString(36).substring(2, 8).toUpperCase();
+  return `LR${year}${month}${day}${randomId}`;
 };
 
 const validateLeaveRequestData = (data) => {
   const requiredFields = ['userId', 'startDate', 'endDate', 'reason', 'leaveType'];
-  for (const field of requiredFields) {
-    if (!data[field]) {
-      throw new Error(`Thiếu thông tin bắt buộc: ${field}`);
-    }
+  const missingFields = requiredFields.filter(field => !data[field]);
+  
+  if (missingFields.length > 0) {
+    throw new Error(`Thiếu thông tin bắt buộc: ${missingFields.join(', ')}`);
   }
 
   const startDate = new Date(data.startDate);
   const endDate = new Date(data.endDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
   if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
     throw new Error('Ngày không hợp lệ');
   }
 
-  if (startDate > endDate) {
-    throw new Error('Ngày bắt đầu phải trước ngày kết thúc');
+  if (startDate < today) {
+    throw new Error('Ngày bắt đầu không thể là ngày trong quá khứ');
+  }
+
+  if (endDate < startDate) {
+    throw new Error('Ngày kết thúc phải sau ngày bắt đầu');
   }
 
   return true;
@@ -52,17 +59,23 @@ const validateLeaveRequestData = (data) => {
 
 const validateApproverData = (data) => {
   const requiredFields = ['status', 'approverId', 'approverName', 'approverRole'];
-  for (const field of requiredFields) {
-    if (!data[field]) {
-      throw new Error(`Thiếu thông tin người phê duyệt: ${field}`);
-    }
+  const missingFields = requiredFields.filter(field => !data[field]);
+
+  if (missingFields.length > 0) {
+    throw new Error(`Thiếu thông tin người phê duyệt: ${missingFields.join(', ')}`);
   }
 
-  if (!['DA_DUYET', 'TU_CHOI', 'HUY'].includes(data.status)) {
+  const validStatuses = [
+    TRANG_THAI_DON.DA_DUYET,
+    TRANG_THAI_DON.TU_CHOI,
+    TRANG_THAI_DON.HUY
+  ];
+
+  if (!validStatuses.includes(data.status)) {
     throw new Error('Trạng thái không hợp lệ');
   }
 
-  if (data.status === 'DA_DUYET' && data.approverRole !== 'admin-tong') {
+  if (data.status === TRANG_THAI_DON.DA_DUYET && data.approverRole !== 'admin-tong') {
     throw new Error('Không có quyền phê duyệt');
   }
 
@@ -71,6 +84,7 @@ const validateApproverData = (data) => {
 
 const formatDateForFirestore = (dateString) => {
   if (!dateString) return null;
+  
   try {
     const date = new Date(dateString);
     if (isNaN(date.getTime())) {
@@ -78,8 +92,10 @@ const formatDateForFirestore = (dateString) => {
     }
     return Timestamp.fromDate(date);
   } catch (error) {
-    console.error('Lỗi chuyển đổi ngày:', error);
-    throw error;
+    const errorMessage = 'Lỗi chuyển đổi ngày: ' + error.message;
+    // eslint-disable-next-line no-console
+    console.error(errorMessage);
+    throw new Error(errorMessage);
   }
 };
 
@@ -87,8 +103,8 @@ const mapLeaveRequestData = (docSnapshot) => {
   if (!docSnapshot?.exists()) return null;
 
   const data = docSnapshot.data();
-
-  const mappedData = {
+  
+  return {
     id: docSnapshot.id,
     requestId: data.requestId || '',
     userId: data.userId || '',
@@ -103,7 +119,7 @@ const mapLeaveRequestData = (docSnapshot) => {
     endDate: data.endDate?.toDate() || null,
     totalDays: data.totalDays || 0,
     reason: data.reason || '',
-    status: data.status || 'CHO_DUYET',
+    status: data.status || TRANG_THAI_DON.CHO_DUYET,
     approverNote: data.approverNote || '',
     approverId: data.approverId || null,
     approverName: data.approverName || '',
@@ -112,22 +128,13 @@ const mapLeaveRequestData = (docSnapshot) => {
     approverDepartment: data.approverDepartment || '',
     linkTaiLieu: data.linkTaiLieu || '',
     attachments: Array.isArray(data.attachments) ? data.attachments : [],
+    ...(data.approvedAt && { approvedAt: data.approvedAt.toDate() }),
+    ...(data.createdAt && { createdAt: data.createdAt.toDate() }),
+    ...(data.updatedAt && { updatedAt: data.updatedAt.toDate() })
   };
-
-  if (data.approvedAt) {
-    mappedData.approvedAt = data.approvedAt.toDate();
-  }
-  if (data.createdAt) {
-    mappedData.createdAt = data.createdAt.toDate();
-  }
-  if (data.updatedAt) {
-    mappedData.updatedAt = data.updatedAt.toDate();
-  }
-
-  return mappedData;
 };
 
-export const nghiPhepService = {
+const nghiPhepService = {
   async themDon(data) {
     try {
       validateLeaveRequestData(data);
@@ -146,7 +153,7 @@ export const nghiPhepService = {
         endDate: formatDateForFirestore(data.endDate),
         totalDays: data.totalDays || 1,
         reason: data.reason,
-        status: 'CHO_DUYET',
+        status: TRANG_THAI_DON.CHO_DUYET,
         approverNote: '',
         approverId: null,
         approverName: '',
@@ -168,6 +175,7 @@ export const nghiPhepService = {
 
       return mapLeaveRequestData(newDoc);
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Chi tiết lỗi khi tạo đơn:', error);
       throw error;
     }
@@ -178,29 +186,32 @@ export const nghiPhepService = {
       const conditions = [];
       const queryRef = collection(db, COLLECTION_NAME);
 
-      if (filters.userId) {
-        conditions.push(where('userId', '==', filters.userId));
-      }
-      if (filters.department) {
-        conditions.push(where('department', '==', filters.department));
-      }
-      if (filters.status) {
-        conditions.push(where('status', '==', filters.status));
-      }
-      if (filters.startDate) {
-        const startTimestamp = formatDateForFirestore(filters.startDate);
-        conditions.push(where('startDate', '>=', startTimestamp));
-      }
-      if (filters.endDate) {
-        const endTimestamp = formatDateForFirestore(filters.endDate);
-        conditions.push(where('endDate', '<=', endTimestamp));
-      }
+      Object.entries(filters).forEach(([key, value]) => {
+        if (!value) return;
+
+        switch (key) {
+          case 'userId':
+          case 'department':
+          case 'status':
+            conditions.push(where(key, '==', value));
+            break;
+          case 'startDate':
+            conditions.push(where('startDate', '>=', formatDateForFirestore(value)));
+            break;
+          case 'endDate':
+            conditions.push(where('endDate', '<=', formatDateForFirestore(value)));
+            break;
+          default:
+            break;
+        }
+      });
 
       const q = query(queryRef, ...conditions, orderBy('createdAt', 'desc'));
       const querySnapshot = await getDocs(q);
 
       return querySnapshot.docs.map(mapLeaveRequestData).filter(Boolean);
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Chi tiết lỗi khi lấy danh sách:', error);
       throw error;
     }
@@ -219,6 +230,7 @@ export const nghiPhepService = {
 
       return mapLeaveRequestData(docSnap);
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Chi tiết lỗi khi lấy chi tiết:', error);
       throw error;
     }
@@ -227,7 +239,6 @@ export const nghiPhepService = {
   async capNhatTrangThai(id, updateData) {
     try {
       validateApproverData(updateData);
-
       if (!id) throw new Error('ID không hợp lệ');
 
       const docRef = doc(db, COLLECTION_NAME, id);
@@ -249,12 +260,11 @@ export const nghiPhepService = {
         updatedAt: serverTimestamp(),
       };
 
-      console.log('Dữ liệu cập nhật:', dataToUpdate);
-
       await updateDoc(docRef, dataToUpdate);
       const updatedDoc = await getDoc(docRef);
       return mapLeaveRequestData(updatedDoc);
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Chi tiết lỗi khi cập nhật trạng thái:', error);
       throw error;
     }
@@ -272,7 +282,7 @@ export const nghiPhepService = {
       }
 
       const updateData = {
-        status: 'HUY',
+        status: TRANG_THAI_DON.HUY,
         updatedAt: serverTimestamp(),
       };
 
@@ -280,6 +290,7 @@ export const nghiPhepService = {
       const updatedDoc = await getDoc(docRef);
       return mapLeaveRequestData(updatedDoc);
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Chi tiết lỗi khi hủy đơn:', error);
       throw error;
     }
