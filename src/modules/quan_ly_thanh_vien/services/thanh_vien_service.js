@@ -1,7 +1,4 @@
-// File: src/modules/quan_ly_thanh_vien/services/thanh_vien_service.js
-// Link tham khảo: https://firebase.google.com/docs/firestore/manage-data/add-data
-// Link tham khảo: https://firebase.google.com/docs/firestore/query-data/get-data
-// Link tham khảo: https://firebase.google.com/docs/firestore/query-data/order-limit-data
+// src/modules/quan_ly_thanh_vien/services/thanh_vien_service.js
 
 import { db } from '../../../services/firebase';
 import {
@@ -23,7 +20,7 @@ const COLLECTION_NAME = 'members';
 const DEFAULT_VALUES = {
   CHUC_VU: 'THANH_VIEN',
   CAP_BAC: 'THU_SINH',
-  TRANG_THAI: 'DANG_CONG_TAC'
+  TRANG_THAI: 'DANG_CONG_TAC',
 };
 
 const handleFirebaseError = (error, message) => {
@@ -33,23 +30,20 @@ const handleFirebaseError = (error, message) => {
 
 const convertTimestampToDate = (timestamp) => {
   if (!timestamp) return null;
-  
-  // Nếu là Firestore Timestamp
+
   if (timestamp?.toDate) {
     return timestamp.toDate();
   }
-  
-  // Nếu là Date object
+
   if (timestamp instanceof Date) {
     return timestamp;
   }
-  
-  // Nếu là string hoặc number
+
   if (typeof timestamp === 'string' || typeof timestamp === 'number') {
     const date = new Date(timestamp);
     return isNaN(date.getTime()) ? null : date;
   }
-  
+
   return null;
 };
 
@@ -58,11 +52,29 @@ const mapThanhVienData = (docSnapshot) => {
 
   const data = docSnapshot.data();
 
-  // Chuyển đổi tất cả các trường timestamp
   const createdAt = convertTimestampToDate(data.createdAt);
   const updatedAt = convertTimestampToDate(data.updatedAt);
   const dateOfBirth = convertTimestampToDate(data.dateOfBirth);
-  const joinDate = convertTimestampToDate(data.joinDate);
+  const ngayVao = convertTimestampToDate(data.joinDate);
+  const ngayNhanCapBac = convertTimestampToDate(data.ngayNhanCapBac);
+
+  const danhSachCapBac = (data.levelHistory || []).map((item) => ({
+    capBac: item.capBac || DEFAULT_VALUES.CAP_BAC,
+    ngayNhan: convertTimestampToDate(item.ngayNhan),
+    nguoiCapNhat: item.nguoiCapNhat || '',
+    anhNguoiCapNhat: item.anhNguoiCapNhat || '',
+    ghiChu: item.ghiChu || '',
+  }));
+
+  const lichSuChinhSua = (data.lichSuChinhSua || []).map((item) => ({
+    thoiGian: convertTimestampToDate(item.thoiGian),
+    loai: item.loai || '',
+    nguoiThucHien: item.nguoiThucHien || '',
+    anhNguoiThucHien: item.anhNguoiThucHien || '',
+    thongTinCu: item.thongTinCu || '',
+    thongTinMoi: item.thongTinMoi || '',
+    ghiChu: item.ghiChu || '',
+  }));
 
   return {
     id: docSnapshot.id,
@@ -72,13 +84,14 @@ const mapThanhVienData = (docSnapshot) => {
     phongBan: data.department || '',
     chucVu: data.position || DEFAULT_VALUES.CHUC_VU,
     capBac: data.level || DEFAULT_VALUES.CAP_BAC,
-    danhSachCapBac: data.levelHistory || [],
+    ngayNhanCapBac: ngayNhanCapBac || null,
+    danhSachCapBac,
     trangThai: data.status || DEFAULT_VALUES.TRANG_THAI,
     soDienThoai: data.phoneNumber || '',
-    ngayVao: joinDate,
+    ngayVao: ngayVao || null,
     memberCode: data.memberCode || '',
     address: data.address || '',
-    dateOfBirth: dateOfBirth,
+    dateOfBirth: dateOfBirth || null,
     facebookLink: data.facebookLink || '',
     cvLink: data.cvLink || '',
     education: data.education || '',
@@ -90,6 +103,7 @@ const mapThanhVienData = (docSnapshot) => {
     motherPhone: data.motherPhone || '',
     telegramId: data.telegramId || '',
     zaloPhone: data.zaloPhone || '',
+    lichSuChinhSua,
     createdAt,
     updatedAt,
   };
@@ -103,7 +117,14 @@ const mapThanhVienToFirestore = (data) => {
     department: data.phongBan || null,
     position: data.chucVu || DEFAULT_VALUES.CHUC_VU,
     level: data.capBac || DEFAULT_VALUES.CAP_BAC,
-    levelHistory: data.danhSachCapBac || [],
+    ngayNhanCapBac: data.ngayNhanCapBac ? new Date(data.ngayNhanCapBac) : null,
+    levelHistory: (data.danhSachCapBac || []).map((item) => ({
+      capBac: item.capBac || DEFAULT_VALUES.CAP_BAC,
+      ngayNhan: item.ngayNhan ? new Date(item.ngayNhan) : null,
+      nguoiCapNhat: item.nguoiCapNhat || null,
+      anhNguoiCapNhat: item.anhNguoiCapNhat || null,
+      ghiChu: item.ghiChu || null,
+    })),
     status: data.trangThai || DEFAULT_VALUES.TRANG_THAI,
     phoneNumber: data.soDienThoai || null,
     joinDate: data.ngayVao ? new Date(data.ngayVao) : null,
@@ -121,6 +142,15 @@ const mapThanhVienToFirestore = (data) => {
     motherPhone: data.motherPhone || null,
     telegramId: data.telegramId || null,
     zaloPhone: data.zaloPhone || null,
+    lichSuChinhSua: (data.lichSuChinhSua || []).map((item) => ({
+      thoiGian: item.thoiGian ? new Date(item.thoiGian) : serverTimestamp(),
+      loai: item.loai || '',
+      nguoiThucHien: item.nguoiThucHien || null,
+      anhNguoiThucHien: item.anhNguoiThucHien || null,
+      thongTinCu: item.thongTinCu || null,
+      thongTinMoi: item.thongTinMoi || null,
+      ghiChu: item.ghiChu || null,
+    })),
     updatedAt: serverTimestamp(),
   };
 
@@ -135,7 +165,7 @@ export const thanhVienService = {
   layDanhSach: async () => {
     try {
       const q = query(
-        collection(db, COLLECTION_NAME), 
+        collection(db, COLLECTION_NAME),
         orderBy('createdAt', 'desc')
       );
       const querySnapshot = await getDocs(q);
@@ -167,7 +197,7 @@ export const thanhVienService = {
       const docRef = doc(db, COLLECTION_NAME, id);
       const updateData = {
         status: trangThai,
-        updatedAt: serverTimestamp()
+        updatedAt: serverTimestamp(),
       };
       await updateDoc(docRef, updateData);
       return { id, trangThai };
@@ -180,7 +210,8 @@ export const thanhVienService = {
   capNhat: async (id, data) => {
     try {
       const docRef = doc(db, COLLECTION_NAME, id);
-      const updateData = mapThanhVienToFirestore(data);
+      const updateData = mapThanhVienToFirestore({ ...data, id });
+
       await updateDoc(docRef, updateData);
 
       const updatedDoc = await getDoc(docRef);
@@ -198,7 +229,8 @@ export const thanhVienService = {
         trangThai: DEFAULT_VALUES.TRANG_THAI,
         chucVu: data.chucVu || DEFAULT_VALUES.CHUC_VU,
         capBac: data.capBac || DEFAULT_VALUES.CAP_BAC,
-        danhSachCapBac: []
+        danhSachCapBac: data.danhSachCapBac || [],
+        lichSuChinhSua: data.lichSuChinhSua || [],
       });
 
       const docRef = await addDoc(collection(db, COLLECTION_NAME), newData);
@@ -234,7 +266,7 @@ export const thanhVienService = {
       handleFirebaseError(error, 'Lỗi khi lấy thành viên theo phòng ban');
       return [];
     }
-  }
+  },
 };
 
 export default thanhVienService;
