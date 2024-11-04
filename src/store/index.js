@@ -5,6 +5,7 @@ import authReducer from './slices/authSlice';
 import projectReducer from './slices/projectSlice';
 import themeReducer from './slices/themeSlice';
 import thanhVienReducer from '../modules/quan_ly_thanh_vien/store/thanh_vien_slice';
+import nhiemVuReducer from '../modules/nhiem_vu_hang_ngay/store/nhiem_vu_slice';
 
 const rootReducer = {
   projects: projectReducer,
@@ -12,6 +13,7 @@ const rootReducer = {
   auth: authReducer,
   theme: themeReducer,
   thanhVien: thanhVienReducer,
+  nhiemVu: nhiemVuReducer,  // Thêm reducer cho nhiem_vu
 };
 
 const store = configureStore({

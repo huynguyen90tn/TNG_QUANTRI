@@ -1,4 +1,7 @@
 // File: src/App.js
+// Link tham khảo: https://chakra-ui.com/docs/components/
+// Link tham khảo: https://reactrouter.com/web/guides/quick-start
+
 import React from 'react';
 import { ChakraProvider, Spinner, Center } from '@chakra-ui/react';
 import {
@@ -24,6 +27,7 @@ import ProjectManagement from './pages/ProjectManagement';
 import TaskManagementPage from './pages/TaskManagementPage';
 import TaskListPage from './pages/TaskListPage';
 import QuanLyChiTietPage from './modules/quan_ly_chi_tiet/pages/QuanLyChiTietPage';
+import NhiemVuPage from './modules/nhiem_vu_hang_ngay/pages/nhiem_vu_page';
 
 // Auth Pages
 import TaoTaiKhoanThanhVien from './pages/auth/TaoTaiKhoanThanhVien';
@@ -71,9 +75,8 @@ import BaoCaoThongKe from './modules/quan_ly_chi_tiet/components/bao_cao_thong_k
 import QuanLyNghiPhepPage from './modules/quan_ly_nghi_phep/pages/quan_ly_nghi_phep_page';
 import ChiTietDonNghiPhep from './modules/quan_ly_nghi_phep/components/chi_tiet_don_nghi_phep';
 import FormTaoDonNghiPhep from './modules/quan_ly_nghi_phep/components/form_tao_don_nghi_phep';
-import DanhSachDonNghiPhep from './modules/quan_ly_nghi_phep/components/danh_sach_don_nghi_phep';// File: src/App.js (tiếp theo)
+import DanhSachDonNghiPhep from './modules/quan_ly_nghi_phep/components/danh_sach_don_nghi_phep';
 
-// Constants
 const ROLES = {
   ADMIN_TONG: 'admin-tong',
   ADMIN_CON: 'admin-con',
@@ -137,10 +140,8 @@ const AppRoutes = () => {
 
   return (
     <Routes>
-      {/* Public Route */}
       <Route path="/" element={<HomePage />} />
 
-      {/* Admin Tổng Routes */}
       <Route
         path="/admin-tong"
         element={
@@ -172,7 +173,8 @@ const AppRoutes = () => {
             </Layout>
           </ProtectedRoute>
         }
-      />{/* Admin Con Routes */}
+      />
+
       <Route
         path="/admin-con"
         element={
@@ -206,7 +208,6 @@ const AppRoutes = () => {
         }
       />
 
-      {/* Member Routes */}
       <Route
         path="/member"
         element={
@@ -240,7 +241,6 @@ const AppRoutes = () => {
         }
       />
 
-      {/* Shared Routes */}
       <Route
         path="/quan-ly-du-an"
         element={
@@ -285,7 +285,6 @@ const AppRoutes = () => {
         }
       />
 
-      {/* Quản lý nghỉ phép Routes */}
       <Route
         path="/quan-ly-nghi-phep"
         element={
@@ -330,7 +329,6 @@ const AppRoutes = () => {
         }
       />
 
-      {/* Quản lý Chi Tiết Routes */}
       <Route
         path="/quan-ly-chi-tiet"
         element={
@@ -342,7 +340,6 @@ const AppRoutes = () => {
         }
       />
 
-      {/* Backend Routes */}
       <Route
         path="/quan-ly-chi-tiet/backend"
         element={
@@ -385,7 +382,8 @@ const AppRoutes = () => {
             </Layout>
           </ProtectedRoute>
         }
-      />{/* Kiểm thử Routes */}
+      />
+
       <Route
         path="/quan-ly-chi-tiet/kiem-thu"
         element={
@@ -430,8 +428,7 @@ const AppRoutes = () => {
         }
       />
 
-      {/* Thống kê Routes */}
-      <Route
+<Route
         path="/quan-ly-chi-tiet/thong-ke"
         element={
           <ProtectedRoute requiredRole={SHARED_ROLES}>
@@ -442,7 +439,39 @@ const AppRoutes = () => {
         }
       />
 
-      {/* Báo cáo Routes */}
+      <Route
+        path="/quan-ly-chi-tiet/thong-ke/:id"
+        element={
+          <ProtectedRoute requiredRole={SHARED_ROLES}>
+            <Layout>
+              <ChiTietThongKe />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/quan-ly-chi-tiet/thong-ke/bieu-do"
+        element={
+          <ProtectedRoute requiredRole={SHARED_ROLES}>
+            <Layout>
+              <BieuDoThongKe />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/quan-ly-chi-tiet/thong-ke/bao-cao"
+        element={
+          <ProtectedRoute requiredRole={SHARED_ROLES}>
+            <Layout>
+              <BaoCaoThongKe />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
       <Route
         path="/bao-cao-ngay"
         element={
@@ -465,14 +494,47 @@ const AppRoutes = () => {
         }
       />
 
-      {/* Import routes từ các modules khác */}
+      <Route 
+        path="/bao-cao-theo-du-an"
+        element={
+          <ProtectedRoute requiredRole={SHARED_ROLES}>
+            <Layout>
+              <BaoCaoTheoDuAn />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/bao-cao-theo-nhiem-vu"
+        element={
+          <ProtectedRoute requiredRole={SHARED_ROLES}>
+            <Layout>
+              <BaoCaoTheoNhiemVu />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/nhiem-vu-hang-ngay"
+        element={
+          <ProtectedRoute requiredRole={SHARED_ROLES}>
+            <Layout>
+              <NhiemVuPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
       {ThanhVienRoutes()}
 
-      {/* Fallback Route */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
-};const App = () => {
+};
+
+const App = () => {
   return (
     <Provider store={store}>
       <ChakraProvider theme={theme}>
