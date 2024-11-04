@@ -1,5 +1,6 @@
 // src/modules/quan_ly_thanh_vien/components/chi_tiet_thanh_vien.js
-import React, { useState, useEffect, memo } from 'react';
+
+import React, { useState, useEffect, memo, useCallback, useRef } from 'react';
 import PropTypes from 'prop-types';
 import {
   Modal,
@@ -38,10 +39,14 @@ import {
   Image,
   AspectRatio,
   Container,
-  Grid,
-  GridItem,
-  Stack,
   IconButton,
+  Textarea,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogContent,
+  AlertDialogOverlay,
 } from '@chakra-ui/react';
 import {
   FaUser,
@@ -63,6 +68,7 @@ import {
   FaEdit,
   FaSave,
   FaTimes,
+  FaInfoCircle,
 } from 'react-icons/fa';
 import { useAuth } from '../../../hooks/useAuth';
 import { thanhVienService } from '../services/thanh_vien_service';
@@ -71,33 +77,31 @@ import {
   TRANG_THAI_LABEL,
   CAP_BAC,
   CAP_BAC_LABEL,
+  CAP_BAC_OPTIONS,
   PHONG_BAN_LABEL,
+  PHONG_BAN_OPTIONS,
+  CHUC_VU,
+  CHUC_VU_LABEL,
 } from '../constants/trang_thai_thanh_vien';
 
-// Các hằng số giữ nguyên
-const CHUC_VU = {
-  THANH_VIEN: 'THANH_VIEN',
-  DUONG_CHU: 'DUONG_CHU',
-  PHO_BANG_CHU: 'PHO_BANG_CHU',
+const EDIT_HISTORY_TYPE = {
+  CREATED: 'CREATED',
+  UPDATED: 'UPDATED',
+  LEVEL_CHANGED: 'LEVEL_CHANGED',
+  STATUS_CHANGED: 'STATUS_CHANGED',
+  DEPARTMENT_CHANGED: 'DEPARTMENT_CHANGED',
+  POSITION_CHANGED: 'POSITION_CHANGED',
 };
 
-const CHUC_VU_LABEL = {
-  [CHUC_VU.THANH_VIEN]: 'Thành viên',
-  [CHUC_VU.DUONG_CHU]: 'Đường chủ',
-  [CHUC_VU.PHO_BANG_CHU]: 'Phó Bang chủ',
+const EDIT_HISTORY_LABEL = {
+  [EDIT_HISTORY_TYPE.CREATED]: 'Tạo mới',
+  [EDIT_HISTORY_TYPE.UPDATED]: 'Cập nhật thông tin',
+  [EDIT_HISTORY_TYPE.LEVEL_CHANGED]: 'Thay đổi cấp bậc',
+  [EDIT_HISTORY_TYPE.STATUS_CHANGED]: 'Thay đổi trạng thái',
+  [EDIT_HISTORY_TYPE.DEPARTMENT_CHANGED]: 'Thay đổi phòng ban',
+  [EDIT_HISTORY_TYPE.POSITION_CHANGED]: 'Thay đổi chức vụ',
 };
 
-const PHONG_BAN_OPTIONS = [
-  { value: '', label: 'Chọn phân hệ' },
-  { value: 'thien-minh-duong', label: 'Thiên Minh Đường' },
-  { value: 'tay-van-cac', label: 'Tây Vân Các' },
-  { value: 'hoa-tam-duong', label: 'Họa Tam Đường' },
-  { value: 'ho-ly-son-trang', label: 'Hồ Ly Sơn trang' },
-  { value: 'hoa-van-cac', label: 'Hoa Vân Các' },
-  { value: 'tinh-van-cac', label: 'Tinh Vân Các' },
-];
-
-// Thêm hàm formatDate
 const formatDate = (date) => {
   if (!date) return 'Chưa cập nhật';
 
@@ -127,8 +131,27 @@ const formatDate = (date) => {
   }
 };
 
-// Component ThongTinItem được cải tiến với icon và kiểu dáng tốt hơn
-const ThongTinItem = memo(({ label, value, icon, isEditing, children }) => {
+const getEditTypeColor = (type) => {
+  switch (type) {
+    case EDIT_HISTORY_TYPE.CREATED:
+      return 'green';
+    case EDIT_HISTORY_TYPE.UPDATED:
+      return 'blue';
+    case EDIT_HISTORY_TYPE.LEVEL_CHANGED:
+      return 'purple';
+    case EDIT_HISTORY_TYPE.STATUS_CHANGED:
+      return 'orange';
+    case EDIT_HISTORY_TYPE.DEPARTMENT_CHANGED:
+      return 'cyan';
+    case EDIT_HISTORY_TYPE.POSITION_CHANGED:
+      return 'pink';
+    default:
+      return 'gray';
+  }
+};
+
+// Component ThongTinItem
+const ThongTinItem = memo(({ label, value, icon, isEditing, children, isRequired }) => {
   const borderColor = useColorModeValue('gray.200', 'gray.600');
 
   return (
@@ -143,9 +166,16 @@ const ThongTinItem = memo(({ label, value, icon, isEditing, children }) => {
       <HStack spacing={3} alignItems="center">
         <Icon as={icon} color="blue.500" boxSize={5} />
         <VStack alignItems="start" spacing={1} flex={1}>
-          <Text fontSize="sm" color="gray.500" fontWeight="medium">
-            {label}
-          </Text>
+          <HStack>
+            <Text fontSize="sm" color="gray.500" fontWeight="medium">
+              {label}
+            </Text>
+            {isRequired && (
+              <Text color="red.500" fontSize="sm">
+                *
+              </Text>
+            )}
+          </HStack>
           {isEditing && children ? (
             children
           ) : (
@@ -167,19 +197,107 @@ ThongTinItem.propTypes = {
   icon: PropTypes.elementType.isRequired,
   isEditing: PropTypes.bool,
   children: PropTypes.node,
+  isRequired: PropTypes.bool,
 };
 
-// Component LichSuCapBacModal được cải tiến với kiểu dáng tốt hơn
-const LichSuCapBacModal = memo(({ isOpen, onClose, danhSachCapBac }) => {
+// Các modal phụ
+const LichSuChinhSuaModal = memo(({ isOpen, onClose, lichSuChinhSua }) => {
   const headerBg = useColorModeValue('gray.50', 'gray.700');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="xl">
+    <Modal isOpen={isOpen} onClose={onClose} size="6xl" scrollBehavior="inside">
       <ModalOverlay backdropFilter="blur(2px)" />
       <ModalContent>
-        <ModalHeader bg={headerBg} borderBottomWidth="1px">
+        <ModalHeader bg={headerBg} borderBottomWidth="1px" borderColor={borderColor}>
           <HStack>
             <Icon as={FaHistory} color="blue.500" />
+            <Text>Lịch sử chỉnh sửa thông tin</Text>
+          </HStack>
+        </ModalHeader>
+        <ModalCloseButton />
+        <ModalBody py={4}>
+          <Table variant="simple">
+            <Thead bg={headerBg}>
+              <Tr>
+                <Th>Thời gian</Th>
+                <Th>Loại thay đổi</Th>
+                <Th>Người thực hiện</Th>
+                <Th>Thông tin cũ</Th>
+                <Th>Thông tin mới</Th>
+                <Th>Ghi chú</Th>
+              </Tr>
+            </Thead>
+            <Tbody>
+              {lichSuChinhSua.map((item, index) => (
+                <Tr key={index}>
+                  <Td whiteSpace="nowrap">{formatDate(item.thoiGian)}</Td>
+                  <Td>
+                    <Badge colorScheme={getEditTypeColor(item.loai)}>
+                      {EDIT_HISTORY_LABEL[item.loai]}
+                    </Badge>
+                  </Td>
+                  <Td>
+                    <HStack>
+                      <Avatar size="xs" name={item.nguoiThucHien} src={item.anhNguoiThucHien} />
+                      <Text>{item.nguoiThucHien}</Text>
+                    </HStack>
+                  </Td>
+                  <Td maxW="200px" isTruncated>
+                    {item.thongTinCu || '—'}
+                  </Td>
+                  <Td maxW="200px" isTruncated>
+                    {item.thongTinMoi || '—'}
+                  </Td>
+                  <Td maxW="200px" isTruncated>
+                    <Tooltip label={item.ghiChu} placement="top">
+                      <Text>{item.ghiChu || '—'}</Text>
+                    </Tooltip>
+                  </Td>
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+        </ModalBody>
+        <ModalFooter borderTopWidth="1px" borderColor={borderColor}>
+          <Button onClick={onClose} leftIcon={<FaTimes />}>
+            Đóng
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+  );
+});
+
+LichSuChinhSuaModal.displayName = 'LichSuChinhSuaModal';
+
+LichSuChinhSuaModal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  lichSuChinhSua: PropTypes.arrayOf(
+    PropTypes.shape({
+      thoiGian: PropTypes.any.isRequired,
+      loai: PropTypes.oneOf(Object.values(EDIT_HISTORY_TYPE)).isRequired,
+      nguoiThucHien: PropTypes.string.isRequired,
+      anhNguoiThucHien: PropTypes.string,
+      thongTinCu: PropTypes.string,
+      thongTinMoi: PropTypes.string,
+      ghiChu: PropTypes.string,
+    })
+  ).isRequired,
+};
+
+const LichSuCapBacModal = memo(({ isOpen, onClose, danhSachCapBac }) => {
+  const headerBg = useColorModeValue('gray.50', 'gray.700');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} size="4xl">
+      <ModalOverlay backdropFilter="blur(2px)" />
+      <ModalContent>
+        <ModalHeader bg={headerBg} borderBottomWidth="1px" borderColor={borderColor}>
+          <HStack>
+            <Icon as={FaUserTie} color="blue.500" />
             <Text>Lịch sử cấp bậc</Text>
           </HStack>
         </ModalHeader>
@@ -188,14 +306,17 @@ const LichSuCapBacModal = memo(({ isOpen, onClose, danhSachCapBac }) => {
           <Table variant="simple">
             <Thead bg={headerBg}>
               <Tr>
+                <Th>STT</Th>
                 <Th>Cấp bậc</Th>
                 <Th>Ngày nhận</Th>
+                <Th>Người cập nhật</Th>
                 <Th>Ghi chú</Th>
               </Tr>
             </Thead>
             <Tbody>
               {danhSachCapBac.map((capBac, index) => (
-                <Tr key={index} _hover={{ bg: headerBg }}>
+                <Tr key={index}>
+                  <Td isNumeric>{index + 1}</Td>
                   <Td>
                     <HStack>
                       <Icon as={FaUserTie} color="blue.500" />
@@ -208,13 +329,23 @@ const LichSuCapBacModal = memo(({ isOpen, onClose, danhSachCapBac }) => {
                       <Text>{formatDate(capBac.ngayNhan)}</Text>
                     </HStack>
                   </Td>
-                  <Td>{capBac.ghiChu}</Td>
+                  <Td>
+                    <HStack>
+                      <Avatar size="xs" name={capBac.nguoiCapNhat} src={capBac.anhNguoiCapNhat} />
+                      <Text>{capBac.nguoiCapNhat}</Text>
+                    </HStack>
+                  </Td>
+                  <Td maxW="300px">
+                    <Tooltip label={capBac.ghiChu} placement="top">
+                      <Text isTruncated>{capBac.ghiChu || '—'}</Text>
+                    </Tooltip>
+                  </Td>
                 </Tr>
               ))}
             </Tbody>
           </Table>
         </ModalBody>
-        <ModalFooter borderTopWidth="1px">
+        <ModalFooter borderTopWidth="1px" borderColor={borderColor}>
           <Button onClick={onClose} leftIcon={<FaTimes />}>
             Đóng
           </Button>
@@ -232,92 +363,124 @@ LichSuCapBacModal.propTypes = {
   danhSachCapBac: PropTypes.arrayOf(
     PropTypes.shape({
       capBac: PropTypes.string.isRequired,
-      ngayNhan: PropTypes.oneOfType([PropTypes.string, PropTypes.object])
-        .isRequired,
+      ngayNhan: PropTypes.any.isRequired,
+      nguoiCapNhat: PropTypes.string.isRequired,
+      anhNguoiCapNhat: PropTypes.string,
       ghiChu: PropTypes.string,
     })
   ).isRequired,
 };
 
-// Component ThemCapBacModal được cải tiến với kiểu dáng tốt hơn
-const ThemCapBacModal = memo(
-  ({ isOpen, onClose, onSubmit, editData, setEditData }) => {
-    const headerBg = useColorModeValue('gray.50', 'gray.700');
+const ThemCapBacModal = memo(({ isOpen, onClose, onSubmit, capBacData, setCapBacData }) => {
+  const headerBg = useColorModeValue('gray.50', 'gray.700');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-    return (
-      <Modal isOpen={isOpen} onClose={onClose}>
-        <ModalOverlay backdropFilter="blur(2px)" />
-        <ModalContent>
-          <ModalHeader bg={headerBg} borderBottomWidth="1px">
-            <HStack>
-              <Icon as={FaUserTie} color="blue.500" />
-              <Text>Thêm cấp bậc mới</Text>
-            </HStack>
-          </ModalHeader>
-          <ModalCloseButton />
-          <ModalBody py={4}>
-            <VStack spacing={4}>
-              <FormControl>
-                <FormLabel>
-                  <HStack>
-                    <Icon as={FaUserTie} color="blue.500" />
-                    <Text>Cấp bậc</Text>
-                  </HStack>
-                </FormLabel>
-                <Select
-                  value={editData.capBac}
-                  onChange={(e) =>
-                    setEditData((prev) => ({
-                      ...prev,
-                      capBac: e.target.value,
-                    }))
-                  }
-                >
-                  {Object.entries(CAP_BAC).map(([key, value]) => (
-                    <option key={key} value={value}>
-                      {CAP_BAC_LABEL[value]}
-                    </option>
-                  ))}
-                </Select>
-              </FormControl>
-              <FormControl>
-                <FormLabel>
-                  <HStack>
-                    <Icon as={FaCalendarAlt} color="green.500" />
-                    <Text>Ngày nhận cấp</Text>
-                  </HStack>
-                </FormLabel>
-                <Input
-                  type="date"
-                  value={editData.ngayNhanCap}
-                  onChange={(e) =>
-                    setEditData((prev) => ({
-                      ...prev,
-                      ngayNhanCap: e.target.value,
-                    }))
-                  }
-                />
-              </FormControl>
-            </VStack>
-          </ModalBody>
-          <ModalFooter borderTopWidth="1px">
-            <Button
-              colorScheme="blue"
-              mr={3}
-              onClick={onSubmit}
-              leftIcon={<FaSave />}
-            >
-              Thêm
-            </Button>
-            <Button onClick={onClose} leftIcon={<FaTimes />}>
-              Hủy
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-    );
-  }
-);
+  const handleSubmit = async () => {
+    try {
+      setIsSubmitting(true);
+      await onSubmit();
+      onClose();
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} size="xl">
+      <ModalOverlay backdropFilter="blur(2px)" />
+      <ModalContent>
+        <ModalHeader bg={headerBg} borderBottomWidth="1px" borderColor={borderColor}>
+          <HStack>
+            <Icon as={FaUserTie} color="blue.500" />
+            <Text>Thêm cấp bậc mới</Text>
+          </HStack>
+        </ModalHeader>
+        <ModalCloseButton />
+        <ModalBody py={4}>
+          <VStack spacing={4}>
+            <FormControl isRequired>
+              <FormLabel>
+                <HStack>
+                  <Icon as={FaUserTie} color="blue.500" />
+                  <Text>Cấp bậc</Text>
+                </HStack>
+              </FormLabel>
+              <Select
+                value={capBacData.capBac}
+                onChange={(e) =>
+                  setCapBacData((prev) => ({
+                    ...prev,
+                    capBac: e.target.value,
+                  }))
+                }
+              >
+                {CAP_BAC_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl isRequired>
+              <FormLabel>
+                <HStack>
+                  <Icon as={FaCalendarAlt} color="green.500" />
+                  <Text>Ngày nhận cấp</Text>
+                </HStack>
+              </FormLabel>
+              <Input
+                type="date"
+                value={capBacData.ngayNhanCap}
+                onChange={(e) =>
+                  setCapBacData((prev) => ({
+                    ...prev,
+                    ngayNhanCap: e.target.value,
+                  }))
+                }
+              />
+            </FormControl>
+
+            <FormControl>
+              <FormLabel>
+                <HStack>
+                  <Icon as={FaInfoCircle} color="blue.500" />
+                  <Text>Ghi chú</Text>
+                </HStack>
+              </FormLabel>
+              <Textarea
+                value={capBacData.ghiChu}
+                onChange={(e) =>
+                  setCapBacData((prev) => ({
+                    ...prev,
+                    ghiChu: e.target.value,
+                  }))
+                }
+                placeholder="Nhập ghi chú (nếu có)"
+                rows={3}
+              />
+            </FormControl>
+          </VStack>
+        </ModalBody>
+        <ModalFooter borderTopWidth="1px" borderColor={borderColor}>
+          <Button
+            colorScheme="blue"
+            mr={3}
+            onClick={handleSubmit}
+            leftIcon={<FaSave />}
+            isLoading={isSubmitting}
+          >
+            Thêm cấp bậc
+          </Button>
+          <Button onClick={onClose} leftIcon={<FaTimes />}>
+            Hủy
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+  );
+});
 
 ThemCapBacModal.displayName = 'ThemCapBacModal';
 
@@ -325,14 +488,14 @@ ThemCapBacModal.propTypes = {
   isOpen: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
   onSubmit: PropTypes.func.isRequired,
-  editData: PropTypes.shape({
+  capBacData: PropTypes.shape({
     capBac: PropTypes.string.isRequired,
     ngayNhanCap: PropTypes.string.isRequired,
+    ghiChu: PropTypes.string,
   }).isRequired,
-  setEditData: PropTypes.func.isRequired,
+  setCapBacData: PropTypes.func.isRequired,
 };
 
-// Component ChiTietThanhVien
 const ChiTietThanhVien = ({
   isOpen,
   onClose,
@@ -342,25 +505,26 @@ const ChiTietThanhVien = ({
   const { user } = useAuth();
   const toast = useToast();
   const lichSuCapBacModal = useDisclosure();
+  const lichSuChinhSuaModal = useDisclosure();
   const themCapBacModal = useDisclosure();
   const isAdminTong = user?.role === 'admin-tong';
 
   const [isEditing, setIsEditing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [danhSachCapBac, setDanhSachCapBac] = useState([]);
+  const [lichSuChinhSua, setLichSuChinhSua] = useState([]);
   const [isImageError, setIsImageError] = useState(false);
-
-  const bgColor = useColorModeValue('white', 'gray.800');
-  const borderColor = useColorModeValue('gray.200', 'gray.600');
-  const headerBg = useColorModeValue('gray.50', 'gray.700');
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const cancelRef = useRef();
 
   const [editData, setEditData] = useState({
-    capBac: CAP_BAC.THU_SINH,
-    ngayNhanCap: new Date().toISOString().split('T')[0],
     anhDaiDien: '',
     hoTen: '',
     email: '',
     phongBan: '',
     chucVu: CHUC_VU.THANH_VIEN,
+    capBac: CAP_BAC.THU_SINH,
+    ngayNhanCapBac: new Date().toISOString().split('T')[0],
     trangThai: TRANG_THAI_THANH_VIEN.DANG_CONG_TAC,
     soDienThoai: '',
     ngayVao: '',
@@ -380,16 +544,28 @@ const ChiTietThanhVien = ({
     zaloPhone: '',
   });
 
+  const [capBacData, setCapBacData] = useState({
+    capBac: CAP_BAC.THU_SINH,
+    ngayNhanCap: new Date().toISOString().split('T')[0],
+    ghiChu: '',
+  });
+
+  const [originalData, setOriginalData] = useState(null);
+
+  const bgColor = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.600');
+  const headerBg = useColorModeValue('gray.50', 'gray.700');
+
   useEffect(() => {
     if (thanhVien) {
-      setEditData((prev) => ({
-        ...prev,
+      const newEditData = {
         anhDaiDien: thanhVien.anhDaiDien || '',
         hoTen: thanhVien.hoTen || '',
         email: thanhVien.email || '',
         phongBan: thanhVien.phongBan || '',
         chucVu: thanhVien.chucVu || CHUC_VU.THANH_VIEN,
         capBac: thanhVien.capBac || CAP_BAC.THU_SINH,
+        ngayNhanCapBac: thanhVien.ngayNhanCapBac || new Date().toISOString().split('T')[0],
         trangThai: thanhVien.trangThai || TRANG_THAI_THANH_VIEN.DANG_CONG_TAC,
         soDienThoai: thanhVien.soDienThoai || '',
         ngayVao: thanhVien.ngayVao || '',
@@ -407,45 +583,187 @@ const ChiTietThanhVien = ({
         motherPhone: thanhVien.motherPhone || '',
         telegramId: thanhVien.telegramId || '',
         zaloPhone: thanhVien.zaloPhone || '',
-      }));
+      };
+      setEditData(newEditData);
+      setOriginalData(newEditData);
       setDanhSachCapBac(thanhVien.danhSachCapBac || []);
+      setLichSuChinhSua(thanhVien.lichSuChinhSua || []);
       setIsImageError(false);
+      setHasUnsavedChanges(false);
     }
   }, [thanhVien]);
 
-  const handleImageError = () => {
-    setIsImageError(true);
-  };
+  useEffect(() => {
+    if (!isOpen) {
+      setIsEditing(false);
+      setIsImageError(false);
+      setHasUnsavedChanges(false);
+    }
+  }, [isOpen]);
 
-  const showToast = (title, description, status) => {
-    toast({
-      title,
-      description,
-      status,
-      duration: 3000,
-      isClosable: true,
-      position: 'top',
-      variant: 'solid',
-    });
-  };
+  useEffect(() => {
+    if (originalData && isEditing) {
+      const hasChanges = Object.keys(editData).some(
+        (key) => editData[key] !== originalData[key]
+      );
+      setHasUnsavedChanges(hasChanges);
+    }
+  }, [editData, originalData, isEditing]);
+
+  const showToast = useCallback(
+    (title, description, status) => {
+      toast({
+        title,
+        description,
+        status,
+        duration: 3000,
+        isClosable: true,
+        position: 'top',
+        variant: 'solid',
+      });
+    },
+    [toast]
+  );
+
+  const handleImageError = useCallback(() => {
+    setIsImageError(true);
+  }, []);
+
+  const handleCancelEdit = useCallback(() => {
+    if (hasUnsavedChanges) {
+      toast({
+        title: 'Xác nhận hủy',
+        description: 'Bạn có chắc muốn hủy các thay đổi?',
+        status: 'warning',
+        duration: null,
+        isClosable: true,
+        position: 'top',
+        variant: 'solid',
+        render: ({ onClose }) => (
+          <AlertDialog
+            isOpen
+            leastDestructiveRef={cancelRef}
+            onClose={onClose}
+            isCentered
+          >
+            <AlertDialogOverlay>
+              <AlertDialogContent>
+                <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                  Xác nhận hủy chỉnh sửa
+                </AlertDialogHeader>
+
+                <AlertDialogBody>
+                  Bạn có chắc muốn hủy các thay đổi? Mọi thông tin đã chỉnh sửa sẽ không được lưu.
+                </AlertDialogBody>
+
+                <AlertDialogFooter>
+                  <Button ref={cancelRef} onClick={onClose}>
+                    Tiếp tục chỉnh sửa
+                  </Button>
+                  <Button
+                    colorScheme="red"
+                    onClick={() => {
+                      setEditData(originalData);
+                      setIsEditing(false);
+                      setHasUnsavedChanges(false);
+                      onClose();
+                    }}
+                    ml={3}
+                  >
+                    Hủy thay đổi
+                  </Button>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialogOverlay>
+          </AlertDialog>
+        ),
+      });
+    } else {
+      setIsEditing(false);
+    }
+  }, [hasUnsavedChanges, originalData, toast]);
 
   const handleSave = async () => {
-    if (!thanhVien?.id) return;
+    if (!thanhVien?.id || !hasUnsavedChanges) return;
 
     try {
+      setIsSubmitting(true);
+
+      const changedFields = {};
+      Object.keys(editData).forEach((key) => {
+        if (editData[key] !== originalData[key]) {
+          changedFields[key] = {
+            old: originalData[key],
+            new: editData[key],
+          };
+        }
+      });
+
+      const lichSuMoi = [];
+
+      if (changedFields.capBac || changedFields.ngayNhanCapBac) {
+        lichSuMoi.push({
+          thoiGian: new Date(),
+          loai: EDIT_HISTORY_TYPE.LEVEL_CHANGED,
+          nguoiThucHien: user.displayName,
+          anhNguoiThucHien: user.avatar,
+          thongTinCu: `${CAP_BAC_LABEL[originalData.capBac]} (${formatDate(
+            originalData.ngayNhanCapBac
+          )})`,
+          thongTinMoi: `${CAP_BAC_LABEL[editData.capBac]} (${formatDate(
+            editData.ngayNhanCapBac
+          )})`,
+          ghiChu: `Thay đổi cấp bậc bởi ${user.displayName}`,
+        });
+
+        const capBacMoi = {
+          capBac: editData.capBac,
+          ngayNhan: editData.ngayNhanCapBac,
+          nguoiCapNhat: user.displayName,
+          anhNguoiCapNhat: user.avatar,
+          ghiChu: '',
+        };
+
+        setDanhSachCapBac((prev) => [...prev, capBacMoi]);
+      }
+
+      if (changedFields.phongBan) {
+        lichSuMoi.push({
+          thoiGian: new Date(),
+          loai: EDIT_HISTORY_TYPE.DEPARTMENT_CHANGED,
+          nguoiThucHien: user.displayName,
+          anhNguoiThucHien: user.avatar,
+          thongTinCu: PHONG_BAN_LABEL[originalData.phongBan],
+          thongTinMoi: PHONG_BAN_LABEL[editData.phongBan],
+          ghiChu: `Thay đổi phòng ban bởi ${user.displayName}`,
+        });
+      }
+
+      if (changedFields.chucVu) {
+        lichSuMoi.push({
+          thoiGian: new Date(),
+          loai: EDIT_HISTORY_TYPE.POSITION_CHANGED,
+          nguoiThucHien: user.displayName,
+          anhNguoiThucHien: user.avatar,
+          thongTinCu: CHUC_VU_LABEL[originalData.chucVu],
+          thongTinMoi: CHUC_VU_LABEL[editData.chucVu],
+          ghiChu: `Thay đổi chức vụ bởi ${user.displayName}`,
+        });
+      }
+
       const updatedData = {
-        anhDaiDien: editData.anhDaiDien,
-        phongBan: editData.phongBan,
-        chucVu: editData.chucVu,
-        capBac: editData.capBac,
-        ngayVao: editData.ngayVao,
-        soDienThoai: editData.soDienThoai,
+        ...editData,
+        danhSachCapBac: danhSachCapBac,
+        lichSuChinhSua: [...lichSuChinhSua, ...lichSuMoi],
       };
 
       const result = await thanhVienService.capNhat(thanhVien.id, updatedData);
 
       if (result) {
         setIsEditing(false);
+        setHasUnsavedChanges(false);
+        setOriginalData(editData);
+        setLichSuChinhSua((prev) => [...prev, ...lichSuMoi]);
         if (onCapNhatThongTin) {
           onCapNhatThongTin(thanhVien.id, result);
         }
@@ -454,6 +772,8 @@ const ChiTietThanhVien = ({
     } catch (error) {
       console.error('Lỗi cập nhật:', error);
       showToast('Lỗi', error.message || 'Không thể cập nhật thông tin', 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -461,21 +781,42 @@ const ChiTietThanhVien = ({
     if (!thanhVien?.id) return;
 
     try {
+      setIsSubmitting(true);
+
       const capBacMoi = {
-        capBac: editData.capBac,
-        ngayNhan: editData.ngayNhanCap,
-        ghiChu: '',
+        capBac: capBacData.capBac,
+        ngayNhan: capBacData.ngayNhanCap,
+        nguoiCapNhat: user.displayName,
+        anhNguoiCapNhat: user.avatar,
+        ghiChu: capBacData.ghiChu || '',
       };
 
       const danhSachCapBacMoi = [...danhSachCapBac, capBacMoi];
 
+      const lichSuMoi = {
+        thoiGian: new Date(),
+        loai: EDIT_HISTORY_TYPE.LEVEL_CHANGED,
+        nguoiThucHien: user.displayName,
+        anhNguoiThucHien: user.avatar,
+        thongTinCu: `${CAP_BAC_LABEL[thanhVien.capBac]} (${formatDate(
+          thanhVien.ngayNhanCapBac
+        )})`,
+        thongTinMoi: `${CAP_BAC_LABEL[capBacData.capBac]} (${formatDate(
+          capBacData.ngayNhanCap
+        )})`,
+        ghiChu: capBacData.ghiChu || `Thay đổi cấp bậc bởi ${user.displayName}`,
+      };
+
       const result = await thanhVienService.capNhat(thanhVien.id, {
-        capBac: editData.capBac,
+        capBac: capBacData.capBac,
+        ngayNhanCapBac: capBacData.ngayNhanCap,
         danhSachCapBac: danhSachCapBacMoi,
+        lichSuChinhSua: [...lichSuChinhSua, lichSuMoi],
       });
 
       if (result) {
         setDanhSachCapBac(danhSachCapBacMoi);
+        setLichSuChinhSua((prev) => [...prev, lichSuMoi]);
         themCapBacModal.onClose();
         if (onCapNhatThongTin) {
           onCapNhatThongTin(thanhVien.id, result);
@@ -485,6 +826,8 @@ const ChiTietThanhVien = ({
     } catch (error) {
       console.error('Lỗi thêm cấp bậc:', error);
       showToast('Lỗi', error.message || 'Không thể thêm cấp bậc', 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -499,6 +842,7 @@ const ChiTietThanhVien = ({
       size="2xl"
       scrollBehavior="inside"
       motionPreset="slideInBottom"
+      closeOnOverlayClick={!isEditing || !hasUnsavedChanges}
     >
       <ModalOverlay backdropFilter="blur(2px)" />
       <ModalContent bg={bgColor}>
@@ -508,29 +852,40 @@ const ChiTietThanhVien = ({
           borderColor={borderColor}
           py={4}
         >
-          <Flex justifyContent="space-between" alignItems="center">
+          <Flex justify="space-between" align="center">
             <HStack spacing={3}>
               <Icon as={FaUser} color="blue.500" boxSize={6} />
               <Heading size="md">Thông tin chi tiết thành viên</Heading>
             </HStack>
-            {isAdminTong && (
-              <Tooltip label={isEditing ? 'Lưu thay đổi' : 'Chỉnh sửa'}>
+            <HStack spacing={2}>
+              <Tooltip label="Xem lịch sử chỉnh sửa">
                 <IconButton
-                  icon={isEditing ? <FaSave /> : <FaEdit />}
-                  colorScheme={isEditing ? 'green' : 'blue'}
-                  onClick={isEditing ? handleSave : () => setIsEditing(true)}
-                  aria-label={isEditing ? 'Lưu thay đổi' : 'Chỉnh sửa'}
+                  icon={<FaHistory />}
+                  colorScheme="blue"
+                  variant="ghost"
+                  onClick={lichSuChinhSuaModal.onOpen}
+                  aria-label="Xem lịch sử chỉnh sửa"
                 />
               </Tooltip>
-            )}
+              {isAdminTong && (
+                <Tooltip label={isEditing ? 'Lưu thay đổi' : 'Chỉnh sửa'}>
+                  <IconButton
+                    icon={isEditing ? <FaSave /> : <FaEdit />}
+                    colorScheme={isEditing ? 'green' : 'blue'}
+                    onClick={isEditing ? handleSave : () => setIsEditing(true)}
+                    isLoading={isSubmitting}
+                    aria-label={isEditing ? 'Lưu thay đổi' : 'Chỉnh sửa'}
+                  />
+                </Tooltip>
+              )}
+            </HStack>
           </Flex>
         </ModalHeader>
         <ModalCloseButton />
-
         <ModalBody py={6}>
           <Container maxW="container.lg">
             <VStack spacing={8}>
-              {/* Thông tin cơ bản */}
+              {/* Avatar và thông tin cơ bản */}
               <Box width="full" textAlign="center">
                 <AspectRatio ratio={1} width="150px" mx="auto" mb={4}>
                   <Box
@@ -606,11 +961,14 @@ const ChiTietThanhVien = ({
                   label="Mã thành viên"
                   value={thanhVien.memberCode}
                   icon={FaIdCard}
+                  isRequired
                 />
+
                 <ThongTinItem
                   label="Email"
                   value={thanhVien.email}
                   icon={FaEnvelope}
+                  isRequired
                 />
 
                 <ThongTinItem
@@ -618,6 +976,7 @@ const ChiTietThanhVien = ({
                   value={PHONG_BAN_LABEL[thanhVien.phongBan]}
                   icon={FaBuilding}
                   isEditing={isEditing && isAdminTong}
+                  isRequired
                 >
                   <Select
                     value={editData.phongBan}
@@ -638,6 +997,7 @@ const ChiTietThanhVien = ({
                   value={CHUC_VU_LABEL[thanhVien.chucVu]}
                   icon={FaUserTie}
                   isEditing={isEditing && isAdminTong}
+                  isRequired
                 >
                   <Select
                     value={editData.chucVu}
@@ -660,6 +1020,7 @@ const ChiTietThanhVien = ({
                       value={formatDate(thanhVien.ngayVao)}
                       icon={FaCalendarAlt}
                       isEditing={isEditing}
+                      isRequired
                     >
                       <Input
                         type="date"
@@ -675,6 +1036,7 @@ const ChiTietThanhVien = ({
                       value={thanhVien.soDienThoai}
                       icon={FaPhone}
                       isEditing={isEditing}
+                      isRequired
                     >
                       <Input
                         value={editData.soDienThoai}
@@ -689,32 +1051,70 @@ const ChiTietThanhVien = ({
                 <Box gridColumn="span 2">
                   <ThongTinItem
                     label="Cấp bậc hiện tại"
-                    value={CAP_BAC_LABEL[thanhVien.capBac]}
+                    value={`${CAP_BAC_LABEL[thanhVien.capBac]} (${formatDate(
+                      thanhVien.ngayNhanCapBac
+                    )})`}
                     icon={FaUserTie}
+                    isRequired
+                    isEditing={isEditing && isAdminTong}
                   >
-                    <HStack justifyContent="space-between" mt={2}>
-                      <Text>{CAP_BAC_LABEL[thanhVien.capBac]}</Text>
-                      <HStack>
-                        <Button
-                          size="sm"
-                          colorScheme="blue"
-                          leftIcon={<FaHistory />}
-                          onClick={lichSuCapBacModal.onOpen}
+                    {isEditing && isAdminTong ? (
+                      <VStack alignItems="start" spacing={2}>
+                        <Select
+                          value={editData.capBac}
+                          onChange={(e) =>
+                            setEditData((prev) => ({ ...prev, capBac: e.target.value }))
+                          }
                         >
-                          Xem lịch sử
-                        </Button>
-                        {isAdminTong && (
+                          {CAP_BAC_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </Select>
+                        <Input
+                          type="date"
+                          value={editData.ngayNhanCapBac}
+                          onChange={(e) =>
+                            setEditData((prev) => ({
+                              ...prev,
+                              ngayNhanCapBac: e.target.value,
+                            }))
+                          }
+                        />
+                      </VStack>
+                    ) : (
+                      <HStack justifyContent="space-between" mt={2}>
+                        <Text
+                          className={`cap-bac-${thanhVien.capBac}`}
+                          fontSize="xl"
+                          fontWeight="bold"
+                          textShadow="0 0 10px rgba(0,0,0,0.5)"
+                        >
+                          {CAP_BAC_LABEL[thanhVien.capBac]}
+                        </Text>
+                        <HStack>
                           <Button
                             size="sm"
-                            colorScheme="green"
-                            leftIcon={<FaEdit />}
-                            onClick={themCapBacModal.onOpen}
+                            colorScheme="blue"
+                            leftIcon={<FaHistory />}
+                            onClick={lichSuCapBacModal.onOpen}
                           >
-                            Thêm cấp bậc
+                            Xem lịch sử
                           </Button>
-                        )}
+                          {isAdminTong && (
+                            <Button
+                              size="sm"
+                              colorScheme="green"
+                              leftIcon={<FaEdit />}
+                              onClick={themCapBacModal.onOpen}
+                            >
+                              Thêm cấp bậc
+                            </Button>
+                          )}
+                        </HStack>
                       </HStack>
-                    </HStack>
+                    )}
                   </ThongTinItem>
                 </Box>
 
@@ -722,43 +1122,103 @@ const ChiTietThanhVien = ({
                   label="Địa chỉ"
                   value={thanhVien.address}
                   icon={FaMapMarkerAlt}
-                />
+                  isEditing={isEditing}
+                  isRequired
+                >
+                  <Input
+                    value={editData.address}
+                    onChange={(e) =>
+                      setEditData((prev) => ({ ...prev, address: e.target.value }))
+                    }
+                  />
+                </ThongTinItem>
 
                 <ThongTinItem
                   label="Ngày sinh"
                   value={formatDate(thanhVien.dateOfBirth)}
                   icon={FaBirthdayCake}
-                />
+                  isEditing={isEditing}
+                  isRequired
+                >
+                  <Input
+                    type="date"
+                    value={editData.dateOfBirth}
+                    onChange={(e) =>
+                      setEditData((prev) => ({ ...prev, dateOfBirth: e.target.value }))
+                    }
+                  />
+                </ThongTinItem>
 
                 <ThongTinItem
                   label="Facebook"
                   value={thanhVien.facebookLink}
                   icon={FaFacebook}
-                />
+                  isEditing={isEditing}
+                >
+                  <Input
+                    value={editData.facebookLink}
+                    onChange={(e) =>
+                      setEditData((prev) => ({ ...prev, facebookLink: e.target.value }))
+                    }
+                  />
+                </ThongTinItem>
 
                 <ThongTinItem
                   label="CV"
                   value={thanhVien.cvLink}
                   icon={FaFileAlt}
-                />
+                  isEditing={isEditing}
+                >
+                  <Input
+                    value={editData.cvLink}
+                    onChange={(e) =>
+                      setEditData((prev) => ({ ...prev, cvLink: e.target.value }))
+                    }
+                  />
+                </ThongTinItem>
 
                 <ThongTinItem
                   label="Học vấn"
                   value={thanhVien.education}
                   icon={FaGraduationCap}
-                />
+                  isEditing={isEditing}
+                >
+                  <Input
+                    value={editData.education}
+                    onChange={(e) =>
+                      setEditData((prev) => ({ ...prev, education: e.target.value }))
+                    }
+                  />
+                </ThongTinItem>
 
                 <ThongTinItem
                   label="CMND/CCCD"
                   value={thanhVien.idNumber}
                   icon={FaIdCard}
-                />
+                  isEditing={isEditing}
+                  isRequired
+                >
+                  <Input
+                    value={editData.idNumber}
+                    onChange={(e) =>
+                      setEditData((prev) => ({ ...prev, idNumber: e.target.value }))
+                    }
+                  />
+                </ThongTinItem>
 
                 <ThongTinItem
                   label="Biển số xe"
                   value={thanhVien.licensePlate}
                   icon={FaMotorcycle}
-                />
+                  isEditing={isEditing}
+                >
+                  <Input
+                    value={editData.licensePlate}
+                    onChange={(e) =>
+                      setEditData((prev) => ({ ...prev, licensePlate: e.target.value }))
+                    }
+                  />
+                </ThongTinItem>
 
                 <Box p={4} borderWidth="1px" borderRadius="lg" gridColumn="span 2">
                   <Heading size="sm" mb={4} color="blue.500">
@@ -773,24 +1233,68 @@ const ChiTietThanhVien = ({
                         label="Tên cha"
                         value={thanhVien.fatherName}
                         icon={FaUser}
-                      />
+                        isEditing={isEditing}
+                      >
+                        <Input
+                          value={editData.fatherName}
+                          onChange={(e) =>
+                            setEditData((prev) => ({
+                              ...prev,
+                              fatherName: e.target.value,
+                            }))
+                          }
+                        />
+                      </ThongTinItem>
                       <ThongTinItem
                         label="SĐT cha"
                         value={thanhVien.fatherPhone}
                         icon={FaPhone}
-                      />
+                        isEditing={isEditing}
+                      >
+                        <Input
+                          value={editData.fatherPhone}
+                          onChange={(e) =>
+                            setEditData((prev) => ({
+                              ...prev,
+                              fatherPhone: e.target.value,
+                            }))
+                          }
+                        />
+                      </ThongTinItem>
                     </VStack>
                     <VStack alignItems="start" spacing={2}>
                       <ThongTinItem
                         label="Tên mẹ"
                         value={thanhVien.motherName}
                         icon={FaUser}
-                      />
+                        isEditing={isEditing}
+                      >
+                        <Input
+                          value={editData.motherName}
+                          onChange={(e) =>
+                            setEditData((prev) => ({
+                              ...prev,
+                              motherName: e.target.value,
+                            }))
+                          }
+                        />
+                      </ThongTinItem>
                       <ThongTinItem
                         label="SĐT mẹ"
                         value={thanhVien.motherPhone}
                         icon={FaPhone}
-                      />
+                        isEditing={isEditing}
+                      >
+                        <Input
+                          value={editData.motherPhone}
+                          onChange={(e) =>
+                            setEditData((prev) => ({
+                              ...prev,
+                              motherPhone: e.target.value,
+                            }))
+                          }
+                        />
+                      </ThongTinItem>
                     </VStack>
                   </SimpleGrid>
                 </Box>
@@ -807,12 +1311,31 @@ const ChiTietThanhVien = ({
                       label="Telegram ID"
                       value={thanhVien.telegramId}
                       icon={FaTelegram}
-                    />
+                      isEditing={isEditing}
+                    >
+                      <Input
+                        value={editData.telegramId}
+                        onChange={(e) =>
+                          setEditData((prev) => ({
+                            ...prev,
+                            telegramId: e.target.value,
+                          }))
+                        }
+                      />
+                    </ThongTinItem>
                     <ThongTinItem
                       label="Zalo"
                       value={thanhVien.zaloPhone}
                       icon={FaCommentDots}
-                    />
+                      isEditing={isEditing}
+                    >
+                      <Input
+                        value={editData.zaloPhone}
+                        onChange={(e) =>
+                          setEditData((prev) => ({ ...prev, zaloPhone: e.target.value }))
+                        }
+                      />
+                    </ThongTinItem>
                   </SimpleGrid>
                 </Box>
               </SimpleGrid>
@@ -832,13 +1355,12 @@ const ChiTietThanhVien = ({
                   colorScheme="green"
                   onClick={handleSave}
                   leftIcon={<FaSave />}
+                  isLoading={isSubmitting}
+                  isDisabled={!hasUnsavedChanges}
                 >
                   Lưu thay đổi
                 </Button>
-                <Button
-                  onClick={() => setIsEditing(false)}
-                  leftIcon={<FaTimes />}
-                >
+                <Button onClick={handleCancelEdit} leftIcon={<FaTimes />} variant="ghost">
                   Hủy
                 </Button>
               </>
@@ -858,13 +1380,19 @@ const ChiTietThanhVien = ({
         danhSachCapBac={danhSachCapBac}
       />
 
+      <LichSuChinhSuaModal
+        isOpen={lichSuChinhSuaModal.isOpen}
+        onClose={lichSuChinhSuaModal.onClose}
+        lichSuChinhSua={lichSuChinhSua}
+      />
+
       {isAdminTong && (
         <ThemCapBacModal
           isOpen={themCapBacModal.isOpen}
           onClose={themCapBacModal.onClose}
           onSubmit={handleThemCapBac}
-          editData={editData}
-          setEditData={setEditData}
+          capBacData={capBacData}
+          setCapBacData={setCapBacData}
         />
       )}
     </Modal>
@@ -882,6 +1410,7 @@ ChiTietThanhVien.propTypes = {
     phongBan: PropTypes.string,
     chucVu: PropTypes.string,
     capBac: PropTypes.string,
+    ngayNhanCapBac: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
     trangThai: PropTypes.string,
     soDienThoai: PropTypes.string,
     ngayVao: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
@@ -899,7 +1428,26 @@ ChiTietThanhVien.propTypes = {
     motherPhone: PropTypes.string,
     telegramId: PropTypes.string,
     zaloPhone: PropTypes.string,
-    danhSachCapBac: PropTypes.array,
+    danhSachCapBac: PropTypes.arrayOf(
+      PropTypes.shape({
+        capBac: PropTypes.string.isRequired,
+        ngayNhan: PropTypes.any.isRequired,
+        nguoiCapNhat: PropTypes.string,
+        anhNguoiCapNhat: PropTypes.string,
+        ghiChu: PropTypes.string,
+      })
+    ),
+    lichSuChinhSua: PropTypes.arrayOf(
+      PropTypes.shape({
+        thoiGian: PropTypes.any.isRequired,
+        loai: PropTypes.oneOf(Object.values(EDIT_HISTORY_TYPE)).isRequired,
+        nguoiThucHien: PropTypes.string.isRequired,
+        anhNguoiThucHien: PropTypes.string,
+        thongTinCu: PropTypes.string,
+        thongTinMoi: PropTypes.string,
+        ghiChu: PropTypes.string,
+      })
+    ),
   }),
   onCapNhatThongTin: PropTypes.func,
 };
