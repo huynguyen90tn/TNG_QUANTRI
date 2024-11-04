@@ -1,6 +1,5 @@
 // File: src/modules/quan_ly_nghi_phep/components/chi_tiet_don_nghi_phep.js
 // Link tham khảo: https://chakra-ui.com/docs/components/modal
-// Link tham khảo về xử lý form: https://chakra-ui.com/docs/components/form-control
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
@@ -23,8 +22,9 @@ import {
   FormLabel,
 } from '@chakra-ui/react';
 import { useAuth } from '../../../hooks/useAuth';
-import nghiPhepService from '../services/nghi_phep_service';
+import { useNghiPhep } from '../hooks/useNghiPhep';
 import {
+  TRANG_THAI_DON,
   TRANG_THAI_LABEL,
   TRANG_THAI_COLOR,
   LOAI_NGHI_PHEP_LABEL,
@@ -32,15 +32,15 @@ import {
 } from '../constants/trang_thai_don';
 
 const ChiTietDonNghiPhep = ({ isOpen, onClose, donNghiPhep, onUpdateStatus }) => {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const toast = useToast();
   const [approverNote, setApproverNote] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const { capNhatTrangThaiDon, huyDonNghiPhep } = useNghiPhep();
 
   const isAdminTong = user?.role === 'admin-tong';
-  const canApprove = isAdminTong && donNghiPhep?.status === 'CHO_DUYET';
-  const canCancel =
-    donNghiPhep?.userId === user?.id && donNghiPhep?.status === 'CHO_DUYET';
+  const canApprove = isAdminTong && donNghiPhep?.status === TRANG_THAI_DON.CHO_DUYET;
+  const canCancel = donNghiPhep?.userId === user?.id && donNghiPhep?.status === TRANG_THAI_DON.CHO_DUYET;
 
   useEffect(() => {
     if (!isOpen) {
@@ -49,77 +49,113 @@ const ChiTietDonNghiPhep = ({ isOpen, onClose, donNghiPhep, onUpdateStatus }) =>
     }
   }, [isOpen]);
 
-  const validateUpdateData = useCallback(() => {
-    if (!user?.id || !user?.displayName || !user?.role || !user?.department) {
-      throw new Error('Thiếu thông tin người phê duyệt');
+  useEffect(() => {
+    if (isOpen && !isAuthenticated) {
+      toast({
+        title: 'Lỗi',
+        description: 'Vui lòng đăng nhập để xem chi tiết đơn',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      onClose();
     }
+  }, [isOpen, isAuthenticated, toast, onClose]);
+
+  const validateApproverData = useCallback(() => {
+    if (!isAuthenticated || !user?.id) {
+      throw new Error('Vui lòng đăng nhập để thực hiện chức năng này');
+    }
+
+    if (!user.displayName || !user.role || !user.department) {
+      throw new Error('Thông tin người phê duyệt không đầy đủ');
+    }
+
     if (!donNghiPhep?.id) {
       throw new Error('Thiếu thông tin đơn nghỉ phép');
     }
-  }, [user, donNghiPhep]);
 
-  const handleUpdateStatus = useCallback(
-    async (newStatus) => {
-      try {
-        validateUpdateData();
-        setIsProcessing(true);
+    if (!isAdminTong) {
+      throw new Error('Bạn không có quyền phê duyệt đơn');
+    }
 
-        const updateData = {
-          status: newStatus,
-          approverNote: approverNote.trim(),
-          approverId: user.id,
-          approverName: user.displayName,
-          approverRole: user.role,
-          approverEmail: user.email,
-          approverDepartment: user.department,
-          action: newStatus === 'DA_DUYET' ? HANH_DONG.PHE_DUYET : HANH_DONG.TU_CHOI,
-        };
+    return true;
+  }, [user, isAuthenticated, isAdminTong, donNghiPhep]);
 
-        console.log('Thông tin cập nhật:', updateData);
+  const handleUpdateStatus = useCallback(async (newStatus) => {
+    try {
+      validateApproverData();
+      setIsProcessing(true);
 
-        const result = await nghiPhepService.capNhatTrangThai(donNghiPhep.id, updateData);
+      const updateData = {
+        status: newStatus,
+        approverNote: approverNote.trim(),
+        approverId: user.id,
+        approverName: user.displayName,
+        approverRole: user.role,
+        approverEmail: user.email || '',
+        approverDepartment: user.department,
+        action: newStatus === TRANG_THAI_DON.DA_DUYET ? HANH_DONG.PHE_DUYET : HANH_DONG.TU_CHOI,
+      };
 
-        if (result) {
-          if (onUpdateStatus) {
-            onUpdateStatus(result);
-          }
+      const result = await capNhatTrangThaiDon(donNghiPhep.id, updateData);
 
-          toast({
-            title: 'Cập nhật thành công',
-            description: `Đã ${
-              newStatus === 'DA_DUYET' ? 'phê duyệt' : 'từ chối'
-            } đơn nghỉ phép`,
-            status: 'success',
-            duration: 3000,
-            isClosable: true,
-          });
-
-          onClose();
+      if (result) {
+        if (onUpdateStatus) {
+          onUpdateStatus(result);
         }
-      } catch (error) {
-        console.error('Lỗi khi cập nhật:', error);
+
         toast({
-          title: 'Lỗi',
-          description: error.message || 'Không thể cập nhật trạng thái đơn',
-          status: 'error',
+          title: 'Cập nhật thành công',
+          description: `Đã ${newStatus === TRANG_THAI_DON.DA_DUYET ? 'phê duyệt' : 'từ chối'} đơn nghỉ phép`,
+          status: 'success',
           duration: 3000,
           isClosable: true,
         });
-      } finally {
-        setIsProcessing(false);
+
+        onClose();
       }
-    },
-    [validateUpdateData, approverNote, user, donNghiPhep, onUpdateStatus, toast, onClose],
-  );
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Lỗi khi cập nhật:', error);
+      toast({
+        title: 'Lỗi',
+        description: error.message || 'Không thể cập nhật trạng thái đơn',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [
+    user,
+    donNghiPhep,
+    approverNote,
+    validateApproverData,
+    capNhatTrangThaiDon,
+    onUpdateStatus,
+    toast,
+    onClose
+  ]);
 
   const handleCancel = useCallback(async () => {
     try {
+      if (!isAuthenticated || !user?.id) {
+        throw new Error('Vui lòng đăng nhập để thực hiện chức năng này');
+      }
+
       if (!donNghiPhep?.id) {
         throw new Error('Thiếu thông tin đơn nghỉ phép');
       }
+
+      if (!canCancel) {
+        throw new Error('Bạn không có quyền hủy đơn này');
+      }
+
       setIsProcessing(true);
 
-      const result = await nghiPhepService.huyDon(donNghiPhep.id);
+      const result = await huyDonNghiPhep(donNghiPhep.id);
 
       if (result) {
         if (onUpdateStatus) {
@@ -136,6 +172,7 @@ const ChiTietDonNghiPhep = ({ isOpen, onClose, donNghiPhep, onUpdateStatus }) =>
         onClose();
       }
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Lỗi khi hủy đơn:', error);
       toast({
         title: 'Lỗi',
@@ -147,10 +184,22 @@ const ChiTietDonNghiPhep = ({ isOpen, onClose, donNghiPhep, onUpdateStatus }) =>
     } finally {
       setIsProcessing(false);
     }
-  }, [donNghiPhep, onUpdateStatus, toast, onClose]);
+  }, [
+    user,
+    donNghiPhep,
+    isAuthenticated,
+    canCancel, 
+    huyDonNghiPhep,
+    onUpdateStatus,
+    toast,
+    onClose
+  ]);
 
-  if (!donNghiPhep) return null;
+  if (!isAuthenticated || !donNghiPhep) {
+    return null;
+  }
 
+  // Rest of the return JSX stays the same...
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
       <ModalOverlay />
@@ -159,6 +208,7 @@ const ChiTietDonNghiPhep = ({ isOpen, onClose, donNghiPhep, onUpdateStatus }) =>
         <ModalCloseButton />
         <ModalBody>
           <VStack spacing={4} align="stretch">
+            {/* Content sections stay the same... */}
             <HStack justify="space-between">
               <Text fontWeight="bold">Mã đơn:</Text>
               <Text>{donNghiPhep.requestId}</Text>
@@ -184,9 +234,7 @@ const ChiTietDonNghiPhep = ({ isOpen, onClose, donNghiPhep, onUpdateStatus }) =>
 
             <VStack align="flex-start" spacing={2}>
               <Text fontWeight="bold">Chi tiết đơn xin nghỉ:</Text>
-              <Text>
-                Loại nghỉ phép: {LOAI_NGHI_PHEP_LABEL[donNghiPhep.leaveType]}
-              </Text>
+              <Text>Loại nghỉ phép: {LOAI_NGHI_PHEP_LABEL[donNghiPhep.leaveType]}</Text>
               <Text>
                 Thời gian: Từ{' '}
                 {new Date(donNghiPhep.startDate).toLocaleDateString('vi-VN')} đến{' '}
@@ -196,7 +244,7 @@ const ChiTietDonNghiPhep = ({ isOpen, onClose, donNghiPhep, onUpdateStatus }) =>
               <Text>Lý do: {donNghiPhep.reason}</Text>
             </VStack>
 
-            {donNghiPhep.status !== 'CHO_DUYET' && (
+            {donNghiPhep.status !== TRANG_THAI_DON.CHO_DUYET && (
               <>
                 <Divider />
                 <VStack align="flex-start" spacing={2}>
@@ -223,6 +271,7 @@ const ChiTietDonNghiPhep = ({ isOpen, onClose, donNghiPhep, onUpdateStatus }) =>
                   onChange={(e) => setApproverNote(e.target.value)}
                   placeholder="Nhập ghi chú phê duyệt (nếu có)"
                   rows={3}
+                  isDisabled={isProcessing}
                 />
               </FormControl>
             )}
@@ -235,7 +284,7 @@ const ChiTietDonNghiPhep = ({ isOpen, onClose, donNghiPhep, onUpdateStatus }) =>
               <>
                 <Button
                   colorScheme="green"
-                  onClick={() => handleUpdateStatus('DA_DUYET')}
+                  onClick={() => handleUpdateStatus(TRANG_THAI_DON.DA_DUYET)}
                   isLoading={isProcessing}
                   loadingText="Đang xử lý..."
                 >
@@ -243,7 +292,7 @@ const ChiTietDonNghiPhep = ({ isOpen, onClose, donNghiPhep, onUpdateStatus }) =>
                 </Button>
                 <Button
                   colorScheme="red"
-                  onClick={() => handleUpdateStatus('TU_CHOI')}
+                  onClick={() => handleUpdateStatus(TRANG_THAI_DON.TU_CHOI)}
                   isLoading={isProcessing}
                   loadingText="Đang xử lý..."
                 >
@@ -263,7 +312,7 @@ const ChiTietDonNghiPhep = ({ isOpen, onClose, donNghiPhep, onUpdateStatus }) =>
               </Button>
             )}
 
-            <Button variant="ghost" onClick={onClose}>
+            <Button variant="ghost" onClick={onClose} isDisabled={isProcessing}>
               Đóng
             </Button>
           </HStack>

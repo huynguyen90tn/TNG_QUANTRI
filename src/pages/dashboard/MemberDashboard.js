@@ -1,5 +1,8 @@
 // File: src/pages/dashboard/MemberDashboard.js
-import React, { useState, useCallback } from "react";
+// Link tham khảo: https://chakra-ui.com/docs/components
+// Link tham khảo: https://firebase.google.com/docs/firestore
+
+import React, { useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -26,6 +29,16 @@ import {
   VStack,
   SimpleGrid,
   HStack,
+  Card,
+  CardBody,
+  Badge,
+  Stat,
+  StatLabel,
+  StatNumber,
+  StatHelpText,
+  IconButton,
+  Tooltip,
+  AvatarBadge,
 } from "@chakra-ui/react";
 import {
   FaUserClock,
@@ -36,7 +49,11 @@ import {
   FaCog,
   FaLock,
   FaUsers,
-  FaCalendarAlt, // Icon cho nghỉ phép
+  FaCalendarAlt,
+  FaBell,
+  FaCheckCircle,
+  FaUserAlt,
+  FaRegCalendarCheck,
 } from "react-icons/fa";
 import { useAuth } from "../../hooks/useAuth";
 import AttendanceForm from "../../components/attendance/AttendanceForm";
@@ -49,12 +66,19 @@ const MemberDashboard = () => {
 
   // Theme colors
   const bgColor = useColorModeValue("gray.50", "gray.900");
-  const textColor = useColorModeValue("gray.600", "gray.300");
+  const cardBg = useColorModeValue("white", "gray.800");
+  const textColor = useColorModeValue("gray.700", "gray.200");
+  const secondaryTextColor = useColorModeValue("gray.600", "gray.400");
+  const borderColor = useColorModeValue("gray.200", "gray.700");
+  const shadowColor = useColorModeValue(
+    "rgba(0, 0, 0, 0.1)",
+    "rgba(255, 255, 255, 0.1)"
+  );
 
-  const handleOpenAttendance = () => setIsAttendanceOpen(true);
-  const handleCloseAttendance = () => setIsAttendanceOpen(false);
+  const handleOpenAttendance = useCallback(() => setIsAttendanceOpen(true), []);
+  const handleCloseAttendance = useCallback(() => setIsAttendanceOpen(false), []);
 
-  const handleSignOut = async () => {
+  const handleSignOut = useCallback(async () => {
     try {
       await signOut();
       navigate("/");
@@ -67,28 +91,115 @@ const MemberDashboard = () => {
         isClosable: true,
       });
     }
-  };
+  }, [signOut, navigate, toast]);
 
-  const FeatureButton = useCallback(({ icon, label, onClick, colorScheme }) => (
-    <Button
-      leftIcon={<Icon as={icon} />}
-      colorScheme={colorScheme}
-      onClick={onClick}
-      size="lg"
-      variant="outline"
-      w="full"
-      h="16"
-      transition="all 0.3s"
-      _hover={{
-        transform: "translateY(-2px)",
-        shadow: "md",
-      }}
-    >
-      {label}
-    </Button>
-  ), []);
+  const getGreeting = useCallback(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Chào buổi sáng";
+    if (hour < 18) return "Chào buổi chiều";
+    return "Chào buổi tối";
+  }, []);
 
-  const mainFeatures = [
+  const FeatureButton = useCallback(
+    ({ icon, label, onClick, colorScheme }) => (
+      <Card
+        direction="row"
+        overflow="hidden"
+        variant="outline"
+        cursor="pointer"
+        onClick={onClick}
+        _hover={{
+          transform: "translateY(-4px)",
+          shadow: "xl",
+        }}
+        transition="all 0.3s ease"
+        bg={cardBg}
+        borderColor={borderColor}
+      >
+        <CardBody>
+          <Flex align="center" gap={4}>
+            <Box
+              p={3}
+              borderRadius="lg"
+              bg={`${colorScheme}.50`}
+              color={`${colorScheme}.500`}
+            >
+              <Icon as={icon} boxSize={6} />
+            </Box>
+            <VStack align="start" spacing={0}>
+              <Text fontWeight="bold" fontSize="lg" color={textColor}>
+                {label}
+              </Text>
+              <Text fontSize="sm" color={secondaryTextColor}>
+                Nhấn để truy cập
+              </Text>
+            </VStack>
+          </Flex>
+        </CardBody>
+      </Card>
+    ),
+    [cardBg, borderColor, textColor, secondaryTextColor]
+  );
+
+  const StatCard = useCallback(
+    ({ title, value, icon, change, colorScheme }) => (
+      <Card bg={cardBg} shadow="lg">
+        <CardBody>
+          <Stat>
+            <StatLabel color={secondaryTextColor}>{title}</StatLabel>
+            <Flex justify="space-between" align="center" mt={2}>
+              <StatNumber fontSize="2xl">{value}</StatNumber>
+              <Box
+                p={2}
+                borderRadius="lg"
+                bg={`${colorScheme}.50`}
+                color={`${colorScheme}.500`}
+              >
+                <Icon as={icon} boxSize={5} />
+              </Box>
+            </Flex>
+            <StatHelpText>
+              <Badge colorScheme={colorScheme}>{change}</Badge>
+            </StatHelpText>
+          </Stat>
+        </CardBody>
+      </Card>
+    ),
+    [cardBg, secondaryTextColor]
+  );
+
+  const stats = useMemo(() => [
+    {
+      title: "Dự án đang tham gia",
+      value: "5",
+      icon: FaProjectDiagram,
+      change: "Đang hoạt động",
+      colorScheme: "blue",
+    },
+    {
+      title: "Nhiệm vụ cần hoàn thành",
+      value: "12",
+      icon: FaTasks,
+      change: "Cần xử lý",
+      colorScheme: "orange",
+    },
+    {
+      title: "Tỷ lệ hoàn thành",
+      value: "85%",
+      icon: FaChartBar,
+      change: "Tốt",
+      colorScheme: "green",
+    },
+    {
+      title: "Ngày nghỉ phép còn lại",
+      value: "7",
+      icon: FaRegCalendarCheck,
+      change: "Trong năm",
+      colorScheme: "purple",
+    },
+  ], []);
+
+  const mainFeatures = useMemo(() => [
     {
       icon: FaHistory,
       label: "Lịch sử điểm danh",
@@ -111,7 +222,7 @@ const MemberDashboard = () => {
       icon: FaChartBar,
       label: "Báo cáo",
       path: "/bao-cao-ngay",
-      colorScheme: "teal", 
+      colorScheme: "teal",
     },
     {
       icon: FaUsers,
@@ -124,76 +235,129 @@ const MemberDashboard = () => {
       label: "Quản lý nghỉ phép",
       path: "/quan-ly-nghi-phep",
       colorScheme: "pink",
-    }
-  ];
+    },
+  ], []);
 
   return (
-    <Container maxW="1400px">
-      <Box minH="100vh" bg={bgColor} p={8}>
-        {/* Header */}
-        <Flex 
-          justify="space-between" 
-          align="center" 
-          mb={8}
-          flexWrap={{ base: "wrap", md: "nowrap" }}
-          gap={4}
-        >
-          <Box>
-            <Heading size="lg">Bảng Điều Khiển Thành Viên</Heading>
-            <Text color={textColor} mt={2}>
-              Chúc bạn một ngày làm việc hiệu quả!
-            </Text>
-          </Box>
-
-          <HStack spacing={4}>
-            <Button
-              leftIcon={<FaUserClock />}
-              colorScheme="blue"
-              onClick={handleOpenAttendance}
-              size={{ base: "md", md: "lg" }}
-              shadow="md"
-              _hover={{ shadow: "lg", transform: "translateY(-2px)" }}
-            >
-              Điểm danh
-            </Button>
-
-            <Menu>
-              <MenuButton>
+    <Box minH="100vh" bg={bgColor}>
+      {/* Header */}
+      <Box
+        bg={cardBg}
+        boxShadow={`0 2px 4px ${shadowColor}`}
+        position="sticky"
+        top={0}
+        zIndex={10}
+      >
+        <Container maxW="1400px" py={4}>
+          <Flex justify="space-between" align="center">
+            <HStack spacing={4}>
+              <Box position="relative">
                 <Avatar
-                  size="md"
+                  size="xl"
                   name={user?.displayName}
-                  src={user?.photoURL}
-                  cursor="pointer"
-                  border="2px solid"
-                  borderColor="blue.500"
+                  src={user?.avatar}
+                  boxShadow={`0 0 0 4px ${useColorModeValue(
+                    "blue.500",
+                    "blue.400"
+                  )}`}
+                >
+                  <AvatarBadge
+                    boxSize="1.25em"
+                    bg="green.500"
+                    borderColor={cardBg}
+                  >
+                    <Icon as={FaCheckCircle} color="white" />
+                  </AvatarBadge>
+                </Avatar>
+              </Box>
+              <VStack align="start" spacing={1}>
+                <Text fontSize="sm" color={secondaryTextColor}>
+                  {getGreeting()}
+                </Text>
+                <Heading size="md" color={textColor}>
+                  {user?.displayName}
+                </Heading>
+                <Badge colorScheme="blue">
+                  {user?.department || "Thành viên"}
+                </Badge>
+              </VStack>
+            </HStack>
+
+            <HStack spacing={4}>
+              <Tooltip label="Điểm danh">
+                <Button
+                  leftIcon={<FaUserClock />}
+                  colorScheme="blue"
+                  onClick={handleOpenAttendance}
+                  size="lg"
+                  variant="solid"
+                  shadow="md"
+                  _hover={{
+                    transform: "translateY(-2px)",
+                    shadow: "lg",
+                  }}
+                  transition="all 0.2s"
+                >
+                  Điểm danh
+                </Button>
+              </Tooltip>
+
+              <Tooltip label="Thông báo">
+                <IconButton
+                  aria-label="Notifications"
+                  icon={<FaBell />}
+                  variant="ghost"
+                  fontSize="20px"
                 />
-              </MenuButton>
-              <MenuList shadow="lg">
-                <MenuItem 
-                  icon={<FaCog />} 
-                  onClick={() => navigate("/ho-so")}
-                >
-                  Thông tin cá nhân
-                </MenuItem>
-                <Divider />
-                <MenuItem 
-                  icon={<FaLock />} 
-                  onClick={handleSignOut} 
-                  color="red.500"
-                >
-                  Đăng xuất
-                </MenuItem>
-              </MenuList>
-            </Menu>
-          </HStack>
-        </Flex>
+              </Tooltip>
 
-        <Divider my={6} />
+              <Menu>
+                <MenuButton>
+                  <Avatar
+                    size="md"
+                    name={user?.displayName}
+                    src={user?.avatar}
+                    cursor="pointer"
+                    _hover={{ transform: "scale(1.05)" }}
+                    transition="all 0.2s"
+                  />
+                </MenuButton>
+                <MenuList>
+                  <MenuItem icon={<FaUserAlt />} onClick={() => navigate("/ho-so")}>
+                    Thông tin cá nhân
+                  </MenuItem>
+                  <MenuItem icon={<FaCog />} onClick={() => navigate("/cai-dat")}>
+                    Cài đặt
+                  </MenuItem>
+                  <Divider />
+                  <MenuItem
+                    icon={<FaLock />}
+                    onClick={handleSignOut}
+                    color="red.500"
+                  >
+                    Đăng xuất
+                  </MenuItem>
+                </MenuList>
+              </Menu>
+            </HStack>
+          </Flex>
+        </Container>
+      </Box>
 
-        {/* Các nút chức năng chính */}
+      <Container maxW="1400px" py={8}>
+        {/* Stats */}
+        <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={6} mb={8}>
+          {stats.map((stat, index) => (
+            <StatCard key={index} {...stat} />
+          ))}
+        </SimpleGrid>
+
+        {/* Main Features */}
         <VStack spacing={6} align="stretch">
-          <Heading size="md">Chức năng chính</Heading>
-          <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
+          <Heading size="lg" color={textColor}>
+            Chức năng chính
+          </Heading>
+          <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
             {mainFeatures.map((feature) => (
               <FeatureButton
                 key={feature.path}
@@ -212,18 +376,19 @@ const MemberDashboard = () => {
           onClose={handleCloseAttendance}
           size="xl"
           isCentered
+          motionPreset="slideInBottom"
         >
-          <ModalOverlay />
-          <ModalContent>
-            <ModalHeader>Điểm Danh</ModalHeader>
+          <ModalOverlay bg="blackAlpha.300" backdropFilter="blur(10px)" />
+          <ModalContent bg={cardBg}>
+            <ModalHeader borderBottomWidth="1px">Điểm Danh</ModalHeader>
             <ModalCloseButton />
             <ModalBody pb={6}>
               <AttendanceForm onClose={handleCloseAttendance} />
             </ModalBody>
           </ModalContent>
         </Modal>
-      </Box>
-    </Container>
+      </Container>
+    </Box>
   );
 };
 

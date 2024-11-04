@@ -15,7 +15,6 @@ import {
   Flex,
   Icon,
   useColorModeValue,
-  Text,
 } from "@chakra-ui/react";
 import {
   FaUser,
@@ -23,27 +22,39 @@ import {
   FaPhone,
   FaFacebook,
   FaTelegram,
-  FaUpload,
+  FaImage,
   FaIdCard,
   FaBuilding,
 } from "react-icons/fa";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { setDoc, doc } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { auth, db, storage } from "../../services/firebase";
+import { setDoc, doc, serverTimestamp } from "firebase/firestore";
+import { auth, db } from "../../services/firebase";
 import { useNavigate } from "react-router-dom";
+
+// Constants cho department
+const DEPARTMENTS = {
+  'thien-minh-duong': 'Thiên Minh Đường',
+  'tay-van-cac': 'Tây Vân Các',
+  'hoa-tam-duong': 'Họa Tam Đường',
+  'ho-ly-son-trang': 'Hồ Ly Sơn trang',
+  'hoa-van-cac': 'Hoa Vân Các',
+  'tinh-van-cac': 'Tinh Vân Các'
+};
 
 const TaoTaiKhoanThanhVien = () => {
   const toast = useToast();
   const navigate = useNavigate();
+  const [isImageValid, setIsImageValid] = useState(false);
+  
   const [formData, setFormData] = useState({
-    avatar: null,
+    avatarUrl: '',
     fullName: "",
     dateOfBirth: "",
     idNumber: "",
     address: "",
     memberCode: "",
     department: "",
+    departmentId: "", // Thêm trường departmentId để lưu key của department
     joinDate: "",
     email: "",
     password: "",
@@ -60,59 +71,115 @@ const TaoTaiKhoanThanhVien = () => {
     telegramId: "",
   });
 
-  const [imagePreview, setImagePreview] = useState(null);
-
   const bgColor = useColorModeValue("gray.50", "gray.900");
   const textColor = useColorModeValue("gray.800", "gray.100");
   const inputBgColor = useColorModeValue("white", "gray.700");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    
+    // Xử lý đặc biệt cho trường department
+    if (name === "department") {
+      const departmentId = Object.keys(DEPARTMENTS).find(
+        key => DEPARTMENTS[key] === value
+      );
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+        departmentId: departmentId || ""
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setFormData((prev) => ({ ...prev, avatar: file }));
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
+  const handleImageUrlChange = (e) => {
+    const url = e.target.value;
+    setFormData(prev => ({
+      ...prev,
+      avatarUrl: url
+    }));
+    setIsImageValid(false);
+  };
+
+  const handleImageLoad = () => {
+    setIsImageValid(true);
+  };
+
+  const handleImageError = () => {
+    setIsImageValid(false);
+    toast({
+      title: "Lỗi hình ảnh",
+      description: "Link ảnh không hợp lệ hoặc không thể truy cập",
+      status: "error",
+      duration: 3000,
+      isClosable: true,
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!formData.avatarUrl || !isImageValid) {
+      toast({
+        title: "Thiếu thông tin",
+        description: "Vui lòng kiểm tra lại ảnh đại diện",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
     try {
-      // Create user with email and password
+      // Tạo tài khoản authentication
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         formData.email,
-        formData.password,
+        formData.password
       );
       const user = userCredential.user;
 
-      let avatarUrl = "";
-      if (formData.avatar) {
-        // Upload avatar to storage
-        const avatarRef = ref(storage, `avatars/${user.uid}`);
-        await uploadBytes(avatarRef, formData.avatar);
-        avatarUrl = await getDownloadURL(avatarRef);
-      }
+      // Chuẩn bị dữ liệu member
+      const memberData = {
+        userId: user.uid,
+        avatarUrl: formData.avatarUrl,
+        fullName: formData.fullName,
+        dateOfBirth: formData.dateOfBirth ? new Date(formData.dateOfBirth) : null,
+        idNumber: formData.idNumber,
+        address: formData.address,
+        memberCode: formData.memberCode,
+        department: formData.department,
+        departmentId: formData.departmentId,
+        joinDate: formData.joinDate ? new Date(formData.joinDate) : null,
+        email: formData.email,
+        phoneNumber: formData.phoneNumber,
+        licensePlate: formData.licensePlate || null,
+        education: formData.education || null,
+        fatherName: formData.fatherName || null,
+        fatherPhone: formData.fatherPhone || null,
+        motherName: formData.motherName || null,
+        motherPhone: formData.motherPhone || null,
+        cvLink: formData.cvLink || null,
+        facebookLink: formData.facebookLink || null,
+        zaloPhone: formData.zaloPhone || null,
+        telegramId: formData.telegramId || null,
+        status: "DANG_CONG_TAC",
+        level: "THU_SINH",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
 
-      const memberData = { ...formData, avatar: avatarUrl };
-      delete memberData.password;
-      delete memberData.avatar;
-
-      // Add member data to Firestore
+      // Lưu thông tin member
       await setDoc(doc(db, "members", user.uid), memberData);
 
-      // Add user role to the "users" collection
+      // Lưu thông tin user
       await setDoc(doc(db, "users", user.uid), {
         email: user.email,
         role: "member",
+        department: formData.departmentId,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
       });
 
       toast({
@@ -125,13 +192,14 @@ const TaoTaiKhoanThanhVien = () => {
 
       // Reset form
       setFormData({
-        avatar: null,
+        avatarUrl: '',
         fullName: "",
         dateOfBirth: "",
         idNumber: "",
         address: "",
         memberCode: "",
         department: "",
+        departmentId: "",
         joinDate: "",
         email: "",
         password: "",
@@ -147,15 +215,14 @@ const TaoTaiKhoanThanhVien = () => {
         zaloPhone: "",
         telegramId: "",
       });
-      setImagePreview(null);
+      setIsImageValid(false);
 
-      // Navigate back to admin dashboard
-      navigate("/admin-tong");
+      navigate("/admin-con");
     } catch (error) {
       console.error("Lỗi khi đăng ký thành viên:", error);
       toast({
         title: "Đăng ký thất bại",
-        description: `Đã xảy ra lỗi: ${error.message}`,
+        description: error.message,
         status: "error",
         duration: 5000,
         isClosable: true,
@@ -179,44 +246,41 @@ const TaoTaiKhoanThanhVien = () => {
               borderRadius="xl"
               boxShadow="xl"
             >
-              <Flex justifyContent="center" mb={4}>
-                <FormControl width="200px">
-                  <FormLabel htmlFor="avatar" cursor="pointer">
-                    <VStack spacing={2} align="center">
-                      <Box
-                        borderRadius="full"
-                        boxSize="150px"
-                        bg={imagePreview ? "transparent" : "gray.200"}
-                        display="flex"
-                        alignItems="center"
-                        justifyContent="center"
-                        overflow="hidden"
-                      >
-                        {imagePreview ? (
-                          <Image
-                            src={imagePreview}
-                            alt="Avatar preview"
-                            boxSize="150px"
-                            objectFit="cover"
-                          />
-                        ) : (
-                          <Icon as={FaUpload} w={10} h={10} color="gray.400" />
-                        )}
-                      </Box>
-                      <Text color={textColor} fontSize="sm">
-                        Tải lên ảnh đại diện
-                      </Text>
-                    </VStack>
-                  </FormLabel>
-                  <Input
-                    type="file"
-                    id="avatar"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    display="none"
-                  />
-                </FormControl>
-              </Flex>
+              <FormControl isRequired>
+                <FormLabel color={textColor}>
+                  <Icon as={FaImage} color="blue.400" mr={2} />
+                  Link ảnh đại diện
+                </FormLabel>
+                <Input
+                  name="avatarUrl"
+                  placeholder="Nhập link ảnh (URL)"
+                  value={formData.avatarUrl}
+                  onChange={handleImageUrlChange}
+                  bg={inputBgColor}
+                  color={textColor}
+                />
+              </FormControl>
+
+              {formData.avatarUrl && (
+                <Flex justifyContent="center" mb={4}>
+                  <Box
+                    borderRadius="xl"
+                    boxSize="200px"
+                    overflow="hidden"
+                    borderWidth={2}
+                    borderColor={isImageValid ? "green.400" : "red.400"}
+                  >
+                    <Image
+                      src={formData.avatarUrl}
+                      alt="Avatar preview"
+                      boxSize="200px"
+                      objectFit="cover"
+                      onLoad={handleImageLoad}
+                      onError={handleImageError}
+                    />
+                  </Box>
+                </Flex>
+              )}
 
               <SimpleGrid columns={2} spacing={6}>
                 <FormControl isRequired>
@@ -300,12 +364,11 @@ const TaoTaiKhoanThanhVien = () => {
                     color={textColor}
                   >
                     <option value="">Chọn phân hệ</option>
-                    <option value="Thiên Minh Đường">Thiên Minh Đường</option>
-                    <option value="Tây Vân Các">Tây Vân Các</option>
-                    <option value="Họa Tam Đường">Họa Tam Đường</option>
-                    <option value="Hồ Ly sơn trang">Hồ Ly Sơn trang</option>
-                    <option value="Hoa Vân Các">Hoa Vân Các</option>
-                    <option value="Tinh Vân Các">Tinh Vân Các</option>
+                    {Object.values(DEPARTMENTS).map((dept) => (
+                      <option key={dept} value={dept}>
+                        {dept}
+                      </option>
+                    ))}
                   </Select>
                 </FormControl>
 
@@ -478,7 +541,13 @@ const TaoTaiKhoanThanhVien = () => {
                 </FormControl>
               </SimpleGrid>
 
-              <Button type="submit" colorScheme="blue" size="lg" width="full">
+              <Button 
+                type="submit" 
+                colorScheme="blue" 
+                size="lg" 
+                width="full"
+                isDisabled={!isImageValid}
+              >
                 Đăng ký Thành viên
               </Button>
             </VStack>

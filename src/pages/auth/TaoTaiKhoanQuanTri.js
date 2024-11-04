@@ -1,4 +1,8 @@
-import React, { useState, useEffect } from "react";
+// File: src/pages/auth/TaoTaiKhoanQuanTri.js
+// Link tham khảo: https://firebase.google.com/docs/auth/web/password-auth
+// Link tham khảo: https://firebase.google.com/docs/firestore/manage-data/add-data
+
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Box,
   Button,
@@ -22,8 +26,7 @@ import {
   RadioGroup,
 } from "@chakra-ui/react";
 import { useAuth } from "../../hooks/useAuth";
-import { storage, db, auth } from "../../services/firebase";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { db, auth } from "../../services/firebase";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import {
@@ -31,56 +34,83 @@ import {
   FaIdCard,
   FaBuilding,
   FaShieldAlt,
-  FaUpload,
+  FaImage,
 } from "react-icons/fa";
 
+const initialFormData = {
+  avatarUrl: '',
+  fullName: "",
+  memberCode: "",
+  idNumber: "",
+  department: "",
+  permissions: [],
+  email: "",
+  password: "",
+  adminType: "admin-con",
+};
+
 const TaoTaiKhoanQuanTri = () => {
-  const [formData, setFormData] = useState({
-    avatar: null,
-    fullName: "",
-    memberCode: "",
-    idNumber: "",
-    department: "",
-    permissions: [],
-    email: "",
-    password: "",
-    adminType: "admin-con",
-  });
-  const [imagePreview, setImagePreview] = useState(null);
+  const [formData, setFormData] = useState(initialFormData);
   const { user, loading } = useAuth();
   const toast = useToast();
   const [isAdminTong, setIsAdminTong] = useState(false);
+  const [isImageValid, setIsImageValid] = useState(false);
 
   const bgColor = useColorModeValue("gray.800", "gray.900");
   const textColor = useColorModeValue("white", "gray.100");
   const inputBgColor = useColorModeValue("gray.700", "gray.800");
 
+  const checkAdminStatus = useCallback(async () => {
+    if (!user?.id) return;
+
+    try {
+      const userDoc = await getDoc(doc(db, "users", user.id));
+      const userData = userDoc.data();
+      setIsAdminTong(userData?.role === "admin-tong");
+    } catch (error) {
+      console.error("Error checking admin status:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể kiểm tra quyền admin",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  }, [user?.id, toast]);
+
   useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (user) {
-        const userDoc = await getDoc(doc(db, "users", user.uid));
-        const userData = userDoc.data();
-        setIsAdminTong(userData?.role === "admin-tong");
-      }
-    };
     checkAdminStatus();
-  }, [user]);
+  }, [checkAdminStatus]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setFormData((prev) => ({ ...prev, avatar: file }));
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
+  const handleImageUrlChange = (e) => {
+    const url = e.target.value;
+    setFormData(prev => ({
+      ...prev,
+      avatarUrl: url
+    }));
+    // Reset trạng thái hợp lệ của ảnh khi URL thay đổi
+    setIsImageValid(false);
+  };
+
+  const handleImageLoad = () => {
+    setIsImageValid(true);
+  };
+
+  const handleImageError = () => {
+    setIsImageValid(false);
+    toast({
+      title: "Lỗi hình ảnh",
+      description: "Link ảnh không hợp lệ hoặc không thể truy cập",
+      status: "error",
+      duration: 3000,
+      isClosable: true,
+    });
   };
 
   const handlePermissionChange = (checkedItems) => {
@@ -89,25 +119,33 @@ const TaoTaiKhoanQuanTri = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Form submitted. Current user:", user);
 
-    if (loading) {
-      console.log("Authentication is still loading");
+    if (!formData.avatarUrl) {
       toast({
-        title: "Đang tải",
-        description: "Vui lòng đợi trong giây lát.",
-        status: "info",
+        title: "Thiếu thông tin",
+        description: "Vui lòng nhập link ảnh đại diện",
+        status: "warning",
         duration: 3000,
         isClosable: true,
       });
       return;
     }
 
-    if (!user || !isAdminTong) {
-      console.log("User is not an admin tong");
+    if (!isImageValid) {
+      toast({
+        title: "Lỗi hình ảnh",
+        description: "Link ảnh không hợp lệ, vui lòng kiểm tra lại",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (!user?.id || !isAdminTong) {
       toast({
         title: "Không có quyền",
-        description: "Bạn không có quyền thực hiện hành động này.",
+        description: "Bạn không có quyền thực hiện hành động này",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -116,63 +154,38 @@ const TaoTaiKhoanQuanTri = () => {
     }
 
     try {
-      console.log("Starting registration process");
-
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         formData.email,
-        formData.password,
+        formData.password
       );
-      const newUser = userCredential.user;
-
-      let avatarUrl = "";
-      if (formData.avatar) {
-        console.log("Uploading avatar");
-        const avatarRef = ref(storage, `avatars/${newUser.uid}`);
-        await uploadBytes(avatarRef, formData.avatar);
-        avatarUrl = await getDownloadURL(avatarRef);
-        console.log("Avatar uploaded successfully");
-      }
 
       const adminData = {
-        uid: newUser.uid,
+        uid: userCredential.user.uid,
         email: formData.email,
         fullName: formData.fullName,
         memberCode: formData.memberCode,
         idNumber: formData.idNumber,
         department: formData.department,
         permissions: formData.permissions,
-        avatar: avatarUrl,
+        avatar: formData.avatarUrl,
         role: formData.adminType,
-        createdBy: user.uid,
+        createdBy: user.id,
         createdAt: new Date().toISOString(),
       };
 
-      console.log("Admin data prepared:", adminData);
-
-      await setDoc(doc(db, "users", newUser.uid), adminData);
-      console.log("Document successfully written!");
+      await setDoc(doc(db, "users", userCredential.user.uid), adminData);
 
       toast({
         title: "Đăng ký thành công",
-        description: `Tài khoản ${formData.adminType} đã được tạo.`,
+        description: `Tài khoản ${formData.adminType} đã được tạo`,
         status: "success",
         duration: 5000,
         isClosable: true,
       });
 
-      setFormData({
-        avatar: null,
-        fullName: "",
-        memberCode: "",
-        idNumber: "",
-        department: "",
-        permissions: [],
-        email: "",
-        password: "",
-        adminType: "admin-con",
-      });
-      setImagePreview(null);
+      setFormData(initialFormData);
+      setIsImageValid(false);
     } catch (error) {
       console.error("Lỗi khi đăng ký quản trị:", error);
       toast({
@@ -192,59 +205,52 @@ const TaoTaiKhoanQuanTri = () => {
           <Heading color={textColor} size="2xl" textAlign="center">
             Đăng ký Quản trị mới
           </Heading>
+          
           <Text color={textColor}>
-            Current user:{" "}
-            {user
-              ? `${user.email} (${isAdminTong ? "Admin Tong" : "Not Admin Tong"})`
-              : "Not logged in"}
+            Người dùng hiện tại: {" "}
+            {user ? `${user.email} (${isAdminTong ? "Admin Tổng" : "Không phải Admin Tổng"})` : "Chưa đăng nhập"}
           </Text>
+
           <form onSubmit={handleSubmit}>
-            <VStack
-              spacing={6}
-              align="stretch"
-              bg={inputBgColor}
-              p={8}
-              borderRadius="xl"
-              boxShadow="xl"
-            >
-              <Flex justifyContent="center" mb={4}>
-                <FormControl width="200px">
-                  <FormLabel htmlFor="avatar" cursor="pointer">
-                    <VStack spacing={2} align="center">
-                      <Box
-                        borderRadius="full"
-                        boxSize="150px"
-                        bg={imagePreview ? "transparent" : "gray.600"}
-                        display="flex"
-                        alignItems="center"
-                        justifyContent="center"
-                        overflow="hidden"
-                      >
-                        {imagePreview ? (
-                          <Image
-                            src={imagePreview}
-                            alt="Avatar preview"
-                            boxSize="150px"
-                            objectFit="cover"
-                          />
-                        ) : (
-                          <Icon as={FaUpload} w={10} h={10} color="gray.400" />
-                        )}
-                      </Box>
-                      <Text color={textColor} fontSize="sm">
-                        Tải lên ảnh đại diện
-                      </Text>
-                    </VStack>
-                  </FormLabel>
-                  <Input
-                    type="file"
-                    id="avatar"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    display="none"
-                  />
-                </FormControl>
-              </Flex>
+            <VStack spacing={6} align="stretch" bg={inputBgColor} p={8} borderRadius="xl" boxShadow="xl">
+              
+              {/* Phần nhập và hiển thị ảnh đại diện */}
+              <FormControl isRequired>
+                <FormLabel color={textColor}>
+                  <Icon as={FaImage} color="blue.400" mr={2} />
+                  Link ảnh đại diện
+                </FormLabel>
+                <Input
+                  name="avatarUrl"
+                  placeholder="Nhập link ảnh (URL)"
+                  value={formData.avatarUrl}
+                  onChange={handleImageUrlChange}
+                  bg="gray.700"
+                  color={textColor}
+                />
+              </FormControl>
+
+              {/* Hiển thị preview ảnh */}
+              {formData.avatarUrl && (
+                <Flex justifyContent="center" mb={4}>
+                  <Box
+                    borderRadius="xl"
+                    boxSize="200px"
+                    overflow="hidden"
+                    borderWidth={2}
+                    borderColor={isImageValid ? "green.400" : "red.400"}
+                  >
+                    <Image
+                      src={formData.avatarUrl}
+                      alt="Avatar preview"
+                      boxSize="200px"
+                      objectFit="cover"
+                      onLoad={handleImageLoad}
+                      onError={handleImageError}
+                    />
+                  </Box>
+                </Flex>
+              )}
 
               <SimpleGrid columns={2} spacing={6}>
                 <FormControl isRequired>
@@ -389,7 +395,7 @@ const TaoTaiKhoanQuanTri = () => {
                 size="lg"
                 leftIcon={<FaShieldAlt />}
                 isLoading={loading}
-                isDisabled={!isAdminTong}
+                isDisabled={!isAdminTong || !isImageValid}
               >
                 Đăng ký Quản trị
               </Button>
@@ -397,8 +403,7 @@ const TaoTaiKhoanQuanTri = () => {
           </form>
 
           <Text color="gray.400" fontSize="sm" textAlign="center">
-            Lưu ý: Bạn vẫn ở trang Admin và không bị đăng xuất sau khi đăng ký
-            thành công.
+            Lưu ý: Bạn vẫn ở trang Admin và không bị đăng xuất sau khi đăng ký thành công.
           </Text>
         </VStack>
       </Container>

@@ -1,4 +1,8 @@
-// src/modules/quan_ly_thanh_vien/hooks/use_thanh_vien.js
+// File: src/modules/quan_ly_thanh_vien/hooks/use_thanh_vien.js
+// Link tham khảo: https://redux-toolkit.js.org/api/createAsyncThunk
+// Link tham khảo: https://firebase.google.com/docs/firestore/manage-data/add-data
+// Link tham khảo: https://firebase.google.com/docs/reference/js/firestore_.timestamp
+
 import { useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -42,16 +46,44 @@ export const useThanhVien = () => {
 
   const layDanhSach = useCallback(async () => {
     try {
-      await dispatch(layDanhSachThanhVien()).unwrap();
+      const action = await dispatch(layDanhSachThanhVien()).unwrap();
+      // Xử lý timestamps trong dữ liệu trả về
+      if (Array.isArray(action.payload)) {
+        action.payload.forEach(item => {
+          if (item.createdAt) {
+            item.createdAt = item.createdAt.toDate ? item.createdAt.toDate() : new Date(item.createdAt);
+          }
+          if (item.updatedAt) {
+            item.updatedAt = item.updatedAt.toDate ? item.updatedAt.toDate() : new Date(item.updatedAt);
+          }
+          if (item.dateOfBirth) {
+            item.dateOfBirth = item.dateOfBirth.toDate ? item.dateOfBirth.toDate() : new Date(item.dateOfBirth);
+          }
+          if (item.joinDate) {
+            item.joinDate = item.joinDate.toDate ? item.joinDate.toDate() : new Date(item.joinDate);
+          }
+        });
+      }
+      return action;
     } catch (error) {
       dispatch(datLaiLoi(error.message));
       console.error('Lỗi khi lấy danh sách thành viên:', error);
+      throw error;
     }
   }, [dispatch]);
 
   const themMoi = useCallback(async (data) => {
     try {
-      const ketQua = await dispatch(themThanhVien(data)).unwrap();
+      // Chuyển đổi các trường ngày tháng sang timestamp trước khi lưu
+      const processedData = {
+        ...data,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
+        joinDate: data.joinDate ? new Date(data.joinDate) : null,
+      };
+
+      const ketQua = await dispatch(themThanhVien(processedData)).unwrap();
       dispatch(datLaiThongBao('Thêm thành viên thành công'));
       return ketQua;
     } catch (error) {
@@ -62,10 +94,18 @@ export const useThanhVien = () => {
 
   const capNhat = useCallback(async (id, data) => {
     try {
-      await thanhVienService.capNhatThanhVien(id, data);
-      const ketQua = await dispatch(capNhatThanhVien({ id, data })).unwrap();
+      // Chuyển đổi các trường ngày tháng sang timestamp trước khi cập nhật
+      const processedData = {
+        ...data,
+        updatedAt: new Date(),
+        dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
+        joinDate: data.joinDate ? new Date(data.joinDate) : null,
+      };
+
+      await thanhVienService.capNhatThanhVien(id, processedData);
+      const ketQua = await dispatch(capNhatThanhVien({ id, data: processedData })).unwrap();
       dispatch(datLaiThongBao('Cập nhật thành viên thành công'));
-      await layDanhSach(); // Tải lại danh sách sau khi cập nhật
+      await layDanhSach();
       return ketQua;
     } catch (error) {
       dispatch(datLaiLoi(error.message));
@@ -75,7 +115,11 @@ export const useThanhVien = () => {
 
   const capNhatTrangThai = useCallback(async (id, trangThai) => {
     try {
-      const ketQua = await dispatch(capNhatTrangThaiThanhVien({ id, trangThai })).unwrap();
+      const ketQua = await dispatch(capNhatTrangThaiThanhVien({ 
+        id, 
+        trangThai,
+        updatedAt: new Date()
+      })).unwrap();
       dispatch(datLaiThongBao('Cập nhật trạng thái thành công'));
       return ketQua;
     } catch (error) {
@@ -148,7 +192,7 @@ export const useThanhVien = () => {
     layDanhSach,
     themMoi,
     capNhat,
-    capNhatThongTin, // Thêm hàm mới
+    capNhatThongTin,
     capNhatTrangThai,
     xoa,
     locDanhSach,
