@@ -1,4 +1,3 @@
-// File: src/components/attendance/AttendanceForm.js
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Box,
@@ -59,8 +58,8 @@ function AttendanceForm({ onClose }) {
   const [admins, setAdmins] = useState([]);
 
   const [formData, setFormData] = useState({
-    fullName: "",
-    memberCode: "",
+    fullName: user?.fullName || "",
+    memberCode: user?.memberCode || "",
     workLocation: "",
     department: user?.department || "",
     lateReason: "",
@@ -139,14 +138,12 @@ function AttendanceForm({ onClose }) {
     let deadline = new Date();
     deadline.setHours(shiftStart.hour, shiftStart.minute, 0);
 
-    // Nếu đến trước giờ bắt đầu ca
     if (now <= deadline) {
       return { hours: 0, minutes: 0 };
     }
 
     let diffMs = now.getTime() - deadline.getTime();
 
-    // Nếu là ca chiều, trừ đi thời gian nghỉ trưa
     if (currentShift === "AFTERNOON") {
       const lunchBreakMs =
         (WORKING_HOURS.AFTERNOON.START.hour - WORKING_HOURS.MORNING.END.hour) *
@@ -186,8 +183,12 @@ function AttendanceForm({ onClose }) {
       const { hours, minutes } = calculateLateDuration();
       const greeting = GREETINGS[Math.floor(Math.random() * GREETINGS.length)];
 
+      const reportedAdmin = formData.hasReported === "yes" && formData.reportedToAdmin
+        ? admins.find((admin) => admin.id === formData.reportedToAdmin)
+        : null;
+
       const attendanceData = {
-        userId: user?.uid,
+        userId: user?.id || "",
         fullName: formData.fullName,
         memberCode: formData.memberCode,
         department: formData.department,
@@ -197,12 +198,14 @@ function AttendanceForm({ onClose }) {
         isLate: late,
         lateHours: hours,
         lateMinutes: minutes,
-        lateReason: late ? formData.lateReason : null,
+        lateReason: late ? formData.lateReason : "",
         hasReported: formData.hasReported === "yes",
-        reportedTo:
-          formData.hasReported === "yes" && formData.reportedToAdmin
-            ? admins.find((admin) => admin.id === formData.reportedToAdmin)
-            : null,
+        reportedTo: reportedAdmin ? {
+          adminId: reportedAdmin.id,
+          adminName: reportedAdmin.fullName,
+          adminEmail: reportedAdmin.email,
+          reportTime: Timestamp.now()
+        } : null,
         createdAt: Timestamp.now(),
       };
 
@@ -220,6 +223,7 @@ function AttendanceForm({ onClose }) {
 
       onClose();
     } catch (error) {
+      console.error("Lỗi điểm danh:", error);
       toast({
         title: "Lỗi!",
         description: error.message,
