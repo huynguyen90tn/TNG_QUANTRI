@@ -1,4 +1,4 @@
-// File: src/pages/dashboard/AdminTongDashboard.js
+// Link file: src/pages/dashboard/AdminTongDashboard.js
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -35,7 +35,8 @@ import {
   FaListAlt,
   FaFileAlt,
   FaUserFriends,
-  FaCalendarAlt, // Icon cho nghỉ phép
+  FaCalendarAlt,
+  FaCheckSquare, // Icon cho nhiệm vụ ngày
 } from "react-icons/fa";
 import { useAuth } from "../../hooks/useAuth";
 import { getTasks } from "../../services/api/taskApi";
@@ -154,7 +155,7 @@ const AdminTongDashboard = () => {
     </Button>
   );
 
-  // Danh sách các nút điều hướng nhanh
+  // Danh sách các nút điều hướng nhanh với thêm nút Nhiệm vụ ngày
   const quickActions = [
     {
       icon: <FaUserPlus />,
@@ -197,6 +198,13 @@ const AdminTongDashboard = () => {
       label: "Quản lý nghỉ phép",
       path: "/quan-ly-nghi-phep",
       colorScheme: "pink",
+    },
+    // Thêm nút Nhiệm vụ ngày
+    {
+      icon: <FaCheckSquare />,
+      label: "Nhiệm vụ ngày",
+      path: "/nhiem-vu-hang-ngay",
+      colorScheme: "yellow",
     },
   ];
 
