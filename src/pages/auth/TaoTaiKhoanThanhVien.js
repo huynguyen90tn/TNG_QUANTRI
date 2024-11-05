@@ -1,3 +1,7 @@
+// Link file: src/pages/auth/TaoTaiKhoanThanhVien.js
+// Link tham khảo: https://chakra-ui.com/docs/components
+// Link tham khảo: https://firebase.google.com/docs/auth
+
 import React, { useState } from "react";
 import {
   Box,
@@ -54,7 +58,7 @@ const TaoTaiKhoanThanhVien = () => {
     address: "",
     memberCode: "",
     department: "",
-    departmentId: "", // Thêm trường departmentId để lưu key của department
+    departmentId: "",
     joinDate: "",
     email: "",
     password: "",
@@ -78,7 +82,6 @@ const TaoTaiKhoanThanhVien = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     
-    // Xử lý đặc biệt cho trường department
     if (name === "department") {
       const departmentId = Object.keys(DEPARTMENTS).find(
         key => DEPARTMENTS[key] === value
@@ -120,27 +123,42 @@ const TaoTaiKhoanThanhVien = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.avatarUrl || !isImageValid) {
-      toast({
-        title: "Thiếu thông tin",
-        description: "Vui lòng kiểm tra lại ảnh đại diện",
-        status: "warning",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
-
     try {
+      if (!formData.avatarUrl || !isImageValid) {
+        throw new Error("Vui lòng kiểm tra lại ảnh đại diện");
+      }
+
+      if (!formData.email || !formData.password || !formData.fullName || 
+          !formData.department || !formData.departmentId || !formData.memberCode) {
+        throw new Error("Vui lòng điền đầy đủ thông tin bắt buộc");
+      }
+
       // Tạo tài khoản authentication
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         formData.email,
         formData.password
       );
+
       const user = userCredential.user;
 
-      // Chuẩn bị dữ liệu member
+      // Chuẩn bị dữ liệu users collection 
+      const userData = {
+        uid: user.uid,
+        email: formData.email,
+        fullName: formData.fullName,
+        role: "member",
+        avatar: formData.avatarUrl,
+        department: formData.departmentId,
+        memberCode: formData.memberCode,
+        status: "active",
+        phone: formData.phoneNumber || "",
+        position: "Thành viên",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+
+      // Chuẩn bị dữ liệu members collection
       const memberData = {
         userId: user.uid,
         avatarUrl: formData.avatarUrl,
@@ -170,27 +188,20 @@ const TaoTaiKhoanThanhVien = () => {
         updatedAt: serverTimestamp(),
       };
 
-      // Lưu thông tin member
-      await setDoc(doc(db, "members", user.uid), memberData);
-
-      // Lưu thông tin user
-      await setDoc(doc(db, "users", user.uid), {
-        email: user.email,
-        role: "member",
-        department: formData.departmentId,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
+      // Lưu vào cả 2 collection
+      await Promise.all([
+        setDoc(doc(db, "users", user.uid), userData),
+        setDoc(doc(db, "members", user.uid), memberData)
+      ]);
 
       toast({
         title: "Đăng ký thành công!",
-        description: "Tài khoản thành viên mới đã được tạo.",
+        description: "Tài khoản thành viên mới đã được tạo",
         status: "success",
         duration: 5000,
         isClosable: true,
       });
 
-      // Reset form
       setFormData({
         avatarUrl: '',
         fullName: "",
@@ -216,8 +227,8 @@ const TaoTaiKhoanThanhVien = () => {
         telegramId: "",
       });
       setIsImageValid(false);
-
       navigate("/admin-con");
+
     } catch (error) {
       console.error("Lỗi khi đăng ký thành viên:", error);
       toast({
@@ -457,6 +468,8 @@ const TaoTaiKhoanThanhVien = () => {
                   />
                 </FormControl>
 
+                // Tiếp tục phần return của form...
+
                 <FormControl>
                   <FormLabel color={textColor}>Số điện thoại bố</FormLabel>
                   <Input
@@ -547,6 +560,11 @@ const TaoTaiKhoanThanhVien = () => {
                 size="lg" 
                 width="full"
                 isDisabled={!isImageValid}
+                _hover={{
+                  transform: "translateY(-2px)",
+                  boxShadow: "lg",
+                }}
+                transition="all 0.2s"
               >
                 Đăng ký Thành viên
               </Button>

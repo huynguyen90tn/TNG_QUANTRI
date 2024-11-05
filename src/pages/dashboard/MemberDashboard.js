@@ -1,6 +1,8 @@
-// File: src/pages/dashboard/MemberDashboard.js
+// Link file: src/pages/dashboard/MemberDashboard.js
+// Link tham khảo: https://chakra-ui.com/docs
+// Link tham khảo: https://firebase.google.com/docs/firestore
 
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -35,11 +37,8 @@ import {
   StatNumber,
   StatHelpText,
   IconButton,
-  Tooltip,
   AvatarBadge,
-  Image,
-  Wrap,
-  WrapItem,
+  useDisclosure,
 } from "@chakra-ui/react";
 import {
   FaUserClock,
@@ -49,7 +48,6 @@ import {
   FaChartBar,
   FaCog,
   FaLock,
-  FaUsers,
   FaCalendarAlt,
   FaBell,
   FaCheckCircle,
@@ -59,12 +57,17 @@ import {
 } from "react-icons/fa";
 import { useAuth } from "../../hooks/useAuth";
 import AttendanceForm from "../../components/attendance/AttendanceForm";
+import { getDoc, doc } from 'firebase/firestore';
+import { db } from "../../services/firebase";
 
 const MemberDashboard = () => {
   const navigate = useNavigate();
   const toast = useToast();
   const { user, signOut } = useAuth();
-  const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
+  const { isOpen: isAttendanceOpen, onOpen: openAttendance, onClose: closeAttendance } = useDisclosure();
+
+  const [memberData, setMemberData] = useState(null);
+  const [notificationCount] = useState(3); // Số thông báo mới
 
   const bgColor = useColorModeValue("gray.50", "gray.900");
   const cardBg = useColorModeValue("white", "gray.800");
@@ -75,9 +78,32 @@ const MemberDashboard = () => {
     "rgba(0, 0, 0, 0.1)",
     "rgba(255, 255, 255, 0.1)"
   );
+  const avatarBorderColor = useColorModeValue("blue.500", "blue.400");
 
-  const handleOpenAttendance = useCallback(() => setIsAttendanceOpen(true), []);
-  const handleCloseAttendance = useCallback(() => setIsAttendanceOpen(false), []);
+  // Fetch member data
+  useEffect(() => {
+    const fetchMemberData = async () => {
+      try {
+        if (user?.id) {
+          const memberDoc = await getDoc(doc(db, "members", user.id));
+          if (memberDoc.exists()) {
+            setMemberData(memberDoc.data());
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching member data:", error);
+        toast({
+          title: "Lỗi",
+          description: "Không thể tải thông tin thành viên",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    };
+
+    fetchMemberData();
+  }, [user?.id, toast]);
 
   const handleSignOut = useCallback(async () => {
     try {
@@ -255,12 +281,9 @@ const MemberDashboard = () => {
               <Box position="relative">
                 <Avatar
                   size="xl"
-                  name={user?.fullName}
-                  src={user?.avatarUrl}
-                  boxShadow={`0 0 0 4px ${useColorModeValue(
-                    "blue.500",
-                    "blue.400"
-                  )}`}
+                  name={memberData?.fullName || user?.fullName}
+                  src={memberData?.avatarUrl || user?.avatarUrl}
+                  boxShadow={`0 0 0 4px ${avatarBorderColor}`}
                 >
                   <AvatarBadge
                     boxSize="1.25em"
@@ -273,10 +296,14 @@ const MemberDashboard = () => {
               </Box>
               <VStack align="start" spacing={1}>
                 <Heading size="md" color={textColor}>
-                  {user?.fullName}
+                  {memberData?.fullName || user?.fullName}
                 </Heading>
-                <Badge colorScheme="blue">{user?.department}</Badge>
-                <Badge colorScheme="green">Mã TV: {user?.memberCode}</Badge>
+                <Badge colorScheme="blue">
+                  {memberData?.department || user?.department}
+                </Badge>
+                <Badge colorScheme="green">
+                  Mã TV: {memberData?.memberCode || user?.memberCode}
+                </Badge>
               </VStack>
             </HStack>
 
@@ -284,7 +311,7 @@ const MemberDashboard = () => {
               <Button
                 leftIcon={<FaUserClock />}
                 colorScheme="blue"
-                onClick={handleOpenAttendance}
+                onClick={openAttendance}
                 size="lg"
                 variant="solid"
                 shadow="md"
@@ -305,15 +332,17 @@ const MemberDashboard = () => {
                   fontSize="20px"
                   position="relative"
                 >
-                  <Badge
-                    position="absolute"
-                    top="-2px"
-                    right="-2px"
-                    colorScheme="red"
-                    borderRadius="full"
-                  >
-                    3
-                  </Badge>
+                  {notificationCount > 0 && (
+                    <Badge
+                      position="absolute"
+                      top="-2px"
+                      right="-2px"
+                      colorScheme="red"
+                      borderRadius="full"
+                    >
+                      {notificationCount}
+                    </Badge>
+                  )}
                 </MenuButton>
                 <MenuList>
                   <MenuItem>Thông báo nhiệm vụ mới</MenuItem>
@@ -326,16 +355,20 @@ const MemberDashboard = () => {
                 <MenuButton>
                   <Avatar
                     size="md"
-                    name={user?.fullName}
-                    src={user?.avatarUrl}
+                    name={memberData?.fullName || user?.fullName}
+                    src={memberData?.avatarUrl || user?.avatarUrl}
                     cursor="pointer"
                     _hover={{ transform: "scale(1.05)" }}
                     transition="all 0.2s"
                   />
                 </MenuButton>
                 <MenuList>
-                  <MenuItem icon={<FaUserAlt />}>Thông tin cá nhân</MenuItem>
-                  <MenuItem icon={<FaCog />}>Cài đặt tài khoản</MenuItem>
+                  <MenuItem icon={<FaUserAlt />} onClick={() => navigate("/ho-so")}>
+                    Thông tin cá nhân
+                  </MenuItem>
+                  <MenuItem icon={<FaCog />} onClick={() => navigate("/cai-dat")}>
+                    Cài đặt tài khoản
+                  </MenuItem>
                   <Divider />
                   <MenuItem
                     icon={<FaLock />}
@@ -372,11 +405,8 @@ const MemberDashboard = () => {
             {mainFeatures.map((feature) => (
               <FeatureCard
                 key={feature.path}
-                icon={feature.icon}
-                label={feature.label}
-                description={feature.description}
+                {...feature}
                 onClick={() => navigate(feature.path)}
-                colorScheme={feature.colorScheme}
               />
             ))}
           </SimpleGrid>
@@ -385,7 +415,7 @@ const MemberDashboard = () => {
         {/* Điểm danh Modal */}
         <Modal
           isOpen={isAttendanceOpen}
-          onClose={handleCloseAttendance}
+          onClose={closeAttendance}
           size="xl"
           isCentered
           motionPreset="slideInBottom"
@@ -395,7 +425,7 @@ const MemberDashboard = () => {
             <ModalHeader borderBottomWidth="1px">Điểm Danh</ModalHeader>
             <ModalCloseButton />
             <ModalBody pb={6}>
-              <AttendanceForm onClose={handleCloseAttendance} />
+              <AttendanceForm onClose={closeAttendance} />
             </ModalBody>
           </ModalContent>
         </Modal>
