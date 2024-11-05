@@ -3,49 +3,74 @@
 // Link tham khảo: https://redux-toolkit.js.org/api/createAsyncThunk
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import * as nhiemVuService from '../services/nhiem_vu_service';
+import nhiemVuService from '../services/nhiem_vu_service';
 
 export const taoNhiemVuAsync = createAsyncThunk(
   'nhiemVu/taoNhiemVu',
   async (nhiemVuData) => {
-    const response = await nhiemVuService.taoNhiemVu(nhiemVuData);
-    return response;
+    try {
+      const response = await nhiemVuService.taoNhiemVu(nhiemVuData);
+      return response;
+    } catch (error) {
+      console.error('Lỗi tạo nhiệm vụ:', error);
+      throw error;
+    }
   }
 );
 
 export const layDanhSachNhiemVuAsync = createAsyncThunk(
   'nhiemVu/layDanhSach',
-  async ({ startDate, endDate }) => {
-    const response = await nhiemVuService.layDanhSachNhiemVu(startDate, endDate);
-    return response;
+  async ({ startDate, endDate, filterType }) => {
+    try {
+      const response = await nhiemVuService.layDanhSachNhiemVu(startDate, endDate, filterType);
+      return response;
+    } catch (error) {
+      console.error('Lỗi lấy danh sách nhiệm vụ:', error);
+      throw error;
+    }
   }
 );
 
 export const batDauKiemTraAsync = createAsyncThunk(
   'nhiemVu/batDauKiemTra',
-  async ({ nhiemVuId, userId }) => {
-    const response = await nhiemVuService.batDauKiemTra(nhiemVuId, userId);
-    return { 
-      nhiemVuId,
-      userId,
-      thoiGianKiemTra: response
-    };
+  async ({ nhiemVuId, userId }, { rejectWithValue }) => {
+    try {
+      const response = await nhiemVuService.batDauKiemTra(nhiemVuId, userId);
+      return { 
+        nhiemVuId,
+        userId,
+        thoiGianKiemTra: response
+      };
+    } catch (error) {
+      console.error('Lỗi bắt đầu kiểm tra:', error);
+      return rejectWithValue(error.message);
+    }
   }
 );
 
 export const hoanThanhKiemTraAsync = createAsyncThunk(
   'nhiemVu/hoanThanhKiemTra',
-  async ({ nhiemVuId, userId, ketQua }) => {
-    await nhiemVuService.hoanThanhKiemTra(nhiemVuId, userId, ketQua);
-    return { nhiemVuId, userId, ketQua };
+  async ({ nhiemVuId, userId, ketQua }, { rejectWithValue }) => {
+    try {
+      await nhiemVuService.hoanThanhKiemTra(nhiemVuId, userId, ketQua);
+      return { nhiemVuId, userId, ketQua, thoiGian: new Date() };
+    } catch (error) {
+      console.error('Lỗi hoàn thành kiểm tra:', error);
+      return rejectWithValue(error.message);
+    }
   }
 );
 
 export const xoaNhiemVuAsync = createAsyncThunk(
   'nhiemVu/xoaNhiemVu',
-  async (nhiemVuId) => {
-    await nhiemVuService.xoaNhiemVu(nhiemVuId);
-    return nhiemVuId;
+  async (nhiemVuId, { rejectWithValue }) => {
+    try {
+      await nhiemVuService.xoaNhiemVu(nhiemVuId);
+      return nhiemVuId;
+    } catch (error) {
+      console.error('Lỗi xóa nhiệm vụ:', error);
+      return rejectWithValue(error.message);
+    }
   }
 );
 
@@ -111,13 +136,14 @@ const nhiemVuSlice = createSlice({
           nhiemVu.danhSachDangKiemTra = nhiemVu.danhSachDangKiemTra || [];
           nhiemVu.danhSachDangKiemTra.push({
             userId: action.payload.userId,
-            thoiGianKiemTra: action.payload.thoiGianKiemTra
+            thoiGianBatDau: new Date(),
+            thoiGianKetThuc: new Date(Date.now() + nhiemVuService.VERIFICATION_TIME)
           });
         }
       })
       .addCase(batDauKiemTraAsync.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message;
+        state.error = action.payload || action.error.message;
       })
 
       // Hoàn thành kiểm tra
@@ -143,14 +169,15 @@ const nhiemVuSlice = createSlice({
             nhiemVu.danhSachHoanThanh = nhiemVu.danhSachHoanThanh || [];
             nhiemVu.danhSachHoanThanh.push({
               userId: action.payload.userId,
-              thoiGian: new Date().toISOString()
+              thoiGian: action.payload.thoiGian,
+              ketQua: action.payload.ketQua
             });
           }
         }
       })
       .addCase(hoanThanhKiemTraAsync.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message;
+        state.error = action.payload || action.error.message;
       })
 
       // Xóa nhiệm vụ
@@ -166,7 +193,7 @@ const nhiemVuSlice = createSlice({
       })
       .addCase(xoaNhiemVuAsync.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message;
+        state.error = action.payload || action.error.message;
       });
   }
 });

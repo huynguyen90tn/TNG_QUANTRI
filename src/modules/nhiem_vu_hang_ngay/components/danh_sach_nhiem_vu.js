@@ -1,6 +1,7 @@
 // File: src/modules/nhiem_vu_hang_ngay/components/danh_sach_nhiem_vu.js
 // Link tham khảo: https://chakra-ui.com/docs
 // Link tham khảo: https://react-redux.js.org/api/hooks
+// Nhánh: main
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -38,10 +39,11 @@ import {
   Spinner,
   IconButton,
   CircularProgress,
-  CircularProgressLabel
+  CircularProgressLabel,
+  Input,
 } from '@chakra-ui/react';
 import { ExternalLinkIcon, DeleteIcon } from '@chakra-ui/icons';
-import { FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
+import { FaCheckCircle, FaTimesCircle, FaClock } from 'react-icons/fa';
 import { getAllUsers } from '../../../services/api/userApi';
 import { useAuth } from '../../../hooks/useAuth';
 import {
@@ -50,30 +52,31 @@ import {
   layDanhSachNhiemVuAsync,
   xoaNhiemVuAsync,
   clearError,
-  clearKiemTraHienTai
+  clearKiemTraHienTai,
 } from '../store/nhiem_vu_slice';
 
 const FILTER_OPTIONS = {
   DAY: 'day',
-  MONTH: 'month'
+  MONTH: 'month',
 };
 
-const COOLDOWN_TIME = 120; // 2 phút (seconds)
-const VERIFICATION_TIME = 60; // 1 phút (seconds)
+const COOLDOWN_TIME = 120; // 2 phút (giây)
+const VERIFICATION_TIME = 60; // 1 phút (giây)
 
 const initialState = {
   danhSachNhiemVu: [],
   kiemTraHienTai: null,
   loading: false,
-  error: null
+  error: null,
 };
 
 const DanhSachNhiemVu = () => {
   const { user } = useAuth();
   const dispatch = useDispatch();
   const toast = useToast();
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
-  // Local states  
+  // Local states
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filterType, setFilterType] = useState(FILTER_OPTIONS.DAY);
@@ -82,58 +85,89 @@ const DanhSachNhiemVu = () => {
   const [cooldownTimer, setCooldownTimer] = useState(0);
   const [isVerifying, setIsVerifying] = useState(false);
   const [users, setUsers] = useState([]);
-  const { isOpen, onOpen, onClose } = useDisclosure();
 
-  // Selectors with default values
-  const { 
+  // Redux state
+  const {
     danhSachNhiemVu = [],
     kiemTraHienTai,
     loading: storeLoading,
-    error: storeError 
-  } = useSelector(state => state.nhiemVu || initialState);
+    error: storeError,
+  } = useSelector((state) => state.nhiemVu || initialState);
 
   // Derived states
   const memberUsers = useMemo(() => {
-    return (users || []).filter(u => u?.role === 'member');
+    return (users || []).filter((u) => u?.role === 'member');
   }, [users]);
 
   const isAdminTong = user?.role === 'admin-tong';
   const isMember = user?.role === 'member';
 
-  // Load data
+  const handleVerificationComplete = useCallback(
+    async (kiemTraInfo) => {
+      if (!kiemTraInfo?.nhiemVuId || !kiemTraInfo?.userId) {
+        console.error('Invalid verification info:', kiemTraInfo);
+        return;
+      }
+
+      try {
+        await dispatch(
+          hoanThanhKiemTraAsync({
+            nhiemVuId: kiemTraInfo.nhiemVuId,
+            userId: kiemTraInfo.userId,
+            ketQua: true,
+          })
+        ).unwrap();
+
+        setCooldownTimer(COOLDOWN_TIME);
+        dispatch(clearKiemTraHienTai());
+        onClose();
+
+        toast({
+          title: 'Thành công',
+          description: 'Bạn đã hoàn thành nhiệm vụ!',
+          status: 'success',
+          duration: 5000,
+          isClosable: true,
+        });
+      } catch (err) {
+        console.error('Completion error:', err);
+        toast({
+          title: 'Lỗi',
+          description: err.message,
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        });
+      }
+    },
+    [dispatch, onClose, toast]
+  );
+
   const handleLoadData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       console.log('Loading data with date:', selectedDate, 'filterType:', filterType);
 
-      const startDate = new Date(selectedDate);
-      startDate.setHours(0, 0, 0, 0);
-
-      let endDate = new Date(selectedDate);
-      if (filterType === FILTER_OPTIONS.MONTH) {
-        endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
-      }
-      endDate.setHours(23, 59, 59, 999);
-
-      console.log('Date range:', {startDate, endDate});
-
       // Load users first
       const usersData = await getAllUsers();
-      console.log('Loaded users:', usersData);
       setUsers(usersData?.data || []);
 
       // Then load tasks
-      const result = await dispatch(layDanhSachNhiemVuAsync({ startDate, endDate })).unwrap();
-      console.log('Loaded tasks:', result);
-
+      await dispatch(
+        layDanhSachNhiemVuAsync({
+          startDate: selectedDate,
+          endDate: selectedDate,
+          filterType,
+        })
+      ).unwrap();
     } catch (err) {
       console.error('Error loading data:', err);
       setError(err.message);
       toast({
-        title: "Lỗi",
+        title: 'Lỗi',
         description: err.message,
-        status: "error",
+        status: 'error',
         duration: 3000,
         isClosable: true,
       });
@@ -142,6 +176,7 @@ const DanhSachNhiemVu = () => {
     }
   }, [dispatch, filterType, selectedDate, toast]);
 
+  // Load data effect
   useEffect(() => {
     handleLoadData();
     return () => {
@@ -150,13 +185,13 @@ const DanhSachNhiemVu = () => {
     };
   }, [handleLoadData, dispatch]);
 
-  // Verification timer
+  // Verification timer effect
   useEffect(() => {
     let interval;
     if (kiemTraHienTai && verificationTimer > 0) {
       setIsVerifying(true);
       interval = setInterval(() => {
-        setVerificationTimer(prev => {
+        setVerificationTimer((prev) => {
           if (prev <= 1) {
             clearInterval(interval);
             setIsVerifying(false);
@@ -173,14 +208,14 @@ const DanhSachNhiemVu = () => {
         setIsVerifying(false);
       }
     };
-  }, [kiemTraHienTai, verificationTimer]);
+  }, [kiemTraHienTai, verificationTimer, handleVerificationComplete]);
 
-  // Cooldown timer
+  // Cooldown timer effect
   useEffect(() => {
     let interval;
     if (cooldownTimer > 0) {
       interval = setInterval(() => {
-        setCooldownTimer(prev => Math.max(0, prev - 1));
+        setCooldownTimer((prev) => Math.max(0, prev - 1));
       }, 1000);
     }
     return () => {
@@ -190,190 +225,140 @@ const DanhSachNhiemVu = () => {
     };
   }, [cooldownTimer]);
 
-  const handleStartVerification = useCallback(async (nhiemVu) => {
-    if (!nhiemVu?.id) {
-      console.error('Invalid task:', nhiemVu);
-      return;
-    }
+  const handleStartVerification = useCallback(
+    async (nhiemVu) => {
+      if (!nhiemVu?.id) {
+        console.error('Invalid task:', nhiemVu);
+        return;
+      }
 
-    if (cooldownTimer > 0) {
-      toast({
-        title: "Không thể thực hiện",
-        description: `Vui lòng đợi ${cooldownTimer} giây nữa trước khi thực hiện nhiệm vụ tiếp theo`,
-        status: "warning",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
+      if (cooldownTimer > 0) {
+        toast({
+          title: 'Không thể thực hiện',
+          description: `Vui lòng đợi ${cooldownTimer} giây nữa trước khi thực hiện nhiệm vụ tiếp theo`,
+          status: 'warning',
+          duration: 3000,
+          isClosable: true,
+        });
+        return;
+      }
 
-    try {
-      console.log('Starting verification for task:', nhiemVu.id);
-      await dispatch(batDauKiemTraAsync({
-        nhiemVuId: nhiemVu.id,
-        userId: user?.id
-      })).unwrap();
+      try {
+        await dispatch(
+          batDauKiemTraAsync({
+            nhiemVuId: nhiemVu.id,
+            userId: user?.id,
+          })
+        ).unwrap();
 
-      setVerificationTimer(VERIFICATION_TIME);
-      onOpen();
-    } catch (err) {
-      console.error('Verification error:', err);
-      toast({
-        title: "Lỗi",
-        description: err.message,
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-  }, [cooldownTimer, dispatch, onOpen, toast, user?.id]);
+        setVerificationTimer(VERIFICATION_TIME);
+        onOpen();
+      } catch (err) {
+        console.error('Verification error:', err);
+        toast({
+          title: 'Lỗi',
+          description: err.message,
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    },
+    [cooldownTimer, dispatch, onOpen, toast, user?.id]
+  );
 
-  const handleVerificationComplete = useCallback(async (kiemTraInfo) => {
-    if (!kiemTraInfo?.nhiemVuId || !kiemTraInfo?.userId) {
-      console.error('Invalid verification info:', kiemTraInfo);
-      return;
-    }
+  const handleDeleteTask = useCallback(
+    async (nhiemVuId) => {
+      if (!nhiemVuId) return;
 
-    try {
-      console.log('Completing verification:', kiemTraInfo);
-      await dispatch(hoanThanhKiemTraAsync({
-        nhiemVuId: kiemTraInfo.nhiemVuId,
-        userId: kiemTraInfo.userId,
-        ketQua: true
-      })).unwrap();
+      try {
+        await dispatch(xoaNhiemVuAsync(nhiemVuId)).unwrap();
+        toast({
+          title: 'Thành công',
+          description: 'Đã xóa nhiệm vụ',
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+      } catch (err) {
+        toast({
+          title: 'Lỗi',
+          description: err.message,
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    },
+    [dispatch, toast]
+  );
 
-      setCooldownTimer(COOLDOWN_TIME);
-      dispatch(clearKiemTraHienTai());
-      onClose();
+  const tinhTienDo = useCallback(
+    (nhiemVu) => {
+      if (!memberUsers?.length || !nhiemVu?.danhSachHoanThanh) return 0;
 
-      toast({
-        title: "Thành công",
-        description: "Bạn đã hoàn thành nhiệm vụ!",
-        status: "success",
-        duration: 5000,
-        isClosable: true,
-      });
-    } catch (err) {
-      console.error('Completion error:', err);
-      toast({
-        title: "Lỗi",
-        description: err.message,
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
-    }
-  }, [dispatch, onClose, toast]);
+      const completedCount = nhiemVu.danhSachHoanThanh.filter((hoanthanh) =>
+        memberUsers.some((member) => member.id === hoanthanh.userId)
+      ).length;
 
-  const handleDeleteTask = useCallback(async (nhiemVuId) => {
-    if (!nhiemVuId) {
-      console.error('Invalid task ID');
-      return;
-    }
+      const progress = (completedCount / memberUsers.length) * 100;
+      return Math.min(Math.max(progress, 0), 100);
+    },
+    [memberUsers]
+  );
 
-    try {
-      console.log('Deleting task:', nhiemVuId);
-      await dispatch(xoaNhiemVuAsync(nhiemVuId)).unwrap();
-      toast({
-        title: "Thành công",
-        description: "Đã xóa nhiệm vụ",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-    } catch (err) {
-      console.error('Delete error:', err);
-      toast({
-        title: "Lỗi",
-        description: err.message,
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-  }, [dispatch, toast]);
+  const layDanhSachChuaHoanThanh = useCallback(
+    (nhiemVu) => {
+      if (!nhiemVu?.danhSachHoanThanh || !memberUsers?.length) return [];
 
-  const tinhTienDo = useCallback((nhiemVu) => {
-    if (!memberUsers?.length || !nhiemVu?.danhSachHoanThanh) return 0;
-    
-    const completedCount = nhiemVu.danhSachHoanThanh.filter(
-      hoanthanh => memberUsers.some(member => member.id === hoanthanh.userId)
-    ).length;
-    
-    const progress = (completedCount / memberUsers.length) * 100;
-    return Math.min(Math.max(progress, 0), 100);
-  }, [memberUsers]);
+      const danhSachHoanThanh = new Set(nhiemVu.danhSachHoanThanh.map((item) => item.userId));
 
-  const layDanhSachChuaHoanThanh = useCallback((nhiemVu) => {
-    if (!nhiemVu?.danhSachHoanThanh || !memberUsers?.length) return [];
-    
-    const danhSachHoanThanh = new Set(
-      nhiemVu.danhSachHoanThanh.map(item => item.userId)
-    );
-    
-    return memberUsers.filter(user => !danhSachHoanThanh.has(user.id));
-  }, [memberUsers]);
+      return memberUsers.filter((user) => !danhSachHoanThanh.has(user.id));
+    },
+    [memberUsers]
+  );
 
-  const renderActionButton = useCallback((nhiemVu) => {
-    if (!isMember || !nhiemVu) return null;
+  const handleDateChange = useCallback(
+    (e) => {
+      const newDate = e.target.value;
+      console.log('Ngày mới được chọn:', newDate);
+      setSelectedDate(newDate);
 
-    const isCompleted = nhiemVu.danhSachHoanThanh?.some(
-      item => item.userId === user?.id
-    );
-    const isCurrentlyVerifying = kiemTraHienTai?.nhiemVuId === nhiemVu.id;
-    const isCooldown = cooldownTimer > 0;
-    
-    if (isCompleted) {
-      return (
-        <Badge colorScheme="green" p={2} borderRadius="md">
-          Đã hoàn thành
-        </Badge>
+      // Tự động load lại data khi thay đổi ngày
+      dispatch(
+        layDanhSachNhiemVuAsync({
+          startDate: newDate,
+          endDate: newDate,
+          filterType,
+        })
       );
-    }
+    },
+    [dispatch, filterType]
+  );
 
-    if (isCurrentlyVerifying) {
-      return (
-        <HStack>
-          <CircularProgress 
-            value={(VERIFICATION_TIME - verificationTimer) / VERIFICATION_TIME * 100} 
-            color="blue.400"
-          >
-            <CircularProgressLabel>{verificationTimer}s</CircularProgressLabel>
-          </CircularProgress>
-          <Text fontSize="sm">Đang kiểm tra...</Text>
-        </HStack>
+  const handleFilterChange = useCallback(
+    (e) => {
+      const newFilterType = e.target.value;
+      setFilterType(newFilterType);
+
+      // Nếu chuyển sang xem theo tháng, chỉ lấy phần năm-tháng
+      if (newFilterType === FILTER_OPTIONS.MONTH) {
+        const [year, month] = selectedDate.split('-');
+        const newDate = `${year}-${month}-01`;
+        setSelectedDate(newDate);
+      }
+
+      // Tự động load lại data với filter mới
+      dispatch(
+        layDanhSachNhiemVuAsync({
+          startDate: selectedDate,
+          endDate: selectedDate,
+          filterType: newFilterType,
+        })
       );
-    }
-
-    return (
-      <Button
-        colorScheme="blue"
-        size="sm"
-        onClick={() => handleStartVerification(nhiemVu)}
-        isDisabled={isCooldown}
-      >
-        {isCooldown 
-          ? `Chờ ${cooldownTimer}s` 
-          : 'Xác nhận thực hiện'
-        }
-      </Button>
-    );
-  }, [
-    isMember,
-    user?.id,
-    kiemTraHienTai,
-    cooldownTimer,
-    verificationTimer,
-    handleStartVerification
-  ]);
-
-  const handleFilterChange = useCallback((event) => {
-    setFilterType(event.target.value);
-  }, []);
-
-  const handleDateChange = useCallback((event) => {
-    setSelectedDate(event.target.value);
-  }, []);
+    },
+    [dispatch, selectedDate]
+  );
 
   // Loading state
   if (loading || storeLoading) {
@@ -386,7 +371,6 @@ const DanhSachNhiemVu = () => {
 
   // No data state
   if (!Array.isArray(danhSachNhiemVu) || danhSachNhiemVu.length === 0) {
-    console.log('No tasks found:', danhSachNhiemVu);
     return (
       <Box textAlign="center" py={10}>
         <Text>Không có nhiệm vụ nào trong khoảng thời gian này</Text>
@@ -399,13 +383,12 @@ const DanhSachNhiemVu = () => {
     );
   }
 
-  // Main render
   return (
     <Box overflowX="auto">
       <VStack spacing={6} align="stretch">
         <HStack justify="space-between" mb={4}>
           <Heading size="lg">Nhiệm vụ hằng ngày</Heading>
-          <Text>Tổng số thành viên cần thực hiện: {memberUsers?.length || 0}</Text>
+          <Text>Tổng số thành viên: {memberUsers?.length || 0}</Text>
         </HStack>
 
         <Grid templateColumns="repeat(12, 1fr)" gap={6}>
@@ -420,18 +403,26 @@ const DanhSachNhiemVu = () => {
           </GridItem>
           <GridItem colSpan={{ base: 12, md: 4 }}>
             <FormControl>
-              <FormLabel>
-                {filterType === FILTER_OPTIONS.DAY ? 'Chọn ngày' : 'Chọn tháng'}
-              </FormLabel>
-              <input
+              <FormLabel>{filterType === FILTER_OPTIONS.DAY ? 'Chọn ngày' : 'Chọn tháng'}</FormLabel>
+              <Input
                 type={filterType === FILTER_OPTIONS.DAY ? 'date' : 'month'}
                 value={selectedDate}
                 onChange={handleDateChange}
-                style={{
-                  padding: '0.5rem',
-                  borderRadius: '0.375rem',
-                  borderWidth: '1px',
-                  width: '100%'
+                bg="whiteAlpha.200"
+                color="white"
+                border="1px solid"
+                borderColor="whiteAlpha.300"
+                _hover={{ borderColor: 'blue.400' }}
+                _focus={{
+                  borderColor: 'blue.400',
+                  boxShadow: '0 0 0 1px var(--chakra-colors-blue-400)',
+                }}
+                sx={{
+                  cursor: 'pointer',
+                  '&::-webkit-calendar-picker-indicator': {
+                    cursor: 'pointer',
+                    filter: 'invert(1)',
+                  },
                 }}
               />
             </FormControl>
@@ -441,8 +432,9 @@ const DanhSachNhiemVu = () => {
         <Table variant="simple">
           <Thead>
             <Tr>
-              <Th>Tiêu đề</Th><Th>Loại nhiệm vụ</Th>
-              <Th>Đường dẫn</Th>
+              <Th>Tiêu đề</Th>
+              <Th>Loại nhiệm vụ</Th>
+              <Th>Link</Th>
               <Th>Tiến độ</Th>
               <Th>Trạng thái</Th>
               <Th>Chưa hoàn thành</Th>
@@ -452,21 +444,26 @@ const DanhSachNhiemVu = () => {
           <Tbody>
             {danhSachNhiemVu.map((nv) => {
               if (!nv?.id) return null;
-              
+
               const tienDo = tinhTienDo(nv);
               const chuaHoanThanh = layDanhSachChuaHoanThanh(nv);
-              
+              const isCompleted = nv.danhSachHoanThanh?.some((item) => item.userId === user?.id);
+
               return (
                 <Tr key={nv.id}>
                   <Td>{nv.tieuDe}</Td>
                   <Td>
                     <Badge colorScheme={nv.loaiNhiemVu === 'like' ? 'blue' : 'purple'}>
-                      {nv.loaiNhiemVu === 'like' ? 'Thích' : nv.loaiNhiemVu === 'share' ? 'Chia sẻ' : 'Bình luận'}
+                      {nv.loaiNhiemVu === 'like'
+                        ? 'Thích'
+                        : nv.loaiNhiemVu === 'share'
+                        ? 'Chia sẻ'
+                        : 'Bình luận'}
                     </Badge>
                   </Td>
                   <Td>
                     <Link href={nv.duongDan} isExternal>
-                      Đi đến <ExternalLinkIcon mx="2px" />
+                      Thực hiện nhiệm vụ <ExternalLinkIcon mx="2px" />
                     </Link>
                   </Td>
                   <Td>
@@ -499,10 +496,12 @@ const DanhSachNhiemVu = () => {
                   <Td maxW="300px">
                     {chuaHoanThanh.length > 0 ? (
                       <List spacing={1}>
-                        {chuaHoanThanh.map(user => (
+                        {chuaHoanThanh.map((user) => (
                           <ListItem key={user.id}>
-                            <FaTimesCircle color="red" style={{ display: 'inline', marginRight: '8px' }} />
-                            {user.email}
+                            <HStack>
+                              <FaTimesCircle color="red" />
+                              <Text>{user.email}</Text>
+                            </HStack>
                           </ListItem>
                         ))}
                       </List>
@@ -514,13 +513,43 @@ const DanhSachNhiemVu = () => {
                     )}
                   </Td>
                   <Td>
-                    {isMember && renderActionButton(nv)}
+                    {isMember && (
+                      <>
+                        {isCompleted ? (
+                          <Badge colorScheme="green" p={2} borderRadius="md">
+                            Đã hoàn thành
+                          </Badge>
+                        ) : kiemTraHienTai?.nhiemVuId === nv.id ? (
+                          <HStack>
+                            <CircularProgress
+                              value={((VERIFICATION_TIME - verificationTimer) / VERIFICATION_TIME) * 100}
+                              color="blue.400"
+                              size="40px"
+                            >
+                              <CircularProgressLabel fontSize="xs">{verificationTimer}s</CircularProgressLabel>
+                            </CircularProgress>
+                            <Text fontSize="sm">Đang kiểm tra...</Text>
+                          </HStack>
+                        ) : (
+                          <Button
+                            colorScheme="blue"
+                            size="sm"
+                            onClick={() => handleStartVerification(nv)}
+                            isDisabled={cooldownTimer > 0}
+                            leftIcon={cooldownTimer > 0 ? <FaClock /> : undefined}
+                          >
+                            {cooldownTimer > 0 ? `Chờ ${cooldownTimer}s` : 'Xác nhận thực hiện'}
+                          </Button>
+                        )}
+                      </>
+                    )}
                     {isAdminTong && (
                       <IconButton
                         aria-label="Xóa nhiệm vụ"
                         icon={<DeleteIcon />}
                         colorScheme="red"
                         variant="ghost"
+                        size="sm"
                         onClick={() => handleDeleteTask(nv.id)}
                       />
                     )}
@@ -538,24 +567,23 @@ const DanhSachNhiemVu = () => {
             {!isVerifying && <ModalCloseButton />}
             <ModalBody pb={6}>
               <VStack spacing={4} align="center" py={4}>
-                <CircularProgress 
-                  value={(VERIFICATION_TIME - verificationTimer) / VERIFICATION_TIME * 100} 
-                  size="120px" 
+                <CircularProgress
+                  value={((VERIFICATION_TIME - verificationTimer) / VERIFICATION_TIME) * 100}
+                  size="120px"
                   thickness="8px"
                 >
-                  <CircularProgressLabel fontSize="lg">
-                    {verificationTimer}s
-                  </CircularProgressLabel>
+                  <CircularProgressLabel fontSize="lg">{verificationTimer}s</CircularProgressLabel>
                 </CircularProgress>
                 <Text align="center" fontWeight="medium">
                   Hệ thống đang tiến hành kiểm tra việc thực hiện nhiệm vụ của bạn
                 </Text>
-                <Text align="center" color="white.600">
-                  Yêu cầu bạn thực hiện đúng quy định, Bộ phận Hoa Vân Các sẽ kiểm tra.
-                  Nếu bạn vi phạm hoặc gian lận sẽ đánh giá vào kết quả thực hiện nhiệm vụ của bạn.
+                <Text align="center" color="gray.600">
+                  Yêu cầu bạn thực hiện đúng quy định, Bộ phận Hoa Vân Các sẽ kiểm tra. Nếu bạn vi phạm hoặc gian lận
+                  sẽ đánh giá vào kết quả thực hiện nhiệm vụ của bạn.
                 </Text>
                 <Text align="center" color="red.500">
-                  Bạn cần chụp ảnh màn hình và Upload vào thư mục báo cáo ngày để hoàn tất quá trình thực hiện nhiệm vụ ngày
+                  Bạn cần chụp ảnh màn hình và Upload vào thư mục báo cáo ngày để hoàn tất quá trình thực hiện nhiệm vụ
+                  ngày
                 </Text>
                 {cooldownTimer > 0 && (
                   <Text fontWeight="bold" color="orange.500">
@@ -568,7 +596,7 @@ const DanhSachNhiemVu = () => {
         </Modal>
 
         {(error || storeError) && (
-          <Modal 
+          <Modal
             isOpen={!!(error || storeError)}
             onClose={() => {
               setError(null);
