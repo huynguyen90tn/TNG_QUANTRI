@@ -468,8 +468,6 @@ const TaoTaiKhoanThanhVien = () => {
                   />
                 </FormControl>
 
-                // Tiếp tục phần return của form...
-
                 <FormControl>
                   <FormLabel color={textColor}>Số điện thoại bố</FormLabel>
                   <Input
