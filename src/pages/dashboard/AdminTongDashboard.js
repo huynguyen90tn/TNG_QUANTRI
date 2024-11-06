@@ -36,7 +36,8 @@ import {
   FaFileAlt,
   FaUserFriends,
   FaCalendarAlt,
-  FaCheckSquare, // Icon cho nhiệm vụ ngày
+  FaCheckSquare,
+  FaBoxes, // Thêm import FaBoxes từ react-icons/fa
 } from "react-icons/fa";
 import { useAuth } from "../../hooks/useAuth";
 import { getTasks } from "../../services/api/taskApi";
@@ -68,14 +69,14 @@ const AdminTongDashboard = () => {
       ]);
 
       const completedTasks = tasksResponse.data.filter(
-        (task) => task.progress === 100,
+        (task) => task.progress === 100
       ).length;
 
       setStats({
         totalUsers: usersResponse.data.length,
         totalProjects: usersResponse.data.reduce(
           (acc, user) => acc + (user.projects?.length || 0),
-          0,
+          0
         ),
         totalTasks: tasksResponse.data.length,
         completedTasks,
@@ -155,7 +156,7 @@ const AdminTongDashboard = () => {
     </Button>
   );
 
-  // Danh sách các nút điều hướng nhanh với thêm nút Nhiệm vụ ngày
+  // Danh sách các nút điều hướng nhanh
   const quickActions = [
     {
       icon: <FaUserPlus />,
@@ -187,6 +188,13 @@ const AdminTongDashboard = () => {
       path: "/quan-ly-thanh-vien",
       colorScheme: "cyan",
     },
+    // Thêm nút Quản lý tài sản
+    {
+      icon: <FaBoxes />,
+      label: "Quản lý tài sản",
+      path: "/quan-ly-tai-san",
+      colorScheme: "red",
+    },
     {
       icon: <FaFileAlt />,
       label: "Báo cáo",
@@ -199,7 +207,6 @@ const AdminTongDashboard = () => {
       path: "/quan-ly-nghi-phep",
       colorScheme: "pink",
     },
-    // Thêm nút Nhiệm vụ ngày
     {
       icon: <FaCheckSquare />,
       label: "Nhiệm vụ ngày",
@@ -211,7 +218,7 @@ const AdminTongDashboard = () => {
   return (
     <Container maxW="1600px" p={4}>
       <Box minH="100vh" bg={bgColor}>
-        {/* Header */}
+        {/* Tiêu đề */}
         <Flex justify="space-between" align="center" mb={8}>
           <Box>
             <Heading size="lg">Dashboard Quản Trị</Heading>
