@@ -1,6 +1,7 @@
-// Link file: src/pages/dashboard/MemberDashboard.js
+// File: src/pages/dashboard/MemberDashboard.js 
 // Link tham khảo: https://chakra-ui.com/docs
 // Link tham khảo: https://firebase.google.com/docs/firestore
+// Nhánh: main
 
 import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -20,7 +21,7 @@ import {
   MenuItem,
   Modal,
   ModalOverlay,
-  ModalContent,
+  ModalContent, 
   ModalHeader,
   ModalBody,
   ModalCloseButton,
@@ -53,6 +54,7 @@ import {
   FaCheckCircle,
   FaUserAlt,
   FaRegCalendarCheck,
+  FaBoxOpen, // Icon cho quản lý tài sản
   FaThumbsUp,
 } from "react-icons/fa";
 import { useAuth } from "../../hooks/useAuth";
@@ -67,7 +69,7 @@ const MemberDashboard = () => {
   const { isOpen: isAttendanceOpen, onOpen: openAttendance, onClose: closeAttendance } = useDisclosure();
 
   const [memberData, setMemberData] = useState(null);
-  const [notificationCount] = useState(3); // Số thông báo mới
+  const [notificationCount] = useState(3);
 
   const bgColor = useColorModeValue("gray.50", "gray.900");
   const cardBg = useColorModeValue("white", "gray.800");
@@ -80,7 +82,6 @@ const MemberDashboard = () => {
   );
   const avatarBorderColor = useColorModeValue("blue.500", "blue.400");
 
-  // Fetch member data
   useEffect(() => {
     const fetchMemberData = async () => {
       try {
@@ -119,37 +120,6 @@ const MemberDashboard = () => {
       });
     }
   }, [signOut, navigate, toast]);
-
-  const stats = useMemo(() => [
-    {
-      title: "Nhiệm vụ hằng ngày",
-      value: "3/5",
-      icon: FaThumbsUp,
-      change: "Cần hoàn thành",
-      colorScheme: "blue",
-    },
-    {
-      title: "Nhiệm vụ dự án",
-      value: "8/12", 
-      icon: FaTasks,
-      change: "Đang thực hiện",
-      colorScheme: "orange",
-    },
-    {
-      title: "Tỷ lệ hoàn thành",
-      value: "85%",
-      icon: FaChartBar,
-      change: "Tốt",
-      colorScheme: "green",
-    },
-    {
-      title: "Ngày phép còn lại",
-      value: "7",
-      icon: FaRegCalendarCheck,
-      change: "Trong năm",
-      colorScheme: "purple",
-    },
-  ], []);
 
   const mainFeatures = useMemo(() => [
     {
@@ -194,6 +164,13 @@ const MemberDashboard = () => {
       colorScheme: "pink",
       description: "Tạo đơn xin nghỉ phép",
     },
+    {
+      icon: FaBoxOpen,
+      label: "Quản lý tài sản",
+      path: "/quan-ly-tai-san",
+      colorScheme: "teal",
+      description: "Quản lý tài sản được cấp phát",
+    }
   ], []);
 
   const FeatureCard = useCallback(
@@ -238,36 +215,8 @@ const MemberDashboard = () => {
     [cardBg, borderColor, textColor, secondaryTextColor]
   );
 
-  const StatCard = useCallback(
-    ({ title, value, icon, change, colorScheme }) => (
-      <Card bg={cardBg} shadow="lg" h="full">
-        <CardBody>
-          <Stat>
-            <StatLabel color={secondaryTextColor}>{title}</StatLabel>
-            <Flex justify="space-between" align="center" mt={2}>
-              <StatNumber fontSize="2xl" color={textColor}>{value}</StatNumber>
-              <Box
-                p={2}
-                borderRadius="lg"
-                bg={`${colorScheme}.50`}
-                color={`${colorScheme}.500`}
-              >
-                <Icon as={icon} boxSize={5} />
-              </Box>
-            </Flex>
-            <StatHelpText>
-              <Badge colorScheme={colorScheme}>{change}</Badge>
-            </StatHelpText>
-          </Stat>
-        </CardBody>
-      </Card>
-    ),
-    [cardBg, secondaryTextColor, textColor]
-  );
-
   return (
     <Box minH="100vh" bg={bgColor}>
-      {/* Header */}
       <Box
         bg={cardBg}
         boxShadow={`0 2px 4px ${shadowColor}`}
@@ -278,22 +227,20 @@ const MemberDashboard = () => {
         <Container maxW="1400px" py={4}>
           <Flex justify="space-between" align="center">
             <HStack spacing={6}>
-              <Box position="relative">
-                <Avatar
-                  size="xl"
-                  name={memberData?.fullName || user?.fullName}
-                  src={memberData?.avatarUrl || user?.avatarUrl}
-                  boxShadow={`0 0 0 4px ${avatarBorderColor}`}
+              <Avatar
+                size="xl"
+                name={memberData?.fullName || user?.fullName}
+                src={memberData?.avatarUrl || user?.avatarUrl}
+                boxShadow={`0 0 0 4px ${avatarBorderColor}`}
+              >
+                <AvatarBadge
+                  boxSize="1.25em"
+                  bg="green.500"
+                  borderColor={cardBg}
                 >
-                  <AvatarBadge
-                    boxSize="1.25em"
-                    bg="green.500"
-                    borderColor={cardBg}
-                  >
-                    <Icon as={FaCheckCircle} color="white" />
-                  </AvatarBadge>
-                </Avatar>
-              </Box>
+                  <Icon as={FaCheckCircle} color="white" />
+                </AvatarBadge>
+              </Avatar>
               <VStack align="start" spacing={1}>
                 <Heading size="md" color={textColor}>
                   {memberData?.fullName || user?.fullName}
@@ -334,7 +281,7 @@ const MemberDashboard = () => {
                 >
                   {notificationCount > 0 && (
                     <Badge
-                      position="absolute"
+                      position="absolute" 
                       top="-2px"
                       right="-2px"
                       colorScheme="red"
@@ -385,14 +332,6 @@ const MemberDashboard = () => {
       </Box>
 
       <Container maxW="1400px" py={8}>
-        {/* Stats Grid */}
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={6} mb={8}>
-          {stats.map((stat, index) => (
-            <StatCard key={index} {...stat} />
-          ))}
-        </SimpleGrid>
-
-        {/* Main Features Grid */}
         <VStack spacing={8} align="stretch">
           <Heading size="lg" color={textColor}>
             Chức năng chính
@@ -412,7 +351,6 @@ const MemberDashboard = () => {
           </SimpleGrid>
         </VStack>
 
-        {/* Điểm danh Modal */}
         <Modal
           isOpen={isAttendanceOpen}
           onClose={closeAttendance}

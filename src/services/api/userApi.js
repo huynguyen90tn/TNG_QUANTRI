@@ -1,3 +1,8 @@
+// File: src/services/api/userApi.js  
+// Link tham khảo: https://firebase.google.com/docs/firestore
+// Link tham khảo: https://firebase.google.com/docs/reference/js/firestore_
+// Nhánh: main
+
 import { db } from "../firebase";
 import { 
   collection, 
@@ -10,7 +15,9 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
-  Timestamp 
+  Timestamp,
+  or,
+  and
 } from "firebase/firestore";
 
 // Clean user data before returning
@@ -32,9 +39,9 @@ const cleanUserData = (userData) => {
 };
 
 /**
- * Get filtered list of users based on role and/or department
+ * Get filtered list of users based on role, department & status
  */
-export const getUserList = async ({ role, department } = {}) => {
+export const getUserList = async ({ role, department, status = 'active' } = {}) => {
   try {
     const usersRef = collection(db, "users");
     const conditions = [];
@@ -47,20 +54,61 @@ export const getUserList = async ({ role, department } = {}) => {
       conditions.push(where("department", "==", department));
     }
 
+    if (status) {
+      conditions.push(where("status", "==", status)); 
+    }
+
     // Apply query
-    const q = conditions.length > 0 ? query(usersRef, ...conditions) : usersRef;
+    const q = conditions.length > 0 
+      ? query(usersRef, ...conditions, orderBy("fullName", "asc"))
+      : query(usersRef, orderBy("fullName", "asc"));
+
     const querySnapshot = await getDocs(q);
 
     const users = querySnapshot.docs.map((doc) => 
       cleanUserData({ id: doc.id, ...doc.data() })
     );
 
-    // Sort by fullName client-side until index is available
-    users.sort((a, b) => (a.fullName || '').localeCompare(b.fullName || ''));
-
     return { data: users };
   } catch (error) {
     throw new Error("Lỗi khi lấy danh sách người dùng: " + error.message);
+  }
+};
+
+/**
+ * Get users by multiple departments and roles
+ */
+export const getUsersByDepartmentsAndRoles = async (departments = [], roles = [], status = 'active') => {
+  try {
+    if (!departments.length && !roles.length) {
+      throw new Error("Phải chọn ít nhất 1 phòng ban hoặc vai trò");
+    }
+
+    const usersRef = collection(db, "users");
+    const conditions = [];
+
+    if (departments.length) {
+      conditions.push(where("department", "in", departments));
+    }
+
+    if (roles.length) {
+      conditions.push(where("role", "in", roles));
+    }
+
+    if (status) {
+      conditions.push(where("status", "==", status));
+    }
+
+    const q = query(usersRef, ...conditions, orderBy("fullName", "asc"));
+    const querySnapshot = await getDocs(q);
+
+    return {
+      data: querySnapshot.docs.map(doc => 
+        cleanUserData({ id: doc.id, ...doc.data() })
+      )
+    };
+  } catch (error) {
+    throw new Error("Lỗi khi lấy danh sách người dùng: " + error.message); 
   }
 };
 
@@ -70,14 +118,12 @@ export const getUserList = async ({ role, department } = {}) => {
 export const getAllUsers = async () => {
   try {
     const usersRef = collection(db, "users");
-    const querySnapshot = await getDocs(usersRef);
+    const q = query(usersRef, orderBy("fullName", "asc"));
+    const querySnapshot = await getDocs(q);
 
     const users = querySnapshot.docs.map((doc) => 
       cleanUserData({ id: doc.id, ...doc.data() })
     );
-
-    // Sort by fullName client-side until index is available
-    users.sort((a, b) => (a.fullName || '').localeCompare(b.fullName || ''));
 
     return { data: users };
   } catch (error) {
@@ -95,15 +141,18 @@ export const getDepartmentUsers = async (department) => {
     }
 
     const usersRef = collection(db, "users");
-    const q = query(usersRef, where("department", "==", department));
+    const q = query(
+      usersRef, 
+      where("department", "==", department),
+      where("status", "==", "active"),
+      orderBy("fullName", "asc")
+    );
+
     const querySnapshot = await getDocs(q);
 
     const users = querySnapshot.docs.map((doc) => 
       cleanUserData({ id: doc.id, ...doc.data() })
     );
-
-    // Sort by fullName client-side until index is available
-    users.sort((a, b) => (a.fullName || '').localeCompare(b.fullName || ''));
 
     return { data: users };
   } catch (error) {
@@ -115,7 +164,7 @@ export const getDepartmentUsers = async (department) => {
 
 /**
  * Get active users only
- */
+ */ 
 export const getActiveUsers = async (filters = {}) => {
   try {
     const usersRef = collection(db, "users");
@@ -129,15 +178,12 @@ export const getActiveUsers = async (filters = {}) => {
       conditions.push(where("department", "==", filters.department));
     }
 
-    const q = query(usersRef, ...conditions);
+    const q = query(usersRef, ...conditions, orderBy("fullName", "asc")); 
     const querySnapshot = await getDocs(q);
 
     const users = querySnapshot.docs.map((doc) => 
       cleanUserData({ id: doc.id, ...doc.data() })
     );
-
-    // Sort by fullName client-side until index is available
-    users.sort((a, b) => (a.fullName || '').localeCompare(b.fullName || ''));
 
     return { data: users };
   } catch (error) {
@@ -173,7 +219,7 @@ export const updateUser = async (userId, userData) => {
 };
 
 /**
- * Delete user
+ * Delete user 
  */
 export const deleteUser = async (userId) => {
   try {
@@ -194,7 +240,7 @@ export const getUser = async (userId) => {
       throw new Error("Không tìm thấy người dùng");
     }
     return cleanUserData({ id: docSnap.id, ...docSnap.data() });
-  } catch (error) {
+  } catch (error) { 
     throw new Error("Lỗi khi lấy thông tin người dùng: " + error.message);
   }
 };
@@ -204,8 +250,9 @@ export default {
   getAllUsers,
   getDepartmentUsers,
   getActiveUsers,
-  createUser,
+  createUser, 
   updateUser,
   deleteUser,
-  getUser
+  getUser,
+  getUsersByDepartmentsAndRoles
 };

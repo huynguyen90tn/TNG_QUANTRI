@@ -1,6 +1,7 @@
 // File: src/App.js
 // Link tham khảo: https://chakra-ui.com/docs/components/
 // Link tham khảo: https://reactrouter.com/web/guides/quick-start
+// Nhánh: main 
 
 import React from 'react';
 import { ChakraProvider, Spinner, Center } from '@chakra-ui/react';
@@ -77,15 +78,25 @@ import ChiTietDonNghiPhep from './modules/quan_ly_nghi_phep/components/chi_tiet_
 import FormTaoDonNghiPhep from './modules/quan_ly_nghi_phep/components/form_tao_don_nghi_phep';
 import DanhSachDonNghiPhep from './modules/quan_ly_nghi_phep/components/danh_sach_don_nghi_phep';
 
+// Quản lý tài sản Components
+import QuanLyTaiSanPage from './modules/quan_ly_tai_san/pages/quan_ly_tai_san_page';
+import DanhSachTaiSan from './modules/quan_ly_tai_san/components/danh_sach_tai_san';
+import ThemTaiSan from './modules/quan_ly_tai_san/components/them_tai_san';
+import CapPhatTaiSan from './modules/quan_ly_tai_san/components/cap_phat_tai_san';
+import BaoTriTaiSan from './modules/quan_ly_tai_san/components/bao_tri_tai_san';
+import KiemKeTaiSan from './modules/quan_ly_tai_san/components/kiem_ke_tai_san';
+
 const ROLES = {
   ADMIN_TONG: 'admin-tong',
   ADMIN_CON: 'admin-con',
-  MEMBER: 'member'
+  MEMBER: 'member',
+  KY_THUAT: 'ky_thuat'
 };
 
-const SHARED_ROLES = [ROLES.ADMIN_TONG, ROLES.ADMIN_CON, ROLES.MEMBER];
+const SHARED_ROLES = [ROLES.ADMIN_TONG, ROLES.ADMIN_CON, ROLES.MEMBER, ROLES.KY_THUAT];
 const ADMIN_ROLES = [ROLES.ADMIN_TONG, ROLES.ADMIN_CON];
 const MEMBER_ONLY = [ROLES.MEMBER];
+const TECHNICAL_ROLES = [ROLES.ADMIN_TONG, ROLES.KY_THUAT];
 
 const LoadingSpinner = () => (
   <Center h="100vh">
@@ -241,6 +252,73 @@ const AppRoutes = () => {
         }
       />
 
+      {/* Quản lý tài sản routes */}
+      <Route
+        path="/quan-ly-tai-san"
+        element={
+          <ProtectedRoute requiredRole={SHARED_ROLES}>
+            <Layout>
+              <QuanLyTaiSanPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/quan-ly-tai-san/danh-sach"
+        element={
+          <ProtectedRoute requiredRole={SHARED_ROLES}>
+            <Layout>
+              <DanhSachTaiSan />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/quan-ly-tai-san/them-moi"
+        element={
+          <ProtectedRoute requiredRole={ADMIN_ROLES}>
+            <Layout>
+              <ThemTaiSan />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/quan-ly-tai-san/cap-phat"
+        element={
+          <ProtectedRoute requiredRole={ADMIN_ROLES}>
+            <Layout>
+              <CapPhatTaiSan />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/quan-ly-tai-san/bao-tri"
+        element={
+          <ProtectedRoute requiredRole={TECHNICAL_ROLES}>
+            <Layout>
+              <BaoTriTaiSan />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/quan-ly-tai-san/kiem-ke"
+        element={
+          <ProtectedRoute requiredRole={ADMIN_ROLES}>
+            <Layout>
+              <KiemKeTaiSan />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
       <Route
         path="/quan-ly-du-an"
         element={
@@ -311,8 +389,7 @@ const AppRoutes = () => {
         path="/quan-ly-nghi-phep/tao-don"
         element={
           <ProtectedRoute requiredRole={[ROLES.MEMBER]}>
-            <Layout>
-              <FormTaoDonNghiPhep />
+            <Layout><FormTaoDonNghiPhep />
             </Layout>
           </ProtectedRoute>
         }
@@ -428,12 +505,12 @@ const AppRoutes = () => {
         }
       />
 
-<Route
+      <Route
         path="/quan-ly-chi-tiet/thong-ke"
         element={
           <ProtectedRoute requiredRole={SHARED_ROLES}>
             <Layout>
-              <BangThongKe />
+              <BangThongKe />  
             </Layout>
           </ProtectedRoute>
         }

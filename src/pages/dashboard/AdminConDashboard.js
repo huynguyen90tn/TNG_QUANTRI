@@ -48,7 +48,8 @@ import {
   FaBell,
   FaCog,
   FaSignOutAlt,
-  FaThumbsUp
+  FaThumbsUp,
+  FaBoxes
 } from "react-icons/fa";
 import { useAuth } from "../../hooks/useAuth";
 import { getTasks } from "../../services/api/taskApi";
@@ -261,6 +262,12 @@ const AdminConDashboard = () => {
       count: stats.totalUsers
     },
     {
+      icon: <FaBoxes />,
+      label: "Quản lý tài sản",
+      path: "/quan-ly-tai-san",
+      colorScheme: "red"
+    },
+    {
       icon: <FaFileAlt />,
       label: "Báo cáo",
       path: "/bao-cao-ngay",
@@ -274,7 +281,7 @@ const AdminConDashboard = () => {
     },
     {
       icon: <FaUserPlus />,
-      label: "Tạo tài khoản thành viên",
+      label: "Tạo tài khoản thành viên", 
       path: "/admin-con/tao-thanh-vien",
       colorScheme: "yellow"
     }
