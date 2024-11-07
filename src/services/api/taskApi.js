@@ -37,6 +37,9 @@ const cleanTaskData = (data) => {
     department: data.department || '',
     description: data.description || '',
     taskId: data.taskId || '',
+    projectId: data.projectId || '', // Thêm projectId
+    priority: data.priority || 'medium', // Thêm priority
+    estimatedTime: data.estimatedTime || '', // Thêm estimatedTime
     assignees: data.assignees?.map(assignee => ({
       id: assignee.id || '',
       name: assignee.name || '',
@@ -48,6 +51,8 @@ const cleanTaskData = (data) => {
       title: subTask.title || '',
       progress: Number(subTask.progress) || 0,
       notes: subTask.notes || '',
+      priority: subTask.priority || 'medium',
+      estimatedTime: subTask.estimatedTime || '',
       assignees: subTask.assignees?.map(assignee => ({
         id: assignee.id || '',
         name: assignee.name || '',

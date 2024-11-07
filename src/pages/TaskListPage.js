@@ -405,23 +405,38 @@ const TaskListPage = () => {
       });
       return;
     }
-
+  
     try {
       setLoading(true);
-
+  
+      // Tính toán progress tổng thể
+      const overallProgress = calculateOverallProgress();
+  
+      // Chuẩn bị dữ liệu task
       const taskData = {
         ...taskForm,
+        projectId: taskForm.projectId, // Đảm bảo có projectId
         taskId: taskForm.taskId || generateTaskId(taskForm.department),
-        progress: calculateOverallProgress() || 0,
+        progress: overallProgress,
+        updatedAt: new Date(), // Cập nhật thời gian
+        // Nếu là task mới thì thêm createdAt
+        ...(!selectedTask && { createdAt: new Date() })
       };
-
+  
+      // Làm sạch dữ liệu trước khi gửi lên Firebase
       const cleanedData = deepClean(taskData);
-
+  
       if (selectedTask) {
-        await updateTask(selectedTask.id, cleanedData);
+        // Cập nhật task hiện có
+        await updateTask(selectedTask.id, {
+          ...cleanedData,
+          id: selectedTask.id // Đảm bảo giữ nguyên ID
+        });
       } else {
+        // Tạo task mới
         await createTask(cleanedData);
       }
+  
 
       toast({
         title: `${selectedTask ? 'Cập nhật' : 'Tạo'} nhiệm vụ thành công`,
