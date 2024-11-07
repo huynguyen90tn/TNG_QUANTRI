@@ -176,6 +176,17 @@ const AppRoutes = () => {
       />
 
       <Route
+        path="/admin-tong/tao-thanh-vien"
+        element={
+          <ProtectedRoute requiredRole={[ROLES.ADMIN_TONG]}>
+            <Layout>
+              <TaoTaiKhoanThanhVien />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
         path="/tao-quan-tri"
         element={
           <ProtectedRoute requiredRole={[ROLES.ADMIN_TONG]}>
@@ -252,7 +263,6 @@ const AppRoutes = () => {
         }
       />
 
-      {/* Quản lý tài sản routes */}
       <Route
         path="/quan-ly-tai-san"
         element={
@@ -389,7 +399,8 @@ const AppRoutes = () => {
         path="/quan-ly-nghi-phep/tao-don"
         element={
           <ProtectedRoute requiredRole={[ROLES.MEMBER]}>
-            <Layout><FormTaoDonNghiPhep />
+            <Layout>
+              <FormTaoDonNghiPhep />
             </Layout>
           </ProtectedRoute>
         }

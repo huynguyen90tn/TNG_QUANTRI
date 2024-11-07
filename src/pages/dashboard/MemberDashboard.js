@@ -54,8 +54,9 @@ import {
   FaCheckCircle,
   FaUserAlt,
   FaRegCalendarCheck,
-  FaBoxOpen, // Icon cho quản lý tài sản
+  FaBoxOpen,
   FaThumbsUp,
+  FaUserFriends, // Thêm icon cho Quản lý thành viên
 } from "react-icons/fa";
 import { useAuth } from "../../hooks/useAuth";
 import AttendanceForm from "../../components/attendance/AttendanceForm";
@@ -71,6 +72,7 @@ const MemberDashboard = () => {
   const [memberData, setMemberData] = useState(null);
   const [notificationCount] = useState(3);
 
+  // Color mode values
   const bgColor = useColorModeValue("gray.50", "gray.900");
   const cardBg = useColorModeValue("white", "gray.800");
   const textColor = useColorModeValue("gray.700", "gray.200");
@@ -170,6 +172,13 @@ const MemberDashboard = () => {
       path: "/quan-ly-tai-san",
       colorScheme: "teal",
       description: "Quản lý tài sản được cấp phát",
+    },
+    {
+      icon: FaUserFriends,
+      label: "Quản lý thành viên",
+      path: "/quan-ly-thanh-vien",
+      colorScheme: "cyan",
+      description: "Quản lý danh sách thành viên",
     }
   ], []);
 

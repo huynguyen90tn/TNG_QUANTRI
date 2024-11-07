@@ -37,7 +37,7 @@ import {
   FaUserFriends,
   FaCalendarAlt,
   FaCheckSquare,
-  FaBoxes, // Thêm import FaBoxes từ react-icons/fa
+  FaBoxes,
 } from "react-icons/fa";
 import { useAuth } from "../../hooks/useAuth";
 import { getTasks } from "../../services/api/taskApi";
@@ -165,6 +165,12 @@ const AdminTongDashboard = () => {
       colorScheme: "blue",
     },
     {
+      icon: <FaUserPlus />,
+      label: "Tạo tài khoản thành viên",
+      path: "/admin-tong/tao-thanh-vien",
+      colorScheme: "teal",
+    },
+    {
       icon: <FaCalendarCheck />,
       label: "Quản lý điểm danh",
       path: "/admin-tong/diem-danh",
@@ -188,7 +194,6 @@ const AdminTongDashboard = () => {
       path: "/quan-ly-thanh-vien",
       colorScheme: "cyan",
     },
-    // Thêm nút Quản lý tài sản
     {
       icon: <FaBoxes />,
       label: "Quản lý tài sản",
@@ -199,7 +204,7 @@ const AdminTongDashboard = () => {
       icon: <FaFileAlt />,
       label: "Báo cáo",
       path: "/bao-cao-ngay",
-      colorScheme: "teal",
+      colorScheme: "gray",
     },
     {
       icon: <FaCalendarAlt />,
