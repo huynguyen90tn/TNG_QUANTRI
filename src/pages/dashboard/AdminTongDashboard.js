@@ -1,4 +1,3 @@
-// Link file: src/pages/dashboard/AdminTongDashboard.js
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -38,6 +37,7 @@ import {
   FaCalendarAlt,
   FaCheckSquare,
   FaBoxes,
+  FaMoneyBillWave,
 } from "react-icons/fa";
 import { useAuth } from "../../hooks/useAuth";
 import { getTasks } from "../../services/api/taskApi";
@@ -217,6 +217,12 @@ const AdminTongDashboard = () => {
       label: "Nhiệm vụ ngày",
       path: "/nhiem-vu-hang-ngay",
       colorScheme: "yellow",
+    },
+    {
+      icon: <FaMoneyBillWave />,
+      label: "Quản lý lương",
+      path: "/quan-ly-luong",
+      colorScheme: "linkedin",
     },
   ];
 

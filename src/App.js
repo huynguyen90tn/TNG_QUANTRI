@@ -86,6 +86,10 @@ import CapPhatTaiSan from './modules/quan_ly_tai_san/components/cap_phat_tai_san
 import BaoTriTaiSan from './modules/quan_ly_tai_san/components/bao_tri_tai_san';
 import KiemKeTaiSan from './modules/quan_ly_tai_san/components/kiem_ke_tai_san';
 
+// Quản lý lương
+import QuanLyLuongPage from './modules/quan_ly_luong/pages/quan_ly_luong_page';
+import ChiTietLuong from './modules/quan_ly_luong/components/chi_tiet_luong';
+
 const ROLES = {
   ADMIN_TONG: 'admin-tong',
   ADMIN_CON: 'admin-con',
@@ -603,6 +607,30 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+        {/* Quản lý lương */}
+        <Route
+        path="/quan-ly-luong"
+        element={
+          <ProtectedRoute requiredRole={SHARED_ROLES}>
+            <Layout>
+              <QuanLyLuongPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/quan-ly-luong/:userId"
+        element={
+          <ProtectedRoute requiredRole={SHARED_ROLES}>
+            <Layout>
+              <ChiTietLuong />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+
 
       <Route
         path="/nhiem-vu-hang-ngay"

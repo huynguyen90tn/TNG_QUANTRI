@@ -1,9 +1,9 @@
-// File: src/pages/dashboard/MemberDashboard.js 
+// File: src/pages/dashboard/MemberDashboard.js
 // Link tham khảo: https://chakra-ui.com/docs
 // Link tham khảo: https://firebase.google.com/docs/firestore
 // Nhánh: main
 
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -33,10 +33,6 @@ import {
   Card,
   CardBody,
   Badge,
-  Stat,
-  StatLabel,
-  StatNumber,
-  StatHelpText,
   IconButton,
   AvatarBadge,
   useDisclosure,
@@ -56,11 +52,12 @@ import {
   FaRegCalendarCheck,
   FaBoxOpen,
   FaThumbsUp,
-  FaUserFriends, // Thêm icon cho Quản lý thành viên
+  FaUserFriends, // Icon cho Quản lý thành viên
+  FaMoneyCheckAlt // Icon cho Quản lý lương
 } from "react-icons/fa";
 import { useAuth } from "../../hooks/useAuth";
 import AttendanceForm from "../../components/attendance/AttendanceForm";
-import { getDoc, doc } from 'firebase/firestore';
+import { getDoc, doc } from "firebase/firestore";
 import { db } from "../../services/firebase";
 
 const MemberDashboard = () => {
@@ -179,6 +176,13 @@ const MemberDashboard = () => {
       path: "/quan-ly-thanh-vien",
       colorScheme: "cyan",
       description: "Quản lý danh sách thành viên",
+    },
+    {
+      icon: FaMoneyCheckAlt,
+      label: "Quản lý lương",
+      path: "/quan-ly-luong",
+      colorScheme: "yellow",
+      description: "Quản lý lương nhân viên"
     }
   ], []);
 
