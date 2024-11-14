@@ -1,4 +1,6 @@
 // File: src/modules/quan_ly_luong/store/luong_slice.js
+// Link tham khảo: https://redux-toolkit.js.org/api/createSlice
+// Nhánh: main
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import * as luongService from '../services/luong_service';
@@ -13,12 +15,14 @@ const initialState = {
     luongCoBan: 0,
     luongThuong: 0,
     phuCap: 0,
-    thueTNCN: 0,
+    thueTNCN: 0, 
     baoHiem: 0,
-    thucLinh: 0
+    thucLinh: 0,
+    khauTru: 0
   }
 };
 
+// Thunks
 export const layDanhSachLuong = createAsyncThunk(
   'luong/layDanhSachLuong',
   async (_, { rejectWithValue }) => {
@@ -32,7 +36,7 @@ export const layDanhSachLuong = createAsyncThunk(
 );
 
 export const layLuongNhanVien = createAsyncThunk(
-  'luong/layLuongNhanVien',
+  'luong/layLuongNhanVien', 
   async (userId, { rejectWithValue }) => {
     try {
       const response = await luongService.getUserSalary(userId);
@@ -62,7 +66,7 @@ export const capNhatBangLuong = createAsyncThunk(
       const response = await luongService.updateSalary(id, data);
       return response;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error.message); 
     }
   }
 );
@@ -81,16 +85,44 @@ const luongSlice = createSlice({
       state.luongHienTai = null;
     },
     capNhatTongLuong: (state) => {
-      const tong = state.danhSachLuong.reduce((acc, luong) => ({
-        luongCoBan: acc.luongCoBan + luong.luongCoBan,
-        luongThuong: acc.luongThuong + luong.luongThuong,
-        phuCap: acc.phuCap + Object.values(luong.phuCap).reduce((a, b) => a + b, 0),
-        thueTNCN: acc.thueTNCN + luong.thueTNCN,
-        baoHiem: acc.baoHiem + Object.values(luong.baoHiem).reduce((a, b) => a + b, 0),
-        thucLinh: acc.thucLinh + luong.thucLinh
-      }), {...state.tongLuong});
+      const tong = state.danhSachLuong.reduce((acc, luong) => {
+        const phuCapTotal = Object.values(luong.phuCap || {}).reduce((a, b) => a + (b || 0), 0);
+        const baoHiemTotal = Object.values(luong.baoHiem || {})
+          .filter(value => typeof value === 'number')
+          .reduce((a, b) => a + b, 0);
+        const khauTruTotal = luong.khauTru?.nghiPhepKhongPhep || 0;
+
+        return {
+          luongCoBan: acc.luongCoBan + (luong.luongCoBan || 0),
+          luongThuong: acc.luongThuong + (luong.luongThuong || 0),  
+          phuCap: acc.phuCap + phuCapTotal,
+          thueTNCN: acc.thueTNCN + (luong.thueTNCN || 0),
+          baoHiem: acc.baoHiem + baoHiemTotal,
+          thucLinh: acc.thucLinh + (luong.thucLinh || 0),
+          khauTru: acc.khauTru + khauTruTotal
+        };
+      }, {
+        luongCoBan: 0,
+        luongThuong: 0, 
+        phuCap: 0,
+        thueTNCN: 0,
+        baoHiem: 0,
+        thucLinh: 0,
+        khauTru: 0
+      });
 
       state.tongLuong = tong;
+    },
+    themLuongVaoDanhSach: (state, action) => {
+      state.danhSachLuong.unshift(action.payload);
+    },
+    capNhatLuongTrongDanhSach: (state, action) => {
+      const index = state.danhSachLuong.findIndex(
+        luong => luong.id === action.payload.id
+      );
+      if (index !== -1) {
+        state.danhSachLuong[index] = action.payload;
+      }
     }
   },
   extraReducers: (builder) => {
@@ -113,7 +145,7 @@ const luongSlice = createSlice({
       // Lấy lương nhân viên
       .addCase(layLuongNhanVien.pending, (state) => {
         state.loading = true;
-        state.error = null;  
+        state.error = null;
       })
       .addCase(layLuongNhanVien.fulfilled, (state, action) => {
         state.loading = false;
@@ -132,7 +164,7 @@ const luongSlice = createSlice({
       })
       .addCase(taoMoiBangLuong.fulfilled, (state, action) => {
         state.loading = false;
-        state.danhSachLuong = [action.payload, ...state.danhSachLuong];
+        state.danhSachLuong.unshift(action.payload);
         state.thongBao = 'Tạo bảng lương thành công';
         state.error = null;
       })
@@ -141,14 +173,16 @@ const luongSlice = createSlice({
         state.error = action.payload;
       })
 
-      // Cập nhật bảng lương
+      // Cập nhật bảng lương  
       .addCase(capNhatBangLuong.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(capNhatBangLuong.fulfilled, (state, action) => {
         state.loading = false;
-        const index = state.danhSachLuong.findIndex(l => l.id === action.payload.id);
+        const index = state.danhSachLuong.findIndex(
+          luong => luong.id === action.payload.id
+        );
         if (index !== -1) {
           state.danhSachLuong[index] = action.payload;
           state.thongBao = 'Cập nhật bảng lương thành công';
@@ -166,7 +200,9 @@ export const {
   datLaiLoi,
   datLaiThongBao,
   xoaLuongHienTai,
-  capNhatTongLuong
+  capNhatTongLuong,
+  themLuongVaoDanhSach,
+  capNhatLuongTrongDanhSach
 } = luongSlice.actions;
 
 export default luongSlice.reducer;

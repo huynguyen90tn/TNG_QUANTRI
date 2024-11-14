@@ -1,5 +1,8 @@
-// src/services/api/baoCaoApi.js
-import { db } from "../firebase";
+// File: src/services/api/baoCaoApi.js
+// Link tham khảo: https://firebase.google.com/docs/firestore/manage-data/add-data
+// Nhánh: main
+
+import { db } from '../firebase';
 import {
   collection,
   addDoc,
@@ -13,33 +16,51 @@ import {
   orderBy,
   limit,
   where,
-  serverTimestamp
-} from "firebase/firestore";
+  serverTimestamp 
+} from 'firebase/firestore';
 
 const BAO_CAO_COLLECTION = 'bao_cao';
 const USERS_COLLECTION = 'users';
 const REMINDERS_COLLECTION = 'reminders';
 
+/**
+ * Lấy user hiện tại từ localStorage 
+ */
 const getCurrentUser = () => {
   try {
     const userStr = localStorage.getItem('currentUser');
     if (!userStr) return null;
     return JSON.parse(userStr);
   } catch (error) {
-    console.error('Error parsing currentUser:', error);
+    console.error('Lỗi khi parse currentUser:', error);
     return null;
   }
 };
 
+/**
+ * Chuẩn hóa email thành lowercase và bỏ khoảng trắng
+ */
 const normalizeEmail = (email) => {
-  return email?.toLowerCase().trim();
+  return email?.toLowerCase().trim() || ''; 
 };
 
+/**
+ * API tương tác với collection bao_cao
+ */
 export const baoCaoApi = {
+
+  /**
+   * Tạo báo cáo mới
+   */
   taoMoi: async (data) => {
     try {
       const currentUser = getCurrentUser();
-      
+
+      // Validate dữ liệu đầu vào
+      if (!data) {
+        throw new Error('Thiếu dữ liệu báo cáo');
+      }
+
       const baoCaoData = {
         ...data,
         ngayTao: serverTimestamp(),
@@ -47,28 +68,37 @@ export const baoCaoApi = {
         trangThai: 'cho_duyet',
         nguoiTaoInfo: {
           ...data.nguoiTaoInfo,
-          email: normalizeEmail(currentUser?.email || data.nguoiTaoInfo?.email || ''),
+          email: normalizeEmail(currentUser?.email || data.nguoiTaoInfo?.email)
         }
       };
 
       const docRef = await addDoc(collection(db, BAO_CAO_COLLECTION), baoCaoData);
       const newDoc = await getDoc(docRef);
-      const newData = newDoc.data();
       
+      if (!newDoc.exists()) {
+        throw new Error('Không thể tạo báo cáo');
+      }
+
+      const newData = newDoc.data();
       return {
         id: docRef.id,
         ...newData,
-        ngayTao: newData.ngayTao?.toDate().toISOString(),
-        ngayCapNhat: newData.ngayCapNhat?.toDate().toISOString()
+        ngayTao: newData.ngayTao?.toDate()?.toISOString(),
+        ngayCapNhat: newData.ngayCapNhat?.toDate()?.toISOString()
       };
+
     } catch (error) {
-      console.error('Create report error:', error);
-      throw new Error('Lỗi khi tạo báo cáo: ' + error.message);
+      console.error('Lỗi tạo báo cáo:', error);
+      throw new Error('Không thể tạo báo cáo: ' + error.message);
     }
   },
 
+  /**
+   * Lấy danh sách báo cáo theo bộ lọc
+   */
   layDanhSach: async (filters = {}, sapXep = {}, phanTrang = {}) => {
     try {
+      // Build query với điều kiện lọc
       const conditions = [orderBy('ngayTao', 'desc')];
       
       if (filters.email) {
@@ -82,6 +112,8 @@ export const baoCaoApi = {
       );
 
       const snapshot = await getDocs(q);
+      
+      // Map dữ liệu và format timestamp 
       let baoCao = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
@@ -89,6 +121,7 @@ export const baoCaoApi = {
         ngayCapNhat: doc.data().ngayCapNhat?.toDate()?.toISOString()
       }));
 
+      // Lọc client-side
       if (filters.loaiBaoCao) {
         baoCao = baoCao.filter(item => item.loaiBaoCao === filters.loaiBaoCao);
       }
@@ -101,6 +134,7 @@ export const baoCaoApi = {
         baoCao = baoCao.filter(item => item.trangThai === filters.trangThai);
       }
 
+      // Lọc theo ngày
       if (filters.tuNgay) {
         const tuNgay = new Date(filters.tuNgay);
         baoCao = baoCao.filter(item => new Date(item.ngayTao) >= tuNgay);
@@ -114,12 +148,14 @@ export const baoCaoApi = {
       if (filters.ngay) {
         const ngayFilter = new Date(filters.ngay);
         baoCao = baoCao.filter(item => {
+          if (!item.ngayTao) return false;
           const ngayBaoCao = new Date(item.ngayTao);
           return ngayBaoCao.toDateString() === ngayFilter.toDateString();
         });
       }
 
-      const startIndex = (phanTrang.trang - 1) * phanTrang.soLuong || 0;
+      // Phân trang
+      const startIndex = ((phanTrang.trang || 1) - 1) * (phanTrang.soLuong || 10);
       const endIndex = startIndex + (phanTrang.soLuong || 10);
 
       return {
@@ -129,19 +165,22 @@ export const baoCaoApi = {
       };
 
     } catch (error) {
-      console.error('Get reports list error:', error);
-      throw new Error('Lỗi khi tải danh sách báo cáo: ' + error.message);
+      console.error('Lỗi lấy danh sách báo cáo:', error);
+      throw new Error('Không thể lấy danh sách báo cáo: ' + error.message);
     }
   },
 
+  /**
+   * Kiểm tra báo cáo ngày của user
+   */
   kiemTraBaoCaoNgay: async (email, ngay) => {
     try {
-      if (!email) return false;
+      if (!email || !ngay) return false;
 
       const startOfDay = new Date(ngay);
       startOfDay.setHours(0, 0, 0, 0);
 
-      const endOfDay = new Date(ngay);
+      const endOfDay = new Date(ngay); 
       endOfDay.setHours(23, 59, 59, 999);
 
       const q = query(
@@ -152,17 +191,24 @@ export const baoCaoApi = {
       );
 
       const snapshot = await getDocs(q);
-      console.log(`Kiểm tra báo cáo của ${email}: ${!snapshot.empty ? 'Đã báo cáo' : 'Chưa báo cáo'}`);
       return !snapshot.empty;
+
     } catch (error) {
-      console.error('Check daily report error:', error);
-      return false;
+      console.error('Lỗi kiểm tra báo cáo ngày:', error);
+      return false; 
     }
   },
 
+  /**
+   * Lấy danh sách người chưa báo cáo
+   */
   getNguoiChuaBaoCao: async ({ date, type = 'daily' }) => {
     try {
-      // Lấy danh sách all active members
+      if (!date) {
+        throw new Error('Thiếu ngày kiểm tra');
+      }
+
+      // Lấy danh sách thành viên active
       const usersQuery = query(
         collection(db, USERS_COLLECTION),
         where('status', '==', 'active'),
@@ -176,9 +222,7 @@ export const baoCaoApi = {
         ...doc.data()
       }));
 
-      console.log('Total active members:', allUsers.length);
-
-      // Thiết lập thời gian kiểm tra
+      // Set thời gian kiểm tra
       const selectedDate = new Date(date);
       const startTime = new Date(selectedDate);
       const endTime = new Date(selectedDate);
@@ -188,11 +232,11 @@ export const baoCaoApi = {
         endTime.setHours(23, 59, 59, 999);
       } else {
         startTime.setDate(1);
-        endTime.setMonth(endTime.getMonth() + 1, 0);
+        endTime.setMonth(endTime.getMonth() + 1, 0); 
         endTime.setHours(23, 59, 59, 999);
       }
 
-      // Lấy báo cáo trong khoảng thời gian 
+      // Lấy báo cáo trong khoảng thời gian
       const reportQuery = query(
         collection(db, BAO_CAO_COLLECTION),
         where('ngayTao', '>=', Timestamp.fromDate(startTime)),
@@ -209,17 +253,13 @@ export const baoCaoApi = {
         }
       });
 
-      console.log('Users who reported:', Array.from(reportedEmails));
-
       // Lọc người chưa báo cáo
       const notReported = allUsers.filter(user => {
-        const hasReported = reportedEmails.has(normalizeEmail(user.email));
-        console.log(`${user.email}: ${hasReported ? 'Đã báo cáo' : 'Chưa báo cáo'}`);
+        const hasReported = reportedEmails.has(normalizeEmail(user.email)); 
         return !hasReported;
       });
 
-      console.log('Total users not reported:', notReported.length);
-
+      // Map dữ liệu trả về
       return notReported.map(user => ({
         id: user.id,
         email: user.email,
@@ -231,15 +271,24 @@ export const baoCaoApi = {
       }));
 
     } catch (error) {
-      console.error('Get not reported users error:', error);
+      console.error('Lỗi lấy danh sách người chưa báo cáo:', error);
       throw new Error('Không thể lấy danh sách người chưa báo cáo: ' + error.message);
     }
   },
 
+  /**
+   * Gửi nhắc nhở cho user chưa báo cáo
+   */
   guiNhacNho: async (userIds) => {
     try {
+      if (!Array.isArray(userIds) || !userIds.length) {
+        throw new Error('Danh sách userIds không hợp lệ');  
+      }
+
       const currentUser = getCurrentUser();
-      if (!currentUser) throw new Error('Chưa đăng nhập');
+      if (!currentUser) {
+        throw new Error('Chưa đăng nhập');
+      }
 
       // Lưu lịch sử nhắc nhở
       await addDoc(collection(db, REMINDERS_COLLECTION), {
@@ -248,18 +297,23 @@ export const baoCaoApi = {
         thoiGian: serverTimestamp()
       });
 
-      // Gửi thông báo (implement theo hệ thống)
-      console.log('Gửi nhắc nhở cho:', userIds);
-
       return true;
+
     } catch (error) {
-      console.error('Send reminder error:', error);
+      console.error('Lỗi gửi nhắc nhở:', error);
       throw new Error('Không thể gửi nhắc nhở: ' + error.message);
     }
   },
 
+  /**
+   * Lấy chi tiết báo cáo
+   */
   layChiTiet: async (id) => {
     try {
+      if (!id) {
+        throw new Error('Thiếu ID báo cáo');
+      }
+
       const docRef = doc(db, BAO_CAO_COLLECTION, id);
       const docSnap = await getDoc(docRef);
 
@@ -274,14 +328,22 @@ export const baoCaoApi = {
         ngayTao: data.ngayTao?.toDate()?.toISOString(),
         ngayCapNhat: data.ngayCapNhat?.toDate()?.toISOString()
       };
+
     } catch (error) {
-      console.error('Get report detail error:', error);
-      throw new Error('Lỗi khi lấy chi tiết báo cáo: ' + error.message);
+      console.error('Lỗi lấy chi tiết báo cáo:', error);
+      throw new Error('Không thể lấy chi tiết báo cáo: ' + error.message); 
     }
   },
 
+  /**
+   * Cập nhật báo cáo
+   */
   capNhat: async (id, data) => {
     try {
+      if (!id || !data) {
+        throw new Error('Thiếu dữ liệu cập nhật');
+      }
+
       const docRef = doc(db, BAO_CAO_COLLECTION, id);
       const updateData = {
         ...data,
@@ -289,6 +351,7 @@ export const baoCaoApi = {
       };
 
       await updateDoc(docRef, updateData);
+      
       const updatedDoc = await getDoc(docRef);
       const updatedData = updatedDoc.data();
 
@@ -297,14 +360,22 @@ export const baoCaoApi = {
         ...updatedData,
         ngayCapNhat: updatedData.ngayCapNhat?.toDate()?.toISOString()
       };
+
     } catch (error) {
-      console.error('Update report error:', error);
-      throw new Error('Lỗi khi cập nhật báo cáo: ' + error.message);
+      console.error('Lỗi cập nhật báo cáo:', error);
+      throw new Error('Không thể cập nhật báo cáo: ' + error.message);
     }
   },
 
+  /**
+   * Duyệt báo cáo
+   */
   duyetBaoCao: async (id, ghiChu = '', nguoiDuyet = null) => {
     try {
+      if (!id) {
+        throw new Error('Thiếu ID báo cáo');
+      }
+
       const docRef = doc(db, BAO_CAO_COLLECTION, id);
       const updateData = {
         trangThai: 'da_duyet',
@@ -314,6 +385,7 @@ export const baoCaoApi = {
       };
 
       await updateDoc(docRef, updateData);
+      
       const updatedDoc = await getDoc(docRef);
       const updatedData = updatedDoc.data();
 
@@ -322,46 +394,63 @@ export const baoCaoApi = {
         ...updatedData,
         ngayCapNhat: updatedData.ngayCapNhat?.toDate()?.toISOString()
       };
+
     } catch (error) {
-      console.error('Approve report error:', error);
-      throw new Error('Lỗi khi duyệt báo cáo: ' + error.message);
+      console.error('Lỗi duyệt báo cáo:', error);
+      throw new Error('Không thể duyệt báo cáo: ' + error.message);
     }
   },
 
+  /**  
+   * Từ chối báo cáo
+   */
   tuChoiBaoCao: async (id, ghiChu = '', nguoiDuyet = null) => {
     try {
+      if (!id) {
+        throw new Error('Thiếu ID báo cáo');
+      }
+
       const docRef = doc(db, BAO_CAO_COLLECTION, id);
       const updateData = {
         trangThai: 'tu_choi',
-        ngayCapNhat: serverTimestamp(),
+        ngayCapNhat: serverTimestamp(), 
         ghiChu,
         nguoiDuyet: normalizeEmail(nguoiDuyet)
       };
 
       await updateDoc(docRef, updateData);
+
       const updatedDoc = await getDoc(docRef);
       const updatedData = updatedDoc.data();
 
       return {
         id,
-        ...updatedData,
-        ngayCapNhat: updatedData.ngayCapNhat?.toDate()?.toISOString()
+        ...updatedData,ngayCapNhat: updatedData.ngayCapNhat?.toDate()?.toISOString()
       };
+ 
     } catch (error) {
-      console.error('Reject report error:', error);
-      throw new Error('Lỗi khi từ chối báo cáo: ' + error.message);
+      console.error('Lỗi từ chối báo cáo:', error);
+      throw new Error('Không thể từ chối báo cáo: ' + error.message);
     }
   },
-
+ 
+  /**
+   * Xóa báo cáo
+   */
   xoa: async (id) => {
     try {
+      if (!id) {
+        throw new Error('Thiếu ID báo cáo');
+      }
+ 
       await deleteDoc(doc(db, BAO_CAO_COLLECTION, id));
       return true;
+ 
     } catch (error) {
-      console.error('Delete report error:', error);
-      throw new Error('Lỗi khi xóa báo cáo: ' + error.message);
+      console.error('Lỗi xóa báo cáo:', error); 
+      throw new Error('Không thể xóa báo cáo: ' + error.message);
     }
   }
-};
-
-export default baoCaoApi;
+ };
+ 
+ export default baoCaoApi;

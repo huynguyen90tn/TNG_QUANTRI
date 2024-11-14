@@ -1,4 +1,6 @@
 // File: src/modules/quan_ly_luong/hooks/use_luong.js
+// Link tham khảo: https://react.dev/reference/react/useCallback
+// Nhánh: main
 
 import { useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -9,12 +11,17 @@ import {
   taoMoiBangLuong,
   capNhatBangLuong,
   xoaLuongHienTai,
-  capNhatTongLuong
+  capNhatTongLuong,
+  themLuongVaoDanhSach,
+  capNhatLuongTrongDanhSach
 } from '../store/luong_slice';
 import { BAO_HIEM, MUC_THUE } from '../constants/loai_luong';
 
+/**
+ * Tính thuế thu nhập cá nhân
+ */
 const tinhThueTNCN = (thuNhapChiuThue, dongThue = true) => {
-  if (!dongThue) return 0;
+  if (!dongThue || !thuNhapChiuThue) return 0;
   
   try {
     let thueTNCN = 0;
@@ -41,7 +48,12 @@ export const useLuong = () => {
   const dispatch = useDispatch();
   const toast = useToast();
 
-  const { danhSachLuong, luongHienTai, loading, error } = useSelector((state) => ({
+  const { 
+    danhSachLuong, 
+    luongHienTai, 
+    loading, 
+    error 
+  } = useSelector((state) => ({
     danhSachLuong: state.luong?.danhSachLuong || [],
     luongHienTai: state.luong?.luongHienTai || null,
     loading: state.luong?.loading || false,
@@ -49,7 +61,9 @@ export const useLuong = () => {
   }));
 
   const tinhBaoHiem = useCallback((luongCoBan, dongBaoHiem = true) => {
-    if (!dongBaoHiem) return { bhyt: 0, bhxh: 0, bhtn: 0 };
+    if (!dongBaoHiem || !luongCoBan) {
+      return { bhyt: 0, bhxh: 0, bhtn: 0 };
+    }
 
     try {
       return {
@@ -68,43 +82,41 @@ export const useLuong = () => {
     thuongPhat = 0,
     phuCap = {},
     dongBaoHiem = true,
-    dongThue = true
+    dongThue = true,
+    khauTru = { nghiPhepKhongPhep: 0 }
   ) => {
     try {
-      const tongPhuCap = Object.values(phuCap).reduce((sum, val) => sum + (val || 0), 0);
-      const tongThuNhap = luongCoBan + tongPhuCap + thuongPhat;
+      const tongPhuCap = Object.values(phuCap || {}).reduce((sum, val) => sum + (val || 0), 0);
+      // Trừ tiền nghỉ phép không phép vào thu nhập
+      const tongThuNhap = (luongCoBan || 0) + tongPhuCap + (thuongPhat || 0) - (khauTru?.nghiPhepKhongPhep || 0);
       
       const baoHiem = tinhBaoHiem(luongCoBan, dongBaoHiem);
       const tongBaoHiem = dongBaoHiem ? 
         (baoHiem.bhyt + baoHiem.bhxh + baoHiem.bhtn) : 0;
 
-      // Thu nhập tính thuế là thu nhập sau khi trừ bảo hiểm nếu có đóng
+      // Thu nhập tính thuế là thu nhập sau khi trừ bảo hiểm
       const thuNhapTinhThue = tongThuNhap - (dongBaoHiem ? tongBaoHiem : 0);
       const thueTNCN = tinhThueTNCN(thuNhapTinhThue, dongThue);
       
-      // Thực lĩnh = Tổng thu nhập - bảo hiểm (nếu đóng) - thuế (nếu đóng)
-      const thucLinh = tongThuNhap - 
+      // Thực lĩnh = Tổng thu nhập - bảo hiểm - thuế
+      const thucLinh = Math.max(0, tongThuNhap - 
         (dongBaoHiem ? tongBaoHiem : 0) - 
-        (dongThue ? thueTNCN : 0);
+        (dongThue ? thueTNCN : 0)
+      );
 
       return {
         tongThuNhap,
         thueTNCN,
         baoHiem,
-        thucLinh
+        thucLinh,
+        khauTru
       };
     } catch (error) {
       console.error('Lỗi tính toán lương:', error);
-      return {
-        tongThuNhap: 0,
-        thueTNCN: 0, 
-        baoHiem: { bhyt: 0, bhxh: 0, bhtn: 0 },
-        thucLinh: 0
-      };
+      throw new Error('Không thể tính toán lương: ' + error.message);
     }
   }, [tinhBaoHiem]);
 
-  // Các methods tương tác với API
   const layDanhSach = useCallback(async () => {
     try {
       const resultAction = await dispatch(layDanhSachLuong()).unwrap();
@@ -143,7 +155,9 @@ export const useLuong = () => {
   const taoMoi = useCallback(async (data) => {
     try {
       const resultAction = await dispatch(taoMoiBangLuong(data)).unwrap();
-      await layDanhSach();
+      dispatch(themLuongVaoDanhSach(resultAction));
+      dispatch(capNhatTongLuong());
+      
       toast({
         title: 'Thành công',
         description: 'Đã tạo mới bảng lương',
@@ -151,6 +165,7 @@ export const useLuong = () => {
         duration: 3000,
         isClosable: true
       });
+      
       return resultAction;
     } catch (error) {
       console.error('Lỗi tạo mới lương:', error);
@@ -163,12 +178,14 @@ export const useLuong = () => {
       });
       throw error;
     }
-  }, [dispatch, layDanhSach, toast]);
+  }, [dispatch, toast]);
 
   const capNhat = useCallback(async (id, data) => {
     try {
       const resultAction = await dispatch(capNhatBangLuong({ id, data })).unwrap();
-      await layDanhSach();
+      dispatch(capNhatLuongTrongDanhSach(resultAction));
+      dispatch(capNhatTongLuong());
+      
       toast({
         title: 'Thành công',
         description: 'Đã cập nhật bảng lương',
@@ -176,11 +193,12 @@ export const useLuong = () => {
         duration: 3000,
         isClosable: true
       });
+      
       return resultAction;
     } catch (error) {
       console.error('Lỗi cập nhật lương:', error);
       toast({
-        title: 'Lỗi',
+        title: 'Lỗi', 
         description: error.message || 'Không thể cập nhật bảng lương',
         status: 'error',
         duration: 3000,
@@ -188,14 +206,14 @@ export const useLuong = () => {
       });
       throw error;
     }
-  }, [dispatch, layDanhSach, toast]);
+  }, [dispatch, toast]);
 
   const xoaLuong = useCallback(() => {
     dispatch(xoaLuongHienTai());
   }, [dispatch]);
 
   const lamMoi = useCallback(async () => {
-    await layDanhSach();
+    await layDanhSach();  
   }, [layDanhSach]);
 
   return {
