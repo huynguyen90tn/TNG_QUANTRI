@@ -4,6 +4,7 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
+import { motion } from 'framer-motion';
 import {
   Box,
   VStack,
@@ -11,12 +12,6 @@ import {
   Text,
   Grid,
   GridItem,
-  Stat,
-  StatLabel,
-  StatNumber,
-  Card,
-  CardHeader,
-  CardBody,
   Select,
   Progress,
   Divider,
@@ -32,7 +27,8 @@ import {
   List,
   ListItem,
   ListIcon,
-  Button
+  Button,
+  Container,
 } from '@chakra-ui/react';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
@@ -46,18 +42,34 @@ import {
   FiAlertCircle,
   FiCheckCircle,
   FiInfo,
-  FiFilter
+  FiFilter,
+  FiCalendar,
 } from 'react-icons/fi';
 import { useLuong } from '../hooks/use_luong';
 import { formatCurrency } from '../../../utils/format';
-import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip as RechartsTooltip,
-  ResponsiveContainer,
-  Legend
-} from 'recharts';
+
+// Biến thể animation
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { y: 20, opacity: 0 },
+  show: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      type: 'spring',
+      stiffness: 100,
+    },
+  },
+};
 
 const formatSafeTime = (dateStr) => {
   if (!dateStr) return '';
@@ -81,76 +93,109 @@ const formatSafeDate = (dateStr) => {
   }
 };
 
-const COLORS = ['#3182ce', '#38a169', '#805ad5', '#e53e3e', '#dd6b20'];
+const COLORS = ['#4299E1', '#48BB78', '#805AD5', '#E53E3E', '#DD6B20'];
 
 export const BangLuongCaNhan = ({ userId }) => {
   const { luongHienTai, layLuongCaNhan, loading } = useLuong();
-  
-  // State cho filter và giá trị hiện tại
+
   const [filter, setFilter] = useState({
     month: new Date().getMonth() + 1,
-    year: new Date().getFullYear()
+    year: new Date().getFullYear(),
   });
 
   const [currentFilter, setCurrentFilter] = useState({
-    month: new Date().getMonth() + 1, 
-    year: new Date().getFullYear()
+    month: new Date().getMonth() + 1,
+    year: new Date().getFullYear(),
   });
 
-  // Theme colors 
-  const bgCard = useColorModeValue('gray.800', 'gray.700');
-  const textColor = useColorModeValue('gray.100', 'gray.200');
-  const borderColor = useColorModeValue('gray.700', 'gray.600');
+  // Màu sắc cho theme
+  const bgGradient = useColorModeValue(
+    'linear(to-r, blue.400, purple.500)',
+    'linear(to-r, blue.600, purple.700)'
+  );
+  const bgCard = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const textColor = useColorModeValue('gray.800', 'gray.100');
+  const mutedColor = useColorModeValue('gray.600', 'gray.400');
 
   useEffect(() => {
     if (userId) {
       layLuongCaNhan(userId, currentFilter.month, currentFilter.year);
     }
-  }, [userId, layLuongCaNhan, currentFilter]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, currentFilter.month, currentFilter.year]);
 
-  // Tính tổng từ danh sách
-  const { tongThuong, tongTruLuong, tongPhuCap } = useMemo(() => {
-    if (!luongHienTai) return { tongThuong: 0, tongTruLuong: 0, tongPhuCap: 0 };
-    
-    const tongThuong = luongHienTai.thuongList?.reduce((total, item) => 
-      total + (item.amount || 0), 0) || 0;
+  const {
+    tongThuong,
+    tongTruLuong,
+    tongPhuCap,
+    tongThuNhap,
+    tongKhauTru,
+    chartData,
+  } = useMemo(() => {
+    if (!luongHienTai) {
+      return {
+        tongThuong: 0,
+        tongTruLuong: 0,
+        tongPhuCap: 0,
+        tongThuNhap: 0,
+        tongKhauTru: 0,
+        chartData: null,
+      };
+    }
 
-    const tongTruLuong = luongHienTai.phatList?.reduce((total, item) =>
-      total + (item.amount || 0), 0) || 0;
+    const thuong =
+      luongHienTai.thuongList?.reduce(
+        (total, item) => total + (item.amount || 0),
+        0
+      ) || 0;
 
-    const tongPhuCap = Object.values(luongHienTai.phuCap || {}).reduce((a, b) => a + b, 0);
+    const truLuong =
+      luongHienTai.phatList?.reduce(
+        (total, item) => total + (item.amount || 0),
+        0
+      ) || 0;
 
-    return { tongThuong, tongTruLuong, tongPhuCap };
+    const phuCap =
+      Object.values(luongHienTai.phuCap || {}).reduce((a, b) => a + b, 0) || 0;
+
+    const thuNhap = (luongHienTai.luongCoBan || 0) + thuong + phuCap;
+
+    const khauTru =
+      (luongHienTai.thueTNCN || 0) +
+      Object.values(luongHienTai.baoHiem || {})
+        .filter((value) => typeof value === 'number')
+        .reduce((a, b) => a + b, 0) +
+      truLuong +
+      (luongHienTai.khauTru?.nghiPhepKhongPhep || 0);
+
+    const data = {
+      labels: ['Lương cơ bản', 'Thưởng', 'Phụ cấp', 'Khấu trừ', 'Trừ lương'],
+      datasets: [
+        {
+          data: [
+            luongHienTai.luongCoBan || 0,
+            thuong,
+            phuCap,
+            -(khauTru - truLuong),
+            -truLuong,
+          ],
+          backgroundColor: COLORS,
+          borderWidth: 1,
+        },
+      ],
+    };
+
+    return {
+      tongThuong: thuong,
+      tongTruLuong: truLuong,
+      tongPhuCap: phuCap,
+      tongThuNhap: thuNhap,
+      tongKhauTru: khauTru,
+      chartData: data,
+    };
   }, [luongHienTai]);
 
-  // Tính toán tổng thu nhập và khấu trừ
-  const tongThuNhap = useMemo(() => {
-    if (!luongHienTai) return 0;
-    return luongHienTai.luongCoBan + tongThuong + tongPhuCap;
-  }, [luongHienTai, tongThuong, tongPhuCap]);
-
-  const tongKhauTru = useMemo(() => {
-    if (!luongHienTai) return 0;
-    return luongHienTai.thueTNCN +
-      Object.values(luongHienTai.baoHiem || {})
-        .filter(value => typeof value === 'number')
-        .reduce((a, b) => a + b, 0) +
-      tongTruLuong;
-  }, [luongHienTai, tongTruLuong]);
-
-  const pieChartData = useMemo(() => {
-    if (!luongHienTai) return [];
-    
-    return [
-      { name: 'Lương cơ bản', value: luongHienTai.luongCoBan || 0 },
-      { name: 'Thưởng', value: tongThuong },
-      { name: 'Phụ cấp', value: tongPhuCap },
-      { name: 'Khấu trừ', value: -(tongKhauTru - tongTruLuong) },
-      { name: 'Trừ lương', value: -tongTruLuong }
-    ];
-  }, [luongHienTai, tongThuong, tongPhuCap, tongKhauTru, tongTruLuong]);
-
-  // Xử lý khi áp dụng filter
   const handleApplyFilter = () => {
     setCurrentFilter(filter);
   };
@@ -168,120 +213,334 @@ export const BangLuongCaNhan = ({ userId }) => {
   }
 
   return (
-    <VStack spacing={6} align="stretch">
-      <HStack justify="space-between" bg={bgCard} p={4} borderRadius="lg">
-        <VStack align="start" spacing={1}>
-          <Text fontSize="2xl" fontWeight="bold" color={textColor}>
-            Bảng Lương Tháng {currentFilter.month}/{currentFilter.year}
-          </Text>
-          <Text fontSize="sm" color="gray.400">
-            Cập nhật: {formatSafeTime(luongHienTai.ngayCapNhat)}
-          </Text>
-        </VStack>
-        
-        <HStack spacing={4}>
-          <Select
-            w="120px"
-            value={filter.month}
-            onChange={(e) => setFilter(prev => ({
-              ...prev,
-              month: parseInt(e.target.value)
-            }))}
-            bg="gray.700"
-            color={textColor}
-            borderColor={borderColor}
+    <Container maxW="container.xl" py={8}>
+      <motion.div variants={containerVariants} initial="hidden" animate="show">
+        {/* Phần Header */}
+        <motion.div variants={itemVariants}>
+          <Box
+            bgGradient={bgGradient}
+            p={6}
+            borderRadius="xl"
+            color="white"
+            mb={6}
+            boxShadow="xl"
           >
-            {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
-              <option key={month} value={month}>
-                Tháng {month}
-              </option>
-            ))}
-          </Select>
+            <HStack justify="space-between">
+              <VStack align="start" spacing={1}>
+                <Text fontSize="2xl" fontWeight="bold">
+                  Bảng Lương Tháng {currentFilter.month}/{currentFilter.year}
+                </Text>
+                <Text fontSize="sm" opacity={0.8}>
+                  Cập nhật: {formatSafeTime(luongHienTai.ngayCapNhat)}
+                </Text>
+              </VStack>
 
-          <Select
-            w="120px"
-            value={filter.year}
-            onChange={(e) => setFilter(prev => ({
-              ...prev,
-              year: parseInt(e.target.value)
-            }))}
-            bg="gray.700"
-            color={textColor}
-            borderColor={borderColor}
-          >
-            {Array.from({ length: 5 }, (_, i) => {
-              const year = new Date().getFullYear() - i;
-              return (
-                <option key={year} value={year}>
-                  Năm {year}
-                </option>
-              );
-            })}
-          </Select>
+              <HStack spacing={4}>
+                <Select
+                  w="120px"
+                  value={filter.month}
+                  onChange={(e) =>
+                    setFilter((prev) => ({
+                      ...prev,
+                      month: parseInt(e.target.value),
+                    }))
+                  }
+                  bg="whiteAlpha.200"
+                  color="white"
+                  borderColor="whiteAlpha.300"
+                  _hover={{ borderColor: 'whiteAlpha.400' }}
+                >
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
+                    <option key={month} value={month}>
+                      Tháng {month}
+                    </option>
+                  ))}
+                </Select>
 
-          <Button
-            leftIcon={<FiFilter />}
-            colorScheme="blue"
-            onClick={handleApplyFilter}
-          >
-            Áp dụng
-          </Button>
-        </HStack>
-      </HStack><SimpleGrid columns={{ base: 1, md: 3 }} spacing={6}>
-        <Card bg={bgCard} borderColor={borderColor} color={textColor}>
-          <CardBody>
-            <Stat>
-              <StatLabel fontSize="lg">
-                <Icon as={FiDollarSign} mr={2} color="blue.400" />
-                Lương Cơ Bản
-              </StatLabel>
-              <StatNumber fontSize="2xl">
-                {formatCurrency(luongHienTai.luongCoBan || 0)}
-              </StatNumber>
-            </Stat>
-          </CardBody>
-        </Card>
+                <Select
+                  w="120px"
+                  value={filter.year}
+                  onChange={(e) =>
+                    setFilter((prev) => ({
+                      ...prev,
+                      year: parseInt(e.target.value),
+                    }))
+                  }
+                  bg="whiteAlpha.200"
+                  color="white"
+                  borderColor="whiteAlpha.300"
+                  _hover={{ borderColor: 'whiteAlpha.400' }}
+                >
+                  {Array.from({ length: 5 }, (_, i) => {
+                    const year = new Date().getFullYear() - i;
+                    return (
+                      <option key={year} value={year}>
+                        Năm {year}
+                      </option>
+                    );
+                  })}
+                </Select>
 
-        <Card bg={bgCard} borderColor={borderColor} color={textColor}>
-          <CardBody>
-            <Stat>
-              <StatLabel fontSize="lg">
-                <Icon as={FiTrendingUp} mr={2} color="green.400" />
-                Tổng Thu Nhập
-              </StatLabel>
-              <StatNumber fontSize="2xl">
-                {formatCurrency(tongThuNhap)}
-              </StatNumber>
-            </Stat>
-          </CardBody>
-        </Card>
+                <Button
+                  leftIcon={<FiFilter />}
+                  onClick={handleApplyFilter}
+                  bg="whiteAlpha.200"
+                  _hover={{ bg: 'whiteAlpha.300' }}
+                >
+                  Áp dụng
+                </Button>
+              </HStack>
+            </HStack>
+          </Box>
+        </motion.div>
 
-        <Card bg={bgCard} borderColor={borderColor} color={textColor}>
-          <CardBody>
-            <Stat>
-              <StatLabel fontSize="lg">
-                <Icon as={FiDollarSign} mr={2} color="purple.400" />
-                Thực Lĩnh
-              </StatLabel>
-              <StatNumber fontSize="2xl" color="green.400">
-                {formatCurrency(luongHienTai.thucLinh || 0)}
-              </StatNumber>
-            </Stat>
-          </CardBody>
-        </Card>
-      </SimpleGrid>
+        {/* Kiểm tra xem chartData có dữ liệu hay không */}
+        {chartData && (
+          <Grid templateColumns="repeat(12, 1fr)" gap={6}>
+            {/* Cột trái - Biểu đồ */}
+            <GridItem colSpan={{ base: 12, lg: 5 }}>
+              <motion.div variants={itemVariants}>
+                <Box
+                  bg={bgCard}
+                  p={6}
+                  borderRadius="xl"
+                  boxShadow="lg"
+                  position="relative"
+                  overflow="hidden"
+                  height="400px"
+                >
+                  <Text fontSize="xl" mb={4} fontWeight="bold">
+                    Biểu Đồ Thu Nhập
+                  </Text>
 
-      <Grid templateColumns="repeat(3, 1fr)" gap={6}>
-        <GridItem colSpan={{ base: 3, lg: 1 }}>
-          <Card bg={bgCard} borderColor={borderColor} color={textColor}>
-            <CardHeader>
+                  {/* Bạn có thể thêm biểu đồ tại đây nếu đã cài đặt chart.js và react-chartjs-2 */}
+                  {/* Ví dụ:
+                    <Doughnut data={chartData} options={chartOptions} />
+                  */}
+
+                  <SimpleGrid columns={2} spacing={4} mt={4}>
+                    {chartData.labels.map((label, index) => (
+                      <Box key={index}>
+                        <HStack>
+                          <Box
+                            w="3"
+                            h="3"
+                            borderRadius="full"
+                            bg={COLORS[index]}
+                          />
+                          <Text fontSize="sm" color={mutedColor}>
+                            {label}
+                          </Text>
+                        </HStack>
+                        <Text fontWeight="medium">
+                          {formatCurrency(
+                            Math.abs(chartData.datasets[0].data[index])
+                          )}
+                        </Text>
+                      </Box>
+                    ))}
+                  </SimpleGrid>
+                </Box>
+              </motion.div>
+            </GridItem>
+
+            {/* Cột phải - Chi tiết */}
+            <GridItem colSpan={{ base: 12, lg: 7 }}>
+              <motion.div variants={itemVariants}>
+                <Box bg={bgCard} p={6} borderRadius="xl" boxShadow="lg">
+                  <Text fontSize="xl" mb={4} fontWeight="bold">
+                    Chi Tiết Khấu Trừ
+                  </Text>
+
+                  <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+                    {/* Bảo hiểm */}
+                    <Box>
+                      <Text fontWeight="medium" mb={2}>
+                        Bảo hiểm:
+                      </Text>
+                      <VStack align="stretch" spacing={2}>
+                        <HStack justify="space-between">
+                          <HStack>
+                            <Text>BHYT (1.5%)</Text>
+                            <Tooltip label="Bảo hiểm y tế">
+                              <Icon as={FiInfo} color="blue.400" />
+                            </Tooltip>
+                          </HStack>
+                          <Text>
+                            {formatCurrency(luongHienTai.baoHiem?.bhyt || 0)}
+                          </Text>
+                        </HStack>
+                        <HStack justify="space-between">
+                          <HStack>
+                            <Text>BHXH (8%)</Text>
+                            <Tooltip label="Bảo hiểm xã hội">
+                              <Icon as={FiInfo} color="blue.400" />
+                            </Tooltip>
+                          </HStack>
+                          <Text>
+                            {formatCurrency(luongHienTai.baoHiem?.bhxh || 0)}
+                          </Text>
+                        </HStack>
+                        <HStack justify="space-between">
+                          <HStack>
+                            <Text>BHTN (1%)</Text>
+                            <Tooltip label="Bảo hiểm thất nghiệp">
+                              <Icon as={FiInfo} color="blue.400" />
+                            </Tooltip>
+                          </HStack>
+                          <Text>
+                            {formatCurrency(luongHienTai.baoHiem?.bhtn || 0)}
+                          </Text>
+                        </HStack>
+                      </VStack>
+                    </Box>
+
+                    {/* Khấu trừ khác */}
+                    <Box>
+                      <Text fontWeight="medium" mb={2}>
+                        Khấu trừ khác:
+                      </Text>
+                      <VStack align="stretch" spacing={2}>
+                        {luongHienTai.khauTru?.nghiPhepKhongPhep > 0 && (
+                          <HStack justify="space-between">
+                            <Text color="red.500">
+                              Không báo cáo (
+                              {luongHienTai.khauTru.chiTiet.length} ngày)
+                            </Text>
+                            <Text color="red.500">
+                              -
+                              {formatCurrency(
+                                luongHienTai.khauTru.nghiPhepKhongPhep
+                              )}
+                            </Text>
+                          </HStack>
+                        )}
+
+                        <HStack justify="space-between">
+                          <Text>Thuế TNCN</Text>
+                          <Text>
+                            {formatCurrency(luongHienTai.thueTNCN || 0)}
+                          </Text>
+                        </HStack>
+                      </VStack>
+                    </Box>
+                  </Grid>
+
+                  {luongHienTai.khauTru?.nghiPhepKhongPhep > 0 && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <Box
+                        mt={4}
+                        p={4}
+                        bg="red.50"
+                        _dark={{ bg: 'red.900' }}
+                        borderRadius="md"
+                      >
+                        <HStack justify="space-between" mb={2}>
+                          <HStack>
+                            <Icon as={FiCalendar} color="red.500" />
+                            <Text fontWeight="medium" color="red.500">
+                              Chi tiết ngày không báo cáo:
+                            </Text>
+                          </HStack>
+                          <Text fontSize="sm" color="red.500">
+                            (Trừ{' '}
+                            {formatCurrency(
+                              luongHienTai.khauTru.nghiPhepKhongPhep /
+                                luongHienTai.khauTru.chiTiet.length
+                            )}{' '}
+                            / ngày)
+                          </Text>
+                        </HStack>
+
+                        <SimpleGrid
+                          columns={{ base: 2, md: 3, lg: 4 }}
+                          spacing={2}
+                        >
+                          {luongHienTai.khauTru.chiTiet.map((item, index) => (
+                            <HStack
+                              key={index}
+                              p={2}
+                              bg="white"
+                              _dark={{ bg: 'red.800' }}
+                              borderRadius="md"
+                              fontSize="sm"
+                            >
+                              <Icon as={FiAlertCircle} color="red.500" />
+                              <Text>
+                                {format(new Date(item.date), 'dd/MM/yyyy')}
+                              </Text>
+                            </HStack>
+                          ))}
+                        </SimpleGrid>
+                      </Box>
+                    </motion.div>
+                  )}
+                </Box>
+              </motion.div>
+            </GridItem>
+          </Grid>
+        )}
+
+        {/* Phần chi tiết thu nhập */}
+        <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6} mt={6}>
+          <motion.div variants={itemVariants}>
+            <Box bg={bgCard} boxShadow="lg" p={4} borderRadius="xl">
+              <VStack align="start" spacing={1}>
+                <HStack color="blue.500">
+                  <Icon as={FiDollarSign} />
+                  <Text fontWeight="medium">Lương Cơ Bản</Text>
+                </HStack>
+                <Text fontSize="2xl" fontWeight="bold">
+                  {formatCurrency(luongHienTai.luongCoBan || 0)}
+                </Text>
+              </VStack>
+            </Box>
+          </motion.div>
+
+          <motion.div variants={itemVariants}>
+            <Box bg={bgCard} boxShadow="lg" p={4} borderRadius="xl">
+              <VStack align="start" spacing={1}>
+                <HStack color="green.500">
+                  <Icon as={FiTrendingUp} />
+                  <Text fontWeight="medium">Tổng Thu Nhập</Text>
+                </HStack>
+                <Text fontSize="2xl" fontWeight="bold">
+                  {formatCurrency(tongThuNhap)}
+                </Text>
+              </VStack>
+            </Box>
+          </motion.div>
+
+          <motion.div variants={itemVariants}>
+            <Box bg={bgCard} boxShadow="lg" p={4} borderRadius="xl">
+              <VStack align="start" spacing={1}>
+                <HStack color="purple.500">
+                  <Icon as={FiDollarSign} />
+                  <Text fontWeight="medium">Thực Lĩnh</Text>
+                </HStack>
+                <Text fontSize="2xl" fontWeight="bold" color="green.500">
+                  {formatCurrency(luongHienTai.thucLinh || 0)}
+                </Text>
+              </VStack>
+            </Box>
+          </motion.div>
+        </SimpleGrid>
+
+        {/* Phần chi tiết thưởng, trừ lương, phụ cấp */}
+        <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6} mt={6}>
+          <motion.div variants={itemVariants}>
+            <Box bg={bgCard} p={4} borderRadius="xl">
               <HStack>
                 <Icon as={FiTrendingUp} color="green.400" />
-                <Text fontSize="lg" fontWeight="medium">Chi Tiết Thưởng</Text>
+                <Text fontSize="lg" fontWeight="medium">
+                  Chi Tiết Thưởng
+                </Text>
               </HStack>
-            </CardHeader>
-            <CardBody>
-              <VStack spacing={4} align="stretch">
+              <VStack spacing={4} align="stretch" mt={4}>
                 {luongHienTai.thuongList?.length > 0 ? (
                   <List spacing={3}>
                     {luongHienTai.thuongList.map((item, index) => (
@@ -291,8 +550,9 @@ export const BangLuongCaNhan = ({ userId }) => {
                             <ListIcon as={FiCheckCircle} color="green.400" />
                             <VStack align="start" spacing={0}>
                               <Text>{item.reason}</Text>
-                              <Text fontSize="xs" color="gray.400">
-                                {formatSafeDate(item.ngayTao)} - {item.nguoiTao || 'N/A'}
+                              <Text fontSize="xs" color={mutedColor}>
+                                {formatSafeDate(item.ngayTao)} -{' '}
+                                {item.nguoiTao || 'N/A'}
                               </Text>
                             </VStack>
                           </HStack>
@@ -306,28 +566,30 @@ export const BangLuongCaNhan = ({ userId }) => {
                 ) : (
                   <Text>Không có khoản thưởng nào</Text>
                 )}
-                
-                <Divider borderColor={borderColor} />
 
-                <HStack justify="space-between" color="green.400" fontWeight="bold">
+                <Divider />
+
+                <HStack
+                  justify="space-between"
+                  color="green.400"
+                  fontWeight="bold"
+                >
                   <Text>Tổng thưởng</Text>
                   <Text>{formatCurrency(tongThuong)}</Text>
                 </HStack>
               </VStack>
-            </CardBody>
-          </Card>
-        </GridItem>
+            </Box>
+          </motion.div>
 
-        <GridItem colSpan={{ base: 3, lg: 1 }}>
-          <Card bg={bgCard} borderColor={borderColor} color={textColor}>
-            <CardHeader>
+          <motion.div variants={itemVariants}>
+            <Box bg={bgCard} p={4} borderRadius="xl">
               <HStack>
                 <Icon as={FiTrendingDown} color="red.400" />
-                <Text fontSize="lg" fontWeight="medium">Chi Tiết Trừ Lương</Text>
+                <Text fontSize="lg" fontWeight="medium">
+                  Chi Tiết Trừ Lương
+                </Text>
               </HStack>
-            </CardHeader>
-            <CardBody>
-              <VStack spacing={4} align="stretch">
+              <VStack spacing={4} align="stretch" mt={4}>
                 {luongHienTai.phatList?.length > 0 ? (
                   <List spacing={3}>
                     {luongHienTai.phatList.map((item, index) => (
@@ -337,8 +599,9 @@ export const BangLuongCaNhan = ({ userId }) => {
                             <ListIcon as={FiAlertCircle} color="red.400" />
                             <VStack align="start" spacing={0}>
                               <Text>{item.reason}</Text>
-                              <Text fontSize="xs" color="gray.400">
-                                {formatSafeDate(item.ngayTao)} - {item.nguoiTao || 'N/A'}
+                              <Text fontSize="xs" color={mutedColor}>
+                                {formatSafeDate(item.ngayTao)} -{' '}
+                                {item.nguoiTao || 'N/A'}
                               </Text>
                             </VStack>
                           </HStack>
@@ -353,269 +616,132 @@ export const BangLuongCaNhan = ({ userId }) => {
                   <Text>Không có khoản trừ lương nào</Text>
                 )}
 
-                <Divider borderColor={borderColor} />
+                <Divider />
 
-                <HStack justify="space-between" color="red.400" fontWeight="bold">
+                <HStack
+                  justify="space-between"
+                  color="red.400"
+                  fontWeight="bold"
+                >
                   <Text>Tổng trừ lương</Text>
                   <Text>-{formatCurrency(tongTruLuong)}</Text>
                 </HStack>
               </VStack>
-            </CardBody>
-          </Card>
-        </GridItem>
+            </Box>
+          </motion.div>
 
-        <GridItem colSpan={{ base: 3, lg: 1 }}>
-          <Card bg={bgCard} borderColor={borderColor} color={textColor}>
-            <CardHeader>
+          <motion.div variants={itemVariants}>
+            <Box bg={bgCard} p={4} borderRadius="xl">
               <HStack>
                 <Icon as={FiDollarSign} color="purple.400" />
-                <Text fontSize="lg" fontWeight="medium">Chi Tiết Phụ Cấp</Text>
+                <Text fontSize="lg" fontWeight="medium">
+                  Chi Tiết Phụ Cấp
+                </Text>
               </HStack>
-            </CardHeader>
-            <CardBody>
-              <VStack spacing={4} align="stretch">
+              <VStack spacing={4} align="stretch" mt={4}>
                 <Table variant="simple" size="sm">
                   <Tbody>
                     <Tr>
-                      <Td borderColor={borderColor}>Ăn uống</Td>
-                      <Td borderColor={borderColor} isNumeric>
+                      <Td>Ăn uống</Td>
+                      <Td isNumeric>
                         {formatCurrency(luongHienTai.phuCap?.anUong || 0)}
                       </Td>
                     </Tr>
                     <Tr>
-                      <Td borderColor={borderColor}>Đi lại</Td>
-                      <Td borderColor={borderColor} isNumeric>
+                      <Td>Đi lại</Td>
+                      <Td isNumeric>
                         {formatCurrency(luongHienTai.phuCap?.diLai || 0)}
                       </Td>
                     </Tr>
                     <Tr>
-                      <Td borderColor={borderColor}>Điện thoại</Td>
-                      <Td borderColor={borderColor} isNumeric>
+                      <Td>Điện thoại</Td>
+                      <Td isNumeric>
                         {formatCurrency(luongHienTai.phuCap?.dienThoai || 0)}
                       </Td>
                     </Tr>
                     <Tr>
-                      <Td borderColor={borderColor}>Khác</Td>
-                      <Td borderColor={borderColor} isNumeric>
+                      <Td>Khác</Td>
+                      <Td isNumeric>
                         {formatCurrency(luongHienTai.phuCap?.khac || 0)}
                       </Td>
                     </Tr>
                   </Tbody>
                 </Table>
 
-                <Divider borderColor={borderColor} />
+                <Divider />
 
-                <HStack justify="space-between" color="purple.400" fontWeight="bold">
+                <HStack
+                  justify="space-between"
+                  color="purple.400"
+                  fontWeight="bold"
+                >
                   <Text>Tổng phụ cấp</Text>
                   <Text>{formatCurrency(tongPhuCap)}</Text>
                 </HStack>
               </VStack>
-            </CardBody>
-          </Card>
-        </GridItem>
-      </Grid>
-
-      <Card bg={bgCard} borderColor={borderColor} color={textColor}>
-        <CardHeader>
-          <HStack>
-            <Icon as={FiTrendingDown} color="red.400" />
-            <Text fontSize="lg" fontWeight="medium">
-              Các Khoản Khấu Trừ
-            </Text>
-          </HStack>
-        </CardHeader>
-        <CardBody>
-          <VStack spacing={4} align="stretch">
-            <Text fontWeight="medium">Bảo hiểm:</Text>
-            <Table variant="simple" size="sm">
-              <Tbody>
-                <Tr>
-                  <Td borderColor={borderColor}>
-                    <HStack>
-                      <Text>BHYT (1.5%)</Text>
-                      <Tooltip label="Bảo hiểm y tế" placement="right">
-                        <Icon as={FiInfo} color="blue.400" />
-                      </Tooltip>
-                    </HStack>
-                  </Td>
-                  <Td borderColor={borderColor} isNumeric>
-                    {formatCurrency(luongHienTai.baoHiem?.bhyt || 0)}
-                  </Td>
-                </Tr>
-                <Tr>
-                  <Td borderColor={borderColor}>
-                    <HStack>
-                      <Text>BHXH (8%)</Text>
-                      <Tooltip label="Bảo hiểm xã hội" placement="right">
-                        <Icon as={FiInfo} color="blue.400" />
-                      </Tooltip>
-                    </HStack>
-                  </Td>
-                  <Td borderColor={borderColor} isNumeric>
-                    {formatCurrency(luongHienTai.baoHiem?.bhxh || 0)}
-                  </Td>
-                </Tr>
-                <Tr>
-                  <Td borderColor={borderColor}>
-                    <HStack>
-                      <Text>BHTN (1%)</Text>
-                      <Tooltip label="Bảo hiểm thất nghiệp" placement="right">
-                        <Icon as={FiInfo} color="blue.400" />
-                      </Tooltip>
-                    </HStack>
-                  </Td>
-                  <Td borderColor={borderColor} isNumeric>
-                    {formatCurrency(luongHienTai.baoHiem?.bhtn || 0)}
-                  </Td>
-                </Tr>
-              </Tbody>
-            </Table>
-
-            <Divider borderColor={borderColor} />
-
-            <HStack justify="space-between">
-              <Text>Thuế TNCN</Text>
-              <Text fontWeight="medium">
-                {formatCurrency(luongHienTai.thueTNCN || 0)}
-              </Text>
-            </HStack>
-
-            <Divider borderColor={borderColor} />
-
-            <HStack justify="space-between" color="red.400" fontWeight="bold">
-              <Text>Tổng khấu trừ</Text>
-              <Text>{formatCurrency(tongKhauTru)}</Text>
-            </HStack>
-          </VStack>
-        </CardBody>
-      </Card>
-
-      <SimpleGrid columns={{ base: 1, xl: 2 }} spacing={6}>
-        <Card bg={bgCard} borderColor={borderColor} color={textColor}>
-          <CardHeader>
-            <HStack>
-              <Icon as={FiTrendingUp} color="blue.400" />
-              <Text fontSize="lg" fontWeight="medium">
-                Biểu Đồ Thu Nhập
-              </Text>
-            </HStack>
-          </CardHeader>
-          <CardBody>
-            <Box h="300px">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={pieChartData}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={(entry) => entry.name}
-                  >
-                    {pieChartData.map((entry, index) => (
-                      <Cell 
-                        key={`cell-${index}`} 
-                        fill={COLORS[index % COLORS.length]} 
-                      />
-                    ))}
-                  </Pie>
-                  <RechartsTooltip
-                    contentStyle={{ 
-                      backgroundColor: bgCard, 
-                      borderColor: borderColor,
-                      color: textColor
-                    }}
-                    formatter={(value) => formatCurrency(Math.abs(value))}
-                  />
-                  <Legend
-                    wrapperStyle={{ color: textColor }}
-                    formatter={(value) => value}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
             </Box>
-          </CardBody>
-        </Card>
+          </motion.div>
+        </SimpleGrid>
 
-        <Card bg={bgCard} borderColor={borderColor} color={textColor}>
-          <CardHeader>
-            <HStack>
-              <Icon as={FiTrendingUp} color="purple.400" />
-              <Text fontSize="lg" fontWeight="medium">
-                Thống Kê Thu Nhập
-              </Text>
-            </HStack>
-          </CardHeader>
-          <CardBody>
-            <VStack spacing={4}>
-              <SimpleGrid columns={2} spacing={4} w="100%">
-                {pieChartData.map((item, index) => (
-                  <Stat key={index}>
-                    <StatLabel color={item.value < 0 ? 'red.400' : 'green.400'}>
-                      {item.name}
-                    </StatLabel>
-                    <StatNumber>
-                      {formatCurrency(Math.abs(item.value))}
-                    </StatNumber>
-                  </Stat>
-                ))}
-              </SimpleGrid>
-            </VStack>
-          </CardBody>
-        </Card>
-      </SimpleGrid>
+        {/* Phần Footer - Trạng thái */}
+        <motion.div variants={itemVariants}>
+          <Box bg={bgCard} mt={6} p={4} borderRadius="xl">
+            <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
+              <HStack>
+                <Icon as={FiClock} color="blue.400" />
+                <VStack align="start" spacing={0}>
+                  <Text fontSize="sm" color={mutedColor}>
+                    Kỳ lương
+                  </Text>
+                  <Text>
+                    Tháng {currentFilter.month}/{currentFilter.year}
+                  </Text>
+                </VStack>
+              </HStack>
 
-      {/* Thông tin & trạng thái */}
-      <Card bg={bgCard} borderColor={borderColor} color={textColor}>
-        <CardBody>
-          <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
-            <HStack>
-              <Icon as={FiClock} color="blue.400" />
-              <VStack align="start" spacing={0}>
-                <Text fontSize="sm" color="gray.400">Kỳ lương</Text>
-                <Text>Tháng {currentFilter.month}/{currentFilter.year}</Text>
-              </VStack>
-            </HStack>
+              <HStack>
+                <Icon as={FiUser} color="purple.400" />
+                <VStack align="start" spacing={0}>
+                  <Text fontSize="sm" color={mutedColor}>
+                    Người duyệt
+                  </Text>
+                  <Text>{luongHienTai.nguoiDuyet || '---'}</Text>
+                </VStack>
+              </HStack>
 
-            <HStack>
-              <Icon as={FiUser} color="purple.400" />
-              <VStack align="start" spacing={0}>
-                <Text fontSize="sm" color="gray.400">Người duyệt</Text>
-                <Text>{luongHienTai.nguoiDuyet || '---'}</Text>
-              </VStack>
-            </HStack>
-
-            <HStack>
-              <Icon as={FiFile} color="green.400" />
-              <VStack align="start" spacing={0}>
-                <Text fontSize="sm" color="gray.400">Trạng thái</Text>
-                <Badge
-                  colorScheme={
-                    luongHienTai.trangThai === 'DA_THANH_TOAN'
-                      ? 'green'
+              <HStack>
+                <Icon as={FiFile} color="green.400" />
+                <VStack align="start" spacing={0}>
+                  <Text fontSize="sm" color={mutedColor}>
+                    Trạng thái
+                  </Text>
+                  <Badge
+                    colorScheme={
+                      luongHienTai.trangThai === 'DA_THANH_TOAN'
+                        ? 'green'
+                        : luongHienTai.trangThai === 'CHO_DUYET'
+                        ? 'yellow'
+                        : 'blue'
+                    }
+                  >
+                    {luongHienTai.trangThai === 'DA_THANH_TOAN'
+                      ? 'Đã thanh toán'
                       : luongHienTai.trangThai === 'CHO_DUYET'
-                      ? 'yellow'
-                      : 'blue'
-                  }
-                >
-                  {luongHienTai.trangThai === 'DA_THANH_TOAN'
-                    ? 'Đã thanh toán'
-                    : luongHienTai.trangThai === 'CHO_DUYET'
-                    ? 'Chờ duyệt'
-                    : 'Đã duyệt'}
-                </Badge>
-              </VStack>
-            </HStack>
-          </SimpleGrid>
-        </CardBody>
-      </Card>
-    </VStack>
+                      ? 'Chờ duyệt'
+                      : 'Đã duyệt'}
+                  </Badge>
+                </VStack>
+              </HStack>
+            </SimpleGrid>
+          </Box>
+        </motion.div>
+      </motion.div>
+    </Container>
   );
 };
 
 BangLuongCaNhan.propTypes = {
-  userId: PropTypes.string.isRequired
+  userId: PropTypes.string.isRequired,
 };
 
 export default BangLuongCaNhan;
