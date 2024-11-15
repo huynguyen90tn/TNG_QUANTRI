@@ -1,14 +1,14 @@
 // File: src/modules/quan_ly_luong/components/form_tinh_luong.js
-// Link tham khảo: https://chakra-ui.com/docs/components
+// Link tham khảo: https://chakra-ui.com/docs/components 
 // Nhánh: main
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import {
   Modal,
   ModalOverlay,
-  ModalContent, 
-  ModalHeader,
+  ModalContent,
+  ModalHeader, 
   ModalFooter,
   ModalBody,
   ModalCloseButton,
@@ -49,6 +49,7 @@ import { doc, getDoc, collection, query, where, getDocs, Timestamp } from 'fireb
 import { useAuth } from '../../../hooks/useAuth';
 import { getLuongByCapBac, getTenCapBac } from '../constants/luong_cap_bac';
 import { useThemeStyles } from '../hooks/use_theme_styles';
+
 
 // Constants
 const INIT_PHU_CAP = {
@@ -177,8 +178,7 @@ const ThuongPhatItem = ({
                     </Td>
                   )}
                 </Tr>
-              ))}
-              {items.length === 0 && (
+              ))}{items.length === 0 && (
                 <Tr>
                   <Td colSpan={readOnly ? 2 : 3} textAlign="center">
                     <Text color="gray.500">Chưa có {title.toLowerCase()} nào được thêm</Text>
@@ -365,9 +365,7 @@ export const FormTinhLuong = ({
 
   const tinhTienTruLuong = useCallback((luongCoBan) => {
     return Math.round(luongCoBan / 26);
-  }, []);
-
-  const checkDailyReport = useCallback(async (email, date) => {
+  }, []);const checkDailyReport = useCallback(async (email, date) => {
     try {
       if (!email) return false;
 
@@ -391,54 +389,44 @@ export const FormTinhLuong = ({
     }
   }, []);
 
-  const calculateDeductions = useCallback(
-    async (member) => {
-      if (!member?.email || !member?.luongCoBan) return null;
+  const calculateDeductions = useCallback(async (member) => {
+    if (!member?.email || !member?.luongCoBan) return null;
 
-      const deductions = {
-        totalDays: 0,
-        totalAmount: 0,
-        details: [],
-      };
+    const deductions = {
+      totalDays: 0,
+      totalAmount: 0,
+      details: []
+    };
 
-      try {
-        const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-        const monthEnd = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
-        const isCurrentMonth = true;
-        const endDate = isCurrentMonth ? new Date() : monthEnd;
+    try {
+      const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+      const monthEnd = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
+      const endDate = new Date();
 
+      for (let date = new Date(monthStart); date <= endDate; date.setDate(date.getDate() + 1)) {
+        const dayOfWeek = date.getDay();
+        if (dayOfWeek === 0) continue; // Bỏ qua Chủ nhật
+
+        const hasReport = await checkDailyReport(member.email, date);
         const dailySalary = tinhTienTruLuong(member.luongCoBan);
 
-        for (
-          let date = new Date(monthStart);
-          date <= endDate;
-          date.setDate(date.getDate() + 1)
-        ) {
-          const dayOfWeek = date.getDay();
-          if (dayOfWeek === 0) continue;
-
-          const hasReport = await checkDailyReport(member.email, date);
-
-          if (!hasReport) {
-            deductions.totalDays += 1;
-            deductions.totalAmount += dailySalary;
-            deductions.details.push({
-              date: date.toISOString(),
-              type: 'Không báo cáo ngày',
-              amount: dailySalary,
-              dayOfWeek,
-            });
-          }
+        if (!hasReport) {
+          deductions.totalDays += 1;
+          deductions.totalAmount += dailySalary;
+          deductions.details.push({
+            date: date.toISOString(),
+            type: 'Không báo cáo ngày',
+            amount: dailySalary,
+            dayOfWeek 
+          });
         }
-
-        return deductions;
-      } catch (error) {
-        console.error('Error calculating deductions:', error);
-        return null;
       }
-    },
-    [checkDailyReport, tinhTienTruLuong]
-  );
+      return deductions;
+    } catch (error) {
+      console.error('Error calculating deductions:', error);
+      return null;
+    }
+  }, [checkDailyReport, tinhTienTruLuong]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -447,7 +435,7 @@ export const FormTinhLuong = ({
         userName: '',
         memberCode: '',
         level: '',
-        department: '',
+        department: '', 
         luongCoBan: 0,
         phuCap: { ...INIT_PHU_CAP },
         baoHiem: { ...INIT_BAO_HIEM },
@@ -475,13 +463,14 @@ export const FormTinhLuong = ({
         if (docSnap.exists()) {
           const data = docSnap.data();
           const luongCoBan = getLuongByCapBac(data.level) || 0;
-
+          
+          // Tính khấu trừ
           const deductions = await calculateDeductions({
             ...data,
-            luongCoBan,
+            luongCoBan
           });
 
-          setFormData((prev) => ({
+          setFormData(prev => ({
             ...prev,
             userId: thanhVien.id,
             userName: data.fullName || '',
@@ -491,27 +480,26 @@ export const FormTinhLuong = ({
             luongCoBan,
             khauTru: {
               nghiPhepKhongPhep: deductions?.totalAmount || 0,
-              chiTiet: deductions?.details || [],
+              chiTiet: deductions?.details || []
             },
           }));
 
           if (deductions?.totalAmount > 0) {
-            setPhatList([
-              {
-                amount: deductions.totalAmount,
-                reason: `Trừ lương ${deductions.totalDays} ngày không báo cáo`,
-              },
-            ]);
+            setPhatList([{
+              amount: deductions.totalAmount,
+              reason: `Trừ lương ${deductions.totalDays} ngày không báo cáo`
+            }]);
           }
         }
       } catch (err) {
+        console.error(err);
         setError('Không thể tải thông tin thành viên');
         toast({
           title: 'Lỗi',
           description: 'Không thể tải thông tin thành viên',
           status: 'error',
           duration: 3000,
-          isClosable: true,
+          isClosable: true
         });
       }
     };
@@ -519,9 +507,8 @@ export const FormTinhLuong = ({
     loadThanhVienInfo();
   }, [thanhVien, calculateDeductions, toast]);
 
-  // Handlers
   const handleChange = useCallback((field, value) => {
-    setFormData((prev) => {
+    setFormData(prev => {
       if (field.includes('.')) {
         const [parent, child] = field.split('.');
         return {
@@ -540,15 +527,15 @@ export const FormTinhLuong = ({
   }, []);
 
   const handleAddThuong = useCallback(() => {
-    setThuongList((prev) => [...prev, { amount: 0, reason: '' }]);
+    setThuongList(prev => [...prev, { amount: 0, reason: '' }]);
   }, []);
 
   const handleDeleteThuong = useCallback((index) => {
-    setThuongList((prev) => prev.filter((_, i) => i !== index));
+    setThuongList(prev => prev.filter((_, i) => i !== index));
   }, []);
 
   const handleChangeThuong = useCallback((index, field, value) => {
-    setThuongList((prev) => {
+    setThuongList(prev => {
       const newList = [...prev];
       if (field === 'amount') {
         newList[index][field] = parseFormattedNumber(value);
@@ -560,15 +547,15 @@ export const FormTinhLuong = ({
   }, []);
 
   const handleAddPhat = useCallback(() => {
-    setPhatList((prev) => [...prev, { amount: 0, reason: '' }]);
+    setPhatList(prev => [...prev, { amount: 0, reason: '' }]);
   }, []);
 
   const handleDeletePhat = useCallback((index) => {
-    setPhatList((prev) => prev.filter((_, i) => i !== index));
+    setPhatList(prev => prev.filter((_, i) => i !== index));
   }, []);
 
   const handleChangePhat = useCallback((index, field, value) => {
-    setPhatList((prev) => {
+    setPhatList(prev => {
       const newList = [...prev];
       if (field === 'amount') {
         newList[index][field] = parseFormattedNumber(value);
@@ -579,118 +566,124 @@ export const FormTinhLuong = ({
     });
   }, []);
 
-  const tongThuong = thuongList.reduce((sum, item) => sum + (item.amount || 0), 0);
-  const tongPhat = phatList.reduce((sum, item) => sum + (item.amount || 0), 0);
-
-  const { tongThuNhap, thueTNCN, baoHiem: baoHiemTinh, thucLinh } = tinhToanLuong(
-    formData.luongCoBan,
-    tongThuong - tongPhat,
-    formData.phuCap,
-    dongBaoHiem,
-    dongThue,
-    { nghiPhepKhongPhep: 0, chiTiet: [] }
+  const tongThuong = useMemo(() => 
+    thuongList.reduce((sum, item) => sum + (item.amount || 0), 0),
+    [thuongList]
   );
 
-  const handleSubmit = useCallback(
-    async (e) => {
-      e.preventDefault();
-      setLoading(true);
-      setError(null);
+  const tongPhat = useMemo(() =>
+    phatList.reduce((sum, item) => sum + (item.amount || 0), 0),
+    [phatList]  
+  );
 
-      try {
-        if (!formData.userId || !formData.userName || !formData.memberCode) {
-          throw new Error('Vui lòng chọn thành viên');
-        }
-
-        const luongData = {
-          ...formData,
-          tongThuNhap,
-          thueTNCN: dongThue ? thueTNCN : 0,
-          baoHiem: {
-            ...baoHiemTinh,
-            dongBaoHiem,
-          },
-          thucLinh,
-          thuongList: thuongList.map((item) => ({
-            amount: Number(item.amount) || 0,
-            reason: item.reason || '',
-          })),
-          phatList: phatList.map((item) => ({
-            amount: Number(item.amount) || 0,
-            reason: item.reason || '',
-          })),
-          dongThue,
-          khauTru: {
-            nghiPhepKhongPhep: formData.khauTru.nghiPhepKhongPhep,
-            chiTiet: formData.khauTru.chiTiet || [],
-          },
-          kyLuong: {
-            thang: new Date().getMonth() + 1,
-            nam: new Date().getFullYear(),
-          },
-          trangThai: 'CHO_DUYET',
-          nguoiTao: user.id,
-        };
-
-        await handleSubmitExternal(luongData);
-
-        toast({
-          title: 'Thành công',
-          description: 'Đã tạo bảng lương mới',
-          status: 'success',
-          duration: 3000,
-          isClosable: true,
-        });
-
-        onClose();
-      } catch (err) {
-        setError(err.message || 'Có lỗi xảy ra');
-        toast({
-          title: 'Lỗi',
-          description: err.message || 'Không thể tạo bảng lương',
-          status: 'error',
-          duration: 3000,
-          isClosable: true,
-        });
-      } finally {
-        setLoading(false);
-      }
-    },
-    [
-      formData,
-      tongThuNhap,
-      thueTNCN,
-      baoHiemTinh,
-      thucLinh,
+  // Tính toán tổng lương 
+  const { tongThuNhap, thueTNCN, baoHiem, thucLinh } = useMemo(() => 
+    tinhToanLuong(
+      formData.luongCoBan,
+      tongThuong - tongPhat,
+      formData.phuCap,
       dongBaoHiem,
       dongThue,
-      thuongList,
-      phatList,
-      handleSubmitExternal,
-      onClose,
-      toast,
-      user.id,
+      { nghiPhepKhongPhep: 0, chiTiet: [] }
+    ),
+    [
+      formData.luongCoBan,
+      formData.phuCap,
+      tongThuong,
+      tongPhat, 
+      dongBaoHiem,
+      dongThue,
+      tinhToanLuong
     ]
   );
 
-  const renderCapBacInput = useCallback(() => (
-    <FormControl isRequired>
-      <FormLabel fontWeight="medium">Cấp bậc</FormLabel>
-      <Input
-        value={`${getTenCapBac(formData.level)} - ${formatCurrency(getLuongByCapBac(formData.level))}`}
-        isReadOnly
-        bg={styles.bgInput}
-        _hover={{ bg: styles.bgInputHover }}
-      />
-    </FormControl>
-  ), [formData.level, styles.bgInput, styles.bgInputHover]);
+  const handleSubmit = useCallback(async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      if (!formData.userId || !formData.userName || !formData.memberCode) {
+        throw new Error('Vui lòng chọn thành viên');
+      }
+
+      const luongData = {
+        ...formData,
+        tongThuNhap,
+        thueTNCN: dongThue ? thueTNCN : 0,
+        baoHiem: {
+          ...baoHiem,
+          dongBaoHiem
+        },
+        thucLinh,
+        thuongList: thuongList.map(item => ({
+          amount: Number(item.amount) || 0,
+          reason: item.reason || ''
+        })),
+        phatList: phatList.map(item => ({
+          amount: Number(item.amount) || 0,
+          reason: item.reason || ''  
+        })),
+        dongThue,
+        khauTru: {
+          nghiPhepKhongPhep: formData.khauTru.nghiPhepKhongPhep,
+          chiTiet: formData.khauTru.chiTiet || []
+        },
+        kyLuong: {
+          thang: new Date().getMonth() + 1,
+          nam: new Date().getFullYear()
+        },
+        trangThai: 'CHO_DUYET',
+        nguoiTao: user.id
+      };
+
+      await handleSubmitExternal(luongData);
+      
+      toast({
+        title: 'Thành công',
+        description: 'Đã tạo bảng lương mới',
+        status: 'success',
+        duration: 3000,
+        isClosable: true  
+      });
+
+      onClose();
+    } catch (err) {
+      setError(err.message || 'Có lỗi xảy ra');
+      toast({
+        title: 'Lỗi',
+        description: err.message || 'Không thể tạo bảng lương',
+        status: 'error',
+        duration: 3000,
+        isClosable: true
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [
+    formData,
+    tongThuNhap,
+    thueTNCN,
+    baoHiem,
+    thucLinh,
+    dongBaoHiem,
+    dongThue,
+    thuongList,
+    phatList,
+    user.id,
+    handleSubmitExternal,
+    onClose,
+    toast
+  ]);
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="xl">
+    <Modal isOpen={isOpen} onClose={onClose} size="xl"> 
       <ModalOverlay />
       <ModalContent bg={styles.bgCard}>
         <form onSubmit={handleSubmit}>
-          <ModalHeader>{readOnly ? 'Chi Tiết Lương' : 'Tính Lương'}</ModalHeader>
+          <ModalHeader>
+            {readOnly ? 'Chi Tiết Lương' : 'Tính Lương'}
+          </ModalHeader>
           <ModalCloseButton />
 
           <ModalBody>
@@ -701,18 +694,26 @@ export const FormTinhLuong = ({
                   {error}
                 </Alert>
               )}
-
+              
               <FormControl isRequired>
                 <FormLabel fontWeight="medium">Mã thành viên</FormLabel>
                 <Input
                   value={formData.memberCode}
                   isReadOnly
                   bg={styles.bgInput}
-                  _hover={{ bg: styles.bgInputHover }}
+                  _hover={{ bg: styles.bgInputHover }} 
                 />
               </FormControl>
 
-              {renderCapBacInput()}
+              <FormControl isRequired>
+                <FormLabel fontWeight="medium">Cấp bậc</FormLabel>
+                <Input
+                  value={`${getTenCapBac(formData.level)} - ${formatCurrency(getLuongByCapBac(formData.level))}`}
+                  isReadOnly
+                  bg={styles.bgInput}
+                  _hover={{ bg: styles.bgInputHover }}
+                />
+              </FormControl>
 
               {formData.khauTru?.nghiPhepKhongPhep > 0 && (
                 <Alert status="warning" borderRadius="lg">
@@ -847,19 +848,19 @@ export const FormTinhLuong = ({
                       <HStack justify="space-between" w="full">
                         <Text>BHYT (1.5%):</Text>
                         <Text color="blue.500" fontWeight="medium">
-                          {formatCurrency(baoHiemTinh.bhyt)}
+                          {formatCurrency(baoHiem.bhyt)}
                         </Text>
                       </HStack>
                       <HStack justify="space-between" w="full">
                         <Text>BHXH (8%):</Text>
                         <Text color="blue.500" fontWeight="medium">
-                          {formatCurrency(baoHiemTinh.bhxh)}
+                          {formatCurrency(baoHiem.bhxh)}
                         </Text>
                       </HStack>
                       <HStack justify="space-between" w="full">
                         <Text>BHTN (1%):</Text>
                         <Text color="blue.500" fontWeight="medium">
-                          {formatCurrency(baoHiemTinh.bhtn)}
+                          {formatCurrency(baoHiem.bhtn)}
                         </Text>
                       </HStack>
                       <Divider />
@@ -867,7 +868,7 @@ export const FormTinhLuong = ({
                         <Text fontWeight="bold">Tổng bảo hiểm:</Text>
                         <Text color="blue.500" fontWeight="bold" fontSize="lg">
                           {formatCurrency(
-                            baoHiemTinh.bhyt + baoHiemTinh.bhxh + baoHiemTinh.bhtn
+                            baoHiem.bhyt + baoHiem.bhxh + baoHiem.bhtn
                           )}
                         </Text>
                       </HStack>
@@ -922,7 +923,7 @@ export const FormTinhLuong = ({
                       <Text color="gray.600">Tổng bảo hiểm:</Text>
                       <Text color="blue.500" fontWeight="medium">
                         -{formatCurrency(
-                          baoHiemTinh.bhyt + baoHiemTinh.bhxh + baoHiemTinh.bhtn
+                          baoHiem.bhyt + baoHiem.bhxh + baoHiem.bhtn
                         )}
                       </Text>
                     </HStack>

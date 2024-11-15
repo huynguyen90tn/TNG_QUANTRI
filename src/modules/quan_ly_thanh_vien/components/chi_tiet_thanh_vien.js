@@ -1,4 +1,4 @@
-// src/modules/quan_ly_thanh_vien/components/chi_tiet_thanh_vien.js
+// Link: src/modules/quan_ly_thanh_vien/components/chi_tiet_thanh_vien/ChiTietThanhVien.js
 
 import React, { useState, useEffect, memo, useCallback, useRef } from 'react';
 import PropTypes from 'prop-types';
@@ -32,7 +32,7 @@ import {
   Box,
   Heading,
   Divider,
-  Flex,
+  Flex,  
   Icon,
   Tooltip,
   useColorModeValue,
@@ -48,9 +48,10 @@ import {
   AlertDialogContent,
   AlertDialogOverlay,
 } from '@chakra-ui/react';
+
 import {
   FaUser,
-  FaEnvelope,
+  FaEnvelope, 
   FaPhone,
   FaIdCard,
   FaMapMarkerAlt,
@@ -70,10 +71,11 @@ import {
   FaTimes,
   FaInfoCircle,
 } from 'react-icons/fa';
+
 import { useAuth } from '../../../hooks/useAuth';
 import { thanhVienService } from '../services/thanh_vien_service';
 import {
-  TRANG_THAI_THANH_VIEN,
+  TRANG_THAI_THANH_VIEN,  
   TRANG_THAI_LABEL,
   CAP_BAC,
   CAP_BAC_LABEL,
@@ -87,7 +89,7 @@ import {
 const EDIT_HISTORY_TYPE = {
   CREATED: 'CREATED',
   UPDATED: 'UPDATED',
-  LEVEL_CHANGED: 'LEVEL_CHANGED',
+  LEVEL_CHANGED: 'LEVEL_CHANGED', 
   STATUS_CHANGED: 'STATUS_CHANGED',
   DEPARTMENT_CHANGED: 'DEPARTMENT_CHANGED',
   POSITION_CHANGED: 'POSITION_CHANGED',
@@ -98,7 +100,7 @@ const EDIT_HISTORY_LABEL = {
   [EDIT_HISTORY_TYPE.UPDATED]: 'Cập nhật thông tin',
   [EDIT_HISTORY_TYPE.LEVEL_CHANGED]: 'Thay đổi cấp bậc',
   [EDIT_HISTORY_TYPE.STATUS_CHANGED]: 'Thay đổi trạng thái',
-  [EDIT_HISTORY_TYPE.DEPARTMENT_CHANGED]: 'Thay đổi phòng ban',
+  [EDIT_HISTORY_TYPE.DEPARTMENT_CHANGED]: 'Thay đổi phòng ban', 
   [EDIT_HISTORY_TYPE.POSITION_CHANGED]: 'Thay đổi chức vụ',
 };
 
@@ -120,7 +122,7 @@ const formatDate = (date) => {
 
     const options = {
       year: 'numeric',
-      month: '2-digit',
+      month: '2-digit', 
       day: '2-digit',
     };
 
@@ -149,11 +151,138 @@ const getEditTypeColor = (type) => {
       return 'gray';
   }
 };
+// Link: src/modules/quan_ly_thanh_vien/components/chi_tiet_thanh_vien/components/ThongTinItem.js
 
-// Component ThongTinItem
-const ThongTinItem = memo(({ label, value, icon, isEditing, children, isRequired }) => {
+const ThongTinItem = memo(({ 
+  label, 
+  value, 
+  icon, 
+  isEditing, 
+  children, 
+  isRequired,
+  className,
+  thanhVien,
+  editData,
+  setEditData,
+  lichSuCapBacModal,
+  themCapBacModal,
+  isAdminTong,
+  CAP_BAC_LABEL,
+  CAP_BAC_OPTIONS,
+  formatDate
+}) => {
   const borderColor = useColorModeValue('gray.200', 'gray.600');
 
+  // Xử lý hiển thị cấp bậc đặc biệt
+  const isCapBacItem = label === "Cấp bậc hiện tại";
+
+  if (isCapBacItem) {
+    return (
+      <Box
+        p={3}
+        borderWidth="1px" 
+        borderColor={borderColor}
+        borderRadius="md"
+        transition="all 0.2s"
+        _hover={{ shadow: 'sm' }}
+        className={className}
+      >
+        <HStack spacing={3} alignItems="center">
+          <Icon as={icon} color="blue.500" boxSize={5} />
+          <VStack alignItems="start" spacing={1} flex={1}>
+            <HStack>
+              <Text fontSize="sm" color="gray.500" fontWeight="medium">
+                {label}
+              </Text>
+              {isRequired && (
+                <Text color="red.500" fontSize="sm">
+                  *
+                </Text>
+              )}
+            </HStack>
+
+            {isEditing && isAdminTong ? (
+              <VStack spacing={4} align="start" w="full">
+                <Select
+                  size="lg"
+                  value={editData.capBac}
+                  onChange={(e) => setEditData(prev => ({...prev, capBac: e.target.value}))}
+                  variant="filled"
+                  bg="white"
+                  _hover={{ bg: 'gray.50' }}
+                >
+                  <option value="">-- Chọn cấp bậc --</option>
+                  {CAP_BAC_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Select>
+                <Input
+                  type="date"
+                  size="lg" 
+                  value={editData.ngayNhanCapBac}
+                  onChange={(e) => setEditData(prev => ({
+                    ...prev,
+                    ngayNhanCapBac: e.target.value
+                  }))}
+                />
+              </VStack>
+            ) : (
+              <VStack spacing={4} align="stretch" w="full">
+                <Flex 
+                  bg="blue.50" 
+                  p={4} 
+                  borderRadius="lg"
+                  align="center" 
+                  justify="center"
+                  borderWidth="1px"
+                  borderColor="blue.200"
+                >
+                  <HStack spacing={3}>
+                    <Icon as={FaUserTie} fontSize="xl" color="blue.500" />
+                    <Text fontSize="xl" fontWeight="bold" color="blue.700">
+                      {CAP_BAC_LABEL[thanhVien.capBac]}
+                    </Text>
+                    <Text fontSize="sm" color="gray.500">
+                      ({formatDate(thanhVien.ngayNhanCapBac)})
+                    </Text>
+                  </HStack>
+                </Flex>
+
+                <HStack justify="space-between">
+                  <Button
+                    leftIcon={<FaHistory />}
+                    onClick={lichSuCapBacModal.onOpen}
+                    colorScheme="blue"
+                    variant="outline"
+                    size="sm"
+                    flex={1}
+                  >
+                    Lịch sử cấp bậc
+                  </Button>
+                  {isAdminTong && (
+                    <Button
+                      leftIcon={<FaEdit />}
+                      onClick={themCapBacModal.onOpen}
+                      colorScheme="green"
+                      variant="solid"
+                      size="sm"
+                      flex={1}
+                    >
+                      Thêm cấp bậc
+                    </Button>
+                  )}
+                </HStack>
+              </VStack>
+            )}
+          </VStack>
+        </HStack>
+      </Box>
+    );
+  }
+
+  // Hiển thị thông tin item thông thường
   return (
     <Box
       p={3}
@@ -162,6 +291,7 @@ const ThongTinItem = memo(({ label, value, icon, isEditing, children, isRequired
       borderRadius="md"
       transition="all 0.2s"
       _hover={{ shadow: 'sm' }}
+      className={className}
     >
       <HStack spacing={3} alignItems="center">
         <Icon as={icon} color="blue.500" boxSize={5} />
@@ -198,9 +328,21 @@ ThongTinItem.propTypes = {
   isEditing: PropTypes.bool,
   children: PropTypes.node,
   isRequired: PropTypes.bool,
+  className: PropTypes.string,
+  thanhVien: PropTypes.object,
+  editData: PropTypes.object,
+  setEditData: PropTypes.func,
+  lichSuCapBacModal: PropTypes.object,
+  themCapBacModal: PropTypes.object,
+  isAdminTong: PropTypes.bool,
+  CAP_BAC_LABEL: PropTypes.object,
+  CAP_BAC_OPTIONS: PropTypes.array,
+  formatDate: PropTypes.func
 };
+// Link: src/modules/quan_ly_thanh_vien/components/chi_tiet_thanh_vien/components/modals.js
 
-// Các modal phụ
+// Link: src/modules/quan_ly_thanh_vien/components/chi_tiet_thanh_vien/components/modals.js
+
 const LichSuChinhSuaModal = memo(({ isOpen, onClose, lichSuChinhSua }) => {
   const headerBg = useColorModeValue('gray.50', 'gray.700');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
@@ -277,7 +419,7 @@ LichSuChinhSuaModal.propTypes = {
   lichSuChinhSua: PropTypes.arrayOf(
     PropTypes.shape({
       thoiGian: PropTypes.any.isRequired,
-      loai: PropTypes.oneOf(Object.values(EDIT_HISTORY_TYPE)).isRequired,
+      loai: PropTypes.oneOf(Object.values(EDIT_HISTORY_TYPE)).isRequired,  
       nguoiThucHien: PropTypes.string.isRequired,
       anhNguoiThucHien: PropTypes.string,
       thongTinCu: PropTypes.string,
@@ -496,6 +638,8 @@ ThemCapBacModal.propTypes = {
   setCapBacData: PropTypes.func.isRequired,
 };
 
+export { LichSuChinhSuaModal, LichSuCapBacModal, ThemCapBacModal };// Link: src/modules/quan_ly_thanh_vien/components/chi_tiet_thanh_vien/ChiTietThanhVien.js
+
 const ChiTietThanhVien = ({
   isOpen,
   onClose,
@@ -508,6 +652,7 @@ const ChiTietThanhVien = ({
   const lichSuChinhSuaModal = useDisclosure();
   const themCapBacModal = useDisclosure();
   const isAdminTong = user?.role === 'admin-tong';
+  const cancelRef = useRef();
 
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -515,7 +660,6 @@ const ChiTietThanhVien = ({
   const [lichSuChinhSua, setLichSuChinhSua] = useState([]);
   const [isImageError, setIsImageError] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const cancelRef = useRef();
 
   const [editData, setEditData] = useState({
     anhDaiDien: '',
@@ -523,7 +667,7 @@ const ChiTietThanhVien = ({
     email: '',
     phongBan: '',
     chucVu: CHUC_VU.THANH_VIEN,
-    capBac: CAP_BAC.THU_SINH,
+    capBac: '', 
     ngayNhanCapBac: new Date().toISOString().split('T')[0],
     trangThai: TRANG_THAI_THANH_VIEN.DANG_CONG_TAC,
     soDienThoai: '',
@@ -681,7 +825,7 @@ const ChiTietThanhVien = ({
     } else {
       setIsEditing(false);
     }
-  }, [hasUnsavedChanges, originalData, toast]);
+  }, [hasUnsavedChanges, originalData, toast, cancelRef]);
 
   const handleSave = async () => {
     if (!thanhVien?.id || !hasUnsavedChanges) return;
@@ -1057,65 +1201,16 @@ const ChiTietThanhVien = ({
                     icon={FaUserTie}
                     isRequired
                     isEditing={isEditing && isAdminTong}
-                  >
-                    {isEditing && isAdminTong ? (
-                      <VStack alignItems="start" spacing={2}>
-                        <Select
-                          value={editData.capBac}
-                          onChange={(e) =>
-                            setEditData((prev) => ({ ...prev, capBac: e.target.value }))
-                          }
-                        >
-                          {CAP_BAC_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </Select>
-                        <Input
-                          type="date"
-                          value={editData.ngayNhanCapBac}
-                          onChange={(e) =>
-                            setEditData((prev) => ({
-                              ...prev,
-                              ngayNhanCapBac: e.target.value,
-                            }))
-                          }
-                        />
-                      </VStack>
-                    ) : (
-                      <HStack justifyContent="space-between" mt={2}>
-                        <Text
-                          className={`cap-bac-${thanhVien.capBac}`}
-                          fontSize="xl"
-                          fontWeight="bold"
-                          textShadow="0 0 10px rgba(0,0,0,0.5)"
-                        >
-                          {CAP_BAC_LABEL[thanhVien.capBac]}
-                        </Text>
-                        <HStack>
-                          <Button
-                            size="sm"
-                            colorScheme="blue"
-                            leftIcon={<FaHistory />}
-                            onClick={lichSuCapBacModal.onOpen}
-                          >
-                            Xem lịch sử
-                          </Button>
-                          {isAdminTong && (
-                            <Button
-                              size="sm"
-                              colorScheme="green"
-                              leftIcon={<FaEdit />}
-                              onClick={themCapBacModal.onOpen}
-                            >
-                              Thêm cấp bậc
-                            </Button>
-                          )}
-                        </HStack>
-                      </HStack>
-                    )}
-                  </ThongTinItem>
+                    thanhVien={thanhVien}
+                    editData={editData}
+                    setEditData={setEditData}
+                    lichSuCapBacModal={lichSuCapBacModal}
+                    themCapBacModal={themCapBacModal}
+                    isAdminTong={isAdminTong}
+                    CAP_BAC_LABEL={CAP_BAC_LABEL}
+                    CAP_BAC_OPTIONS={CAP_BAC_OPTIONS}
+                    formatDate={formatDate}
+                  />
                 </Box>
 
                 <ThongTinItem

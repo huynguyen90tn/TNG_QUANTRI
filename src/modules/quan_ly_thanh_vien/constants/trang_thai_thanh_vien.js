@@ -1,4 +1,6 @@
-// src/modules/quan_ly_thanh_vien/constants/trang_thai_thanh_vien.js
+// File: src/modules/quan_ly_thanh_vien/constants/trang_thai_thanh_vien.js
+// Link tham khảo: https://eslint.org/docs/rules/
+// Nhánh: main
 
 export const TRANG_THAI_THANH_VIEN = {
   DANG_CONG_TAC: 'DANG_CONG_TAC',
@@ -8,7 +10,7 @@ export const TRANG_THAI_THANH_VIEN = {
 
 export const TRANG_THAI_LABEL = {
   [TRANG_THAI_THANH_VIEN.DANG_CONG_TAC]: 'Đang công tác',
-  [TRANG_THAI_THANH_VIEN.DUNG_CONG_TAC]: 'Dừng công tác',
+  [TRANG_THAI_THANH_VIEN.DUNG_CONG_TAC]: 'Dừng công tác', 
   [TRANG_THAI_THANH_VIEN.NGHI]: 'Nghỉ',
 };
 
@@ -58,16 +60,16 @@ export const CAP_BAC = {
   TIEU_HIEP: 'TIEU_HIEP',
   HIEP_SI: 'HIEP_SI',
   KIEM_KHACH: 'KIEM_KHACH',
-  HIEP_KHACH: 'Hiệp khách',
-  DAI_HIEP: 'Đại hiệp',
-  KIEM_THANH: 'Kiếm thánh',
-  KIEM_DE: 'Kiếm đế',
-  KIEM_THAN: 'Kiếm thần',
+  HIEP_KHACH: 'HIEP_KHACH', // Sửa thành uppercase
+  DAI_HIEP: 'DAI_HIEP', // Sửa thành uppercase
+  KIEM_THANH: 'KIEM_THANH', // Sửa thành uppercase
+  KIEM_DE: 'KIEM_DE', // Sửa thành uppercase 
+  KIEM_THAN: 'KIEM_THAN', // Sửa thành uppercase
 };
 
 export const CAP_BAC_LABEL = {
   [CAP_BAC.THU_SINH]: 'Thư sinh',
-  [CAP_BAC.VO_SINH]: 'Võ sinh',
+  [CAP_BAC.VO_SINH]: 'Võ sinh', 
   [CAP_BAC.TIEU_HIEP]: 'Tiểu hiệp',
   [CAP_BAC.HIEP_SI]: 'Hiệp sĩ',
   [CAP_BAC.KIEM_KHACH]: 'Kiếm khách',

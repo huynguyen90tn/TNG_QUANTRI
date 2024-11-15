@@ -7,7 +7,7 @@ import PropTypes from 'prop-types';
 import {
   Box,
   Table,
-  Thead,
+  Thead, 
   Tbody,
   Tr,
   Th,
@@ -23,27 +23,19 @@ import {
   Spinner,
   IconButton,
   Menu,
-  MenuButton,
+  MenuButton, 
   MenuList,
   MenuItem,
-  Tooltip,
+  Tooltip
 } from '@chakra-ui/react';
 import { FiMoreVertical } from 'react-icons/fi';
+import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
+
 import { useAuth } from '../../../hooks/useAuth';
 import { useLuong } from '../hooks/use_luong';
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  Timestamp,
-} from 'firebase/firestore';
 import { db } from '../../../services/firebase';
 import { FormTinhLuong } from './form_tinh_luong';
-import {
-  PHONG_BAN,
-  CAP_BAC_LABEL,
-} from '../constants/loai_luong';
+import { PHONG_BAN, LUONG_THEO_CAP_BAC } from '../constants/loai_luong';
 
 export const BangLamLuong = ({ onComplete }) => {
   const toast = useToast();
@@ -72,26 +64,24 @@ export const BangLamLuong = ({ onComplete }) => {
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Helper functions
-  const formatDate = (date) => {
+  const formatDate = useCallback((date) => {
     const days = [
       'Chủ nhật',
       'Thứ 2',
-      'Thứ 3',
+      'Thứ 3', 
       'Thứ 4',
       'Thứ 5',
       'Thứ 6',
-      'Thứ 7',
+      'Thứ 7'
     ];
     const d = new Date(date);
-    return `${days[d.getDay()]}, ${d.getDate()}/${
-      d.getMonth() + 1
-    }/${d.getFullYear()}`;
-  };
+    return `${days[d.getDay()]}, ${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
+  }, []);
 
-  const calculateDailySalary = (level) => {
-    const baseSalary = 0; // Lương cơ bản đã được bỏ
-    return Math.round(baseSalary / 22); // 22 ngày làm việc/tháng
-  };
+  const calculateDailySalary = useCallback((level) => {
+    const baseSalary = LUONG_THEO_CAP_BAC[level?.toUpperCase()] || 0;
+    return Math.round(baseSalary / 26); // 26 ngày làm việc/tháng
+  }, []);
 
   // Kiểm tra báo cáo ngày
   const checkDailyReport = useCallback(async (email, date) => {
@@ -111,12 +101,10 @@ export const BangLamLuong = ({ onComplete }) => {
 
       const snapshot = await getDocs(reportQuery);
 
-      const hasReport = snapshot.docs.some((doc) => {
+      return snapshot.docs.some((doc) => {
         const reportDate = doc.data().ngayTao.toDate();
         return reportDate <= endOfDay;
       });
-
-      return hasReport;
     } catch (error) {
       console.error('Error checking daily report:', error);
       return false;
@@ -124,104 +112,92 @@ export const BangLamLuong = ({ onComplete }) => {
   }, []);
 
   // Tính toán khấu trừ lương
-  const calculateDeductions = useCallback(
-    async (member) => {
-      const deductions = {
-        totalDays: 0,
-        totalAmount: 0,
-        details: [],
-      };
+  const calculateDeductions = useCallback(async (member) => {
+    const deductions = {
+      totalDays: 0,
+      totalAmount: 0,
+      details: []
+    };
 
-      try {
-        if (!member.email) {
-          throw new Error('Member email is required');
-        }
+    try {
+      if (!member?.email) {
+        throw new Error('Member email is required');
+      }
 
-        const monthStart = new Date(selectedYear, selectedMonth - 1, 1);
-        const monthEnd = new Date(selectedYear, selectedMonth, 0);
-        const isCurrentMonth =
-          selectedMonth === currentDate.getMonth() + 1 &&
-          selectedYear === currentDate.getFullYear();
-        const endDate = isCurrentMonth ? currentDate : monthEnd;
+      const monthStart = new Date(selectedYear, selectedMonth - 1, 1);
+      const monthEnd = new Date(selectedYear, selectedMonth, 0);
+      const isCurrentMonth = selectedMonth === currentDate.getMonth() + 1 && 
+                           selectedYear === currentDate.getFullYear();
+      const endDate = isCurrentMonth ? currentDate : monthEnd;
 
-        // Query leave requests
-        const leaveRequestsRef = collection(db, 'leave_requests');
-        const leaveQuery = query(
-          leaveRequestsRef,
-          where('userId', '==', member.id),
-          where('status', '==', 'DA_DUYET'),
-          where('startDate', '<=', Timestamp.fromDate(endDate))
+      // Query leave requests
+      const leaveRequestsRef = collection(db, 'leave_requests');
+      const leaveQuery = query(
+        leaveRequestsRef,
+        where('userId', '==', member.id),
+        where('status', '==', 'DA_DUYET'),
+        where('startDate', '<=', Timestamp.fromDate(endDate))
+      );
+      const leaveSnapshot = await getDocs(leaveQuery);
+
+      const leaveRequests = leaveSnapshot.docs
+        .map((doc) => {
+          const data = doc.data();
+          return {
+            startDate: data.startDate.toDate(),
+            endDate: data.endDate.toDate()
+          };
+        })
+        .filter((leave) => leave.endDate >= monthStart);
+
+      // Process each day
+      for (let date = new Date(monthStart); date <= endDate; date.setDate(date.getDate() + 1)) {
+        const dayOfWeek = date.getDay();
+        if (dayOfWeek === 0) continue; // Bỏ qua Chủ nhật
+
+        const isLeaveDay = leaveRequests.some(
+          (leave) => date >= leave.startDate && date <= leave.endDate
         );
-        const leaveSnapshot = await getDocs(leaveQuery);
 
-        const leaveRequests = leaveSnapshot.docs
-          .map((doc) => {
-            const data = doc.data();
-            return {
-              startDate: data.startDate.toDate(),
-              endDate: data.endDate.toDate(),
-            };
-          })
-          .filter((leave) => {
-            return leave.endDate >= monthStart;
+        const dailySalary = calculateDailySalary(member.level);
+
+        if (isLeaveDay) {
+          deductions.totalDays += 1;
+          deductions.totalAmount += dailySalary;
+          deductions.details.push({
+            date: date.toISOString(),
+            type: 'Nghỉ phép',
+            amount: dailySalary,
+            dayOfWeek
           });
-
-        // Process each day
-        for (
-          let date = new Date(monthStart);
-          date <= endDate;
-          date.setDate(date.getDate() + 1)
-        ) {
-          const dayOfWeek = date.getDay();
-          if (dayOfWeek === 0) continue; // Bỏ qua Chủ nhật
-
-          const isLeaveDay = leaveRequests.some(
-            (leave) => date >= leave.startDate && date <= leave.endDate
-          );
-
-          if (!isLeaveDay) {
-            // Check daily report
-            const hasReport = await checkDailyReport(member.email, date);
-
-            if (!hasReport) {
-              const dailySalary = calculateDailySalary(member.level);
-              deductions.totalDays += 1;
-              deductions.totalAmount += dailySalary;
-              deductions.details.push({
-                date: date.toISOString(),
-                type: 'Không báo cáo ngày',
-                amount: dailySalary,
-                dayOfWeek: dayOfWeek,
-              });
-            }
-          } else {
-            const dailySalary = calculateDailySalary(member.level);
+        } else {
+          const hasReport = await checkDailyReport(member.email, date);
+          if (!hasReport) {
             deductions.totalDays += 1;
-            deductions.totalAmount += dailySalary;
+            deductions.totalAmount += dailySalary; 
             deductions.details.push({
               date: date.toISOString(),
-              type: 'Nghỉ phép',
+              type: 'Không báo cáo ngày',
               amount: dailySalary,
-              dayOfWeek: dayOfWeek,
+              dayOfWeek
             });
           }
         }
-
-        return deductions;
-      } catch (error) {
-        console.error('Error calculating deductions:', error);
-        toast({
-          title: 'Lỗi',
-          description: 'Không thể tính khấu trừ lương: ' + error.message,
-          status: 'error',
-          duration: 3000,
-          isClosable: true,
-        });
-        return deductions;
       }
-    },
-    [selectedMonth, selectedYear, currentDate, toast, checkDailyReport]
-  );
+
+      return deductions;
+    } catch (error) {
+      console.error('Error calculating deductions:', error);
+      toast({
+        title: 'Lỗi',
+        description: 'Không thể tính khấu trừ lương: ' + error.message,
+        status: 'error',
+        duration: 3000,
+        isClosable: true
+      });
+      return deductions;
+    }
+  }, [selectedMonth, selectedYear, currentDate, toast, checkDailyReport, calculateDailySalary]);
 
   // Lấy danh sách thành viên đã xử lý lương
   const getProcessedMembers = useCallback(async () => {
@@ -246,7 +222,7 @@ export const BangLamLuong = ({ onComplete }) => {
   const getMembers = useCallback(async () => {
     try {
       setLoading(true);
-      const membersRef = collection(db, 'users'); // Sửa từ 'members' thành 'users'
+      const membersRef = collection(db, 'users');
       const q = query(
         membersRef,
         where('status', '==', 'active'),
@@ -256,7 +232,7 @@ export const BangLamLuong = ({ onComplete }) => {
       const snapshot = await getDocs(q);
       const membersList = snapshot.docs.map((doc) => ({
         id: doc.id,
-        ...doc.data(),
+        ...doc.data()
       }));
 
       setMembers(membersList);
@@ -290,14 +266,11 @@ export const BangLamLuong = ({ onComplete }) => {
   useEffect(() => {
     const filtered = members.filter((member) => {
       const isNotProcessed = !processedMembers.includes(member.id);
-
-      const matchesSearch =
-        !searchTerm ||
+      const matchesSearch = !searchTerm ||
         member.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         member.memberCode?.toLowerCase().includes(searchTerm.toLowerCase());
-
-      const matchesDepartment =
-        !selectedDepartment || member.department === selectedDepartment;
+      const matchesDepartment = !selectedDepartment || 
+        member.department === selectedDepartment;
 
       return isNotProcessed && matchesSearch && matchesDepartment;
     });
@@ -310,70 +283,67 @@ export const BangLamLuong = ({ onComplete }) => {
     setIsCalculating(true);
   }, []);
 
-  const handleSubmitSalary = useCallback(
-    async (salaryData) => {
-      try {
-        setIsProcessing(true);
+  const handleSubmitSalary = useCallback(async (salaryData) => {
+    try {
+      setIsProcessing(true);
 
-        const memberDeductions = deductionDetails[selectedEmployee.id];
+      const memberDeductions = deductionDetails[selectedEmployee.id];
 
-        const finalSalaryData = {
-          ...salaryData,
-          kyLuong: {
-            thang: selectedMonth,
-            nam: selectedYear,
-          },
-          thucLinh: salaryData.thucLinh - (memberDeductions?.totalAmount || 0),
-          khauTru: {
-            nghiPhepKhongPhep: memberDeductions?.totalAmount || 0,
-            chiTiet: memberDeductions?.details || [],
-          },
-          trangThai: 'CHO_DUYET',
-          nguoiTao: user.id,
-        };
+      const finalSalaryData = {
+        ...salaryData,
+        kyLuong: {
+          thang: selectedMonth,
+          nam: selectedYear
+        },
+        thucLinh: salaryData.thucLinh - (memberDeductions?.totalAmount || 0),
+        khauTru: {
+          nghiPhepKhongPhep: memberDeductions?.totalAmount || 0,
+          chiTiet: memberDeductions?.details || []
+        },
+        trangThai: 'CHO_DUYET',
+        nguoiTao: user.id
+      };
 
-        await taoMoi(finalSalaryData);
+      await taoMoi(finalSalaryData);
 
-        toast({
-          title: 'Thành công',
-          description: 'Đã tạo bảng lương mới',
-          status: 'success',
-          duration: 3000,
-          isClosable: true,
-        });
+      toast({
+        title: 'Thành công',
+        description: 'Đã tạo bảng lương mới',
+        status: 'success',
+        duration: 3000,
+        isClosable: true
+      });
 
-        await getProcessedMembers();
-        setSelectedEmployee(null);
-        setIsCalculating(false);
+      await getProcessedMembers();
+      setSelectedEmployee(null);
+      setIsCalculating(false);
 
-        if (onComplete) {
-          onComplete();
-        }
-      } catch (error) {
-        console.error('Error creating salary:', error);
-        toast({
-          title: 'Lỗi',
-          description: error.message || 'Không thể tạo bảng lương',
-          status: 'error',
-          duration: 3000,
-          isClosable: true,
-        });
-      } finally {
-        setIsProcessing(false);
+      if (onComplete) {
+        onComplete();
       }
-    },
-    [
-      selectedEmployee,
-      deductionDetails,
-      selectedMonth,
-      selectedYear,
-      user.id,
-      taoMoi,
-      toast,
-      getProcessedMembers,
-      onComplete,
-    ]
-  );
+    } catch (error) {
+      console.error('Error creating salary:', error);
+      toast({
+        title: 'Lỗi',
+        description: error.message || 'Không thể tạo bảng lương',
+        status: 'error',
+        duration: 3000,
+        isClosable: true
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [
+    selectedEmployee,
+    deductionDetails,
+    selectedMonth,
+    selectedYear,
+    user.id,
+    taoMoi,
+    toast,
+    getProcessedMembers,
+    onComplete
+  ]);
 
   if (loading) {
     return (
@@ -392,10 +362,8 @@ export const BangLamLuong = ({ onComplete }) => {
     );
   }
 
-  // Danh sách tháng
+  // Danh sách tháng và năm
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
-
-  // Danh sách năm (5 năm trước và 5 năm sau)
   const years = Array.from(
     { length: 10 },
     (_, i) => currentDate.getFullYear() - 5 + i
@@ -404,12 +372,14 @@ export const BangLamLuong = ({ onComplete }) => {
   return (
     <Box p={4}>
       <VStack spacing={4} align="stretch">
+        {/* Header */}
         <HStack justify="space-between" mb={4}>
           <Text fontSize="xl" fontWeight="bold">
             Làm Lương Tháng {selectedMonth}/{selectedYear}
           </Text>
         </HStack>
 
+        {/* Filters */}
         <HStack spacing={4}>
           <Select
             w="150px"
@@ -547,11 +517,11 @@ export const BangLamLuong = ({ onComplete }) => {
 };
 
 BangLamLuong.propTypes = {
-  onComplete: PropTypes.func,
+  onComplete: PropTypes.func
 };
 
 BangLamLuong.defaultProps = {
-  onComplete: () => {},
+  onComplete: () => {}
 };
 
 export default BangLamLuong;

@@ -1,4 +1,9 @@
-import React from 'react';
+// File: src/modules/quan_ly_thanh_vien/components/bo_loc_thanh_vien.js
+// Link tham khảo: https://chakra-ui.com/docs/components/filter
+// Nhánh: main 
+
+import React, { useState, useMemo, useCallback } from 'react';
+import PropTypes from 'prop-types';
 import {
   Box,
   InputGroup,
@@ -7,7 +12,6 @@ import {
   Select,
   HStack,
   Button,
-  VStack,
   useDisclosure,
   Collapse,
   useColorModeValue,
@@ -18,15 +22,13 @@ import {
   Text,
   Badge,
   Flex,
-  Divider,
   SimpleGrid,
   Tag,
-  TagLeftIcon,
   TagLabel,
 } from '@chakra-ui/react';
 import {
   SearchIcon,
-  RepeatIcon,
+  RepeatIcon, 
   ChevronDownIcon,
   ChevronUpIcon,
   CloseIcon,
@@ -40,6 +42,8 @@ import {
   FaSyncAlt
 } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
+
+import { useThanhVien } from '../hooks/use_thanh_vien';
 import {
   TRANG_THAI_THANH_VIEN,
   TRANG_THAI_LABEL,
@@ -50,15 +54,14 @@ import {
   CHUC_VU,
   CHUC_VU_LABEL
 } from '../constants/trang_thai_thanh_vien';
-import { useThanhVien } from '../hooks/use_thanh_vien';
 
 const MotionBox = motion(Box);
 
 const FilterTag = ({ label, onRemove, colorScheme = "blue" }) => (
-  <Tag 
-    size="md" 
-    borderRadius="full" 
-    variant="solid" 
+  <Tag
+    size="md"
+    borderRadius="full"
+    variant="solid"
     colorScheme={colorScheme}
     boxShadow="sm"
   >
@@ -68,7 +71,7 @@ const FilterTag = ({ label, onRemove, colorScheme = "blue" }) => (
       ml={1}
       icon={<CloseIcon />}
       variant="ghost"
-      colorScheme={colorScheme}
+      colorScheme={colorScheme}  
       onClick={onRemove}
       aria-label="Xóa lọc"
       _hover={{ bg: 'whiteAlpha.300' }}
@@ -76,20 +79,43 @@ const FilterTag = ({ label, onRemove, colorScheme = "blue" }) => (
   </Tag>
 );
 
+FilterTag.propTypes = {
+  label: PropTypes.string.isRequired,
+  onRemove: PropTypes.func.isRequired,
+  colorScheme: PropTypes.string,
+};
+
 const BoLocThanhVien = () => {
   const { isOpen, onToggle } = useDisclosure({ defaultIsOpen: true });
   const { boLoc, locDanhSach, datLaiDanhSach } = useThanhVien();
-  const [boLocTamThoi, setBoLocTamThoi] = React.useState(boLoc);
-  const [activeFilters, setActiveFilters] = React.useState([]);
+
+  const [boLocTamThoi, setBoLocTamThoi] = useState(boLoc);
+  const [activeFilters, setActiveFilters] = useState([]);
 
   // Theme colors
   const cardBg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
   const inputBg = useColorModeValue('gray.50', 'gray.700');
   const textColor = useColorModeValue('gray.800', 'white');
-  const mutedColor = useColorModeValue('gray.600', 'gray.400');
 
-  const handleLocThayDoi = (ten, giaTri) => {
+  const getFilterLabel = useCallback((key, value) => {
+    switch(key) {
+      case 'phongBan':
+        return PHONG_BAN_LABEL[value];
+      case 'trangThai': 
+        return TRANG_THAI_LABEL[value];
+      case 'capBac':
+        return CAP_BAC_LABEL[value];
+      case 'chucVu':
+        return CHUC_VU_LABEL[value];
+      case 'tuKhoa':
+        return `Tìm kiếm: ${value}`;
+      default:
+        return '';
+    }
+  }, []);
+
+  const handleLocThayDoi = useCallback((ten, giaTri) => {
     setBoLocTamThoi(prev => ({
       ...prev,
       [ten]: giaTri
@@ -103,30 +129,13 @@ const BoLocThanhVien = () => {
     } else {
       setActiveFilters(prev => prev.filter(f => f.key !== ten));
     }
-  };
+  }, [getFilterLabel]);
 
-  const getFilterLabel = (key, value) => {
-    switch(key) {
-      case 'phongBan':
-        return PHONG_BAN_LABEL[value];
-      case 'trangThai':
-        return TRANG_THAI_LABEL[value];
-      case 'capBac':
-        return CAP_BAC_LABEL[value];
-      case 'chucVu':
-        return CHUC_VU_LABEL[value];
-      case 'tuKhoa':
-        return `Tìm kiếm: ${value}`;
-      default:
-        return '';
-    }
-  };
-
-  const handleApDungLoc = () => {
+  const handleApDungLoc = useCallback(() => {
     locDanhSach(boLocTamThoi);
-  };
+  }, [boLocTamThoi, locDanhSach]);
 
-  const handleDatLai = () => {
+  const handleDatLai = useCallback(() => {
     setBoLocTamThoi({
       tuKhoa: '',
       phongBan: '',
@@ -136,30 +145,53 @@ const BoLocThanhVien = () => {
     });
     setActiveFilters([]);
     datLaiDanhSach();
-  };
+  }, [datLaiDanhSach]);
 
-  const removeFilter = (key) => {
+  const removeFilter = useCallback((key) => {
     setBoLocTamThoi(prev => ({
       ...prev,
       [key]: ''
     }));
     setActiveFilters(prev => prev.filter(f => f.key !== key));
-  };
+  }, []);
+
+  const getFilterColorScheme = useCallback((key) => {
+    switch(key) {
+      case 'trangThai': return 'green';
+      case 'phongBan': return 'purple';
+      case 'capBac': return 'orange'; 
+      case 'chucVu': return 'cyan';
+      default: return 'blue';
+    }
+  }, []);
+
+  const renderFilterTags = useMemo(() => (
+    <Flex wrap="wrap" gap={2}>
+      {activeFilters.map(filter => (
+        <FilterTag
+          key={filter.key}
+          label={filter.label}
+          onRemove={() => removeFilter(filter.key)} 
+          colorScheme={getFilterColorScheme(filter.key)}
+        />
+      ))}
+    </Flex>
+  ), [activeFilters, removeFilter, getFilterColorScheme]);
 
   return (
     <Card
       bg={cardBg}
-      boxShadow="sm"
+      boxShadow="sm" 
       borderRadius="lg"
       borderWidth="1px"
       borderColor={borderColor}
       mb={6}
     >
       <CardBody p={0}>
-        <Flex 
+        <Flex
           p={4}
-          justify="space-between" 
-          align="center"
+          justify="space-between"
+          align="center" 
           borderBottomWidth={isOpen ? "1px" : "0"}
           borderColor={borderColor}
         >
@@ -172,7 +204,7 @@ const BoLocThanhVien = () => {
               </Badge>
             )}
           </HStack>
-          
+
           <HStack spacing={2}>
             <Tooltip label="Làm mới bộ lọc">
               <IconButton
@@ -189,7 +221,7 @@ const BoLocThanhVien = () => {
                 variant="ghost"
                 onClick={onToggle}
                 aria-label="Toggle filters"
-                size="sm"
+                size="sm" 
               />
             </Tooltip>
           </HStack>
@@ -206,21 +238,7 @@ const BoLocThanhVien = () => {
               borderBottomWidth={isOpen ? "1px" : "0"}
               borderColor={borderColor}
             >
-              <Flex wrap="wrap" gap={2}>
-                {activeFilters.map(filter => (
-                  <FilterTag
-                    key={filter.key}
-                    label={filter.label}
-                    onRemove={() => removeFilter(filter.key)}
-                    colorScheme={
-                      filter.key === 'trangThai' ? 'green' :
-                      filter.key === 'phongBan' ? 'purple' :
-                      filter.key === 'capBac' ? 'orange' :
-                      filter.key === 'chucVu' ? 'cyan' : 'blue'
-                    }
-                  />
-                ))}
-              </Flex>
+              {renderFilterTags}
             </MotionBox>
           )}
         </AnimatePresence>
@@ -243,7 +261,7 @@ const BoLocThanhVien = () => {
               <InputGroup>
                 <InputLeftElement pointerEvents="none">
                   <Box as={FaBuilding} color="gray.400" />
-                </InputLeftElement>
+                </InputLeftElement> 
                 <Select
                   pl={10}
                   placeholder="Phòng ban"
@@ -264,7 +282,7 @@ const BoLocThanhVien = () => {
                   <Box as={FaRegClock} color="gray.400" />
                 </InputLeftElement>
                 <Select
-                  pl={10}
+                  pl={10} 
                   placeholder="Trạng thái"
                   value={boLocTamThoi.trangThai}
                   onChange={(e) => handleLocThayDoi('trangThai', e.target.value)}
@@ -280,7 +298,7 @@ const BoLocThanhVien = () => {
 
               <InputGroup>
                 <InputLeftElement pointerEvents="none">
-                  <Box as={FaUserGraduate} color="gray.400" />
+                  <Box as={FaUserGraduate} color="gray.400" /> 
                 </InputLeftElement>
                 <Select
                   pl={10}
@@ -291,7 +309,7 @@ const BoLocThanhVien = () => {
                 >
                   {Object.entries(CAP_BAC).map(([key, value]) => (
                     <option key={key} value={value}>
-                      {CAP_BAC_LABEL[value]}
+                      {CAP_BAC_LABEL[value]} 
                     </option>
                   ))}
                 </Select>
