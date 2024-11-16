@@ -90,6 +90,13 @@ import KiemKeTaiSan from './modules/quan_ly_tai_san/components/kiem_ke_tai_san';
 import QuanLyLuongPage from './modules/quan_ly_luong/pages/quan_ly_luong_page';
 import ChiTietLuong from './modules/quan_ly_luong/components/chi_tiet_luong';
 
+// Sửa lại phần import cho module quản lý tài chính
+import QuanLyTaiChinhPage from './modules/quan_ly_tai_chinh/pages/quan_ly_tai_chinh_page';
+import QuanLyNguonThuPage from './modules/quan_ly_tai_chinh/pages/quan_ly_nguon_thu_page';
+import QuanLyChiTieuPage from './modules/quan_ly_tai_chinh/pages/quan_ly_chi_tieu_page';
+import BaoCaoTaiChinhPage from './modules/quan_ly_tai_chinh/pages/bao_cao_page';
+import ChiTietNguonThu from './modules/quan_ly_tai_chinh/components/nguon_thu/chi_tiet_nguon_thu';
+import ChiTietChiTieu from './modules/quan_ly_tai_chinh/components/chi_tieu/chi_tiet_chi_tieu';
 const ROLES = {
   ADMIN_TONG: 'admin-tong',
   ADMIN_CON: 'admin-con',
@@ -155,8 +162,10 @@ const AppRoutes = () => {
 
   return (
     <Routes>
+      {/* Trang chủ */}
       <Route path="/" element={<HomePage />} />
 
+      {/* Routes Admin Tổng */}
       <Route
         path="/admin-tong"
         element={
@@ -201,6 +210,7 @@ const AppRoutes = () => {
         }
       />
 
+      {/* Routes Admin Con */}
       <Route
         path="/admin-con"
         element={
@@ -234,6 +244,7 @@ const AppRoutes = () => {
         }
       />
 
+      {/* Routes Member */}
       <Route
         path="/member"
         element={
@@ -267,6 +278,7 @@ const AppRoutes = () => {
         }
       />
 
+      {/* Routes Quản lý tài sản */}
       <Route
         path="/quan-ly-tai-san"
         element={
@@ -333,6 +345,7 @@ const AppRoutes = () => {
         }
       />
 
+      {/* Routes Quản lý dự án */}
       <Route
         path="/quan-ly-du-an"
         element={
@@ -369,299 +382,370 @@ const AppRoutes = () => {
       <Route
         path="/quan-ly-nhiem-vu/:taskId"
         element={
+          <ProtectedRoute requiredRole={SHARED_ROLES}><Layout>
+          <TaskManagementPage />
+        </Layout>
+      </ProtectedRoute>
+    }
+  />
+
+  {/* Routes Quản lý nghỉ phép */}
+  <Route
+    path="/quan-ly-nghi-phep"
+    element={
+      <ProtectedRoute requiredRole={SHARED_ROLES}>
+        <Layout>
+          <QuanLyNghiPhepPage />
+        </Layout>
+      </ProtectedRoute>
+    }
+  />
+
+  <Route
+    path="/quan-ly-nghi-phep/danh-sach"
+    element={
+      <ProtectedRoute requiredRole={SHARED_ROLES}>
+        <Layout>
+          <DanhSachDonNghiPhep />
+        </Layout>
+      </ProtectedRoute>
+    }
+  />
+
+  <Route
+    path="/quan-ly-nghi-phep/tao-don"
+    element={
+      <ProtectedRoute requiredRole={[ROLES.MEMBER]}>
+        <Layout>
+          <FormTaoDonNghiPhep />
+        </Layout>
+      </ProtectedRoute>
+    }
+  />
+
+  <Route
+    path="/quan-ly-nghi-phep/:id"
+    element={
+      <ProtectedRoute requiredRole={SHARED_ROLES}>
+        <Layout>
+          <ChiTietDonNghiPhep />
+        </Layout>
+      </ProtectedRoute>
+    }
+  />
+
+  {/* Routes Quản lý chi tiết */}
+  <Route
+    path="/quan-ly-chi-tiet"
+    element={
+      <ProtectedRoute requiredRole={SHARED_ROLES}>
+        <Layout>
+          <QuanLyChiTietPage />
+        </Layout>
+      </ProtectedRoute>
+    }
+  />
+
+  <Route
+    path="/quan-ly-chi-tiet/backend"
+    element={
+      <ProtectedRoute requiredRole={SHARED_ROLES}>
+        <Layout>
+          <BangBackend />
+        </Layout>
+      </ProtectedRoute>
+    }
+  />
+
+  <Route
+    path="/quan-ly-chi-tiet/backend/:backendId"
+    element={
+      <ProtectedRoute requiredRole={SHARED_ROLES}>
+        <Layout>
+          <ChiTietBackend />
+        </Layout>
+      </ProtectedRoute>
+    }
+  />
+
+  <Route
+    path="/quan-ly-chi-tiet/backend/them-moi"
+    element={
+      <ProtectedRoute requiredRole={SHARED_ROLES}>
+        <Layout>
+          <ThemBackend />
+        </Layout>
+      </ProtectedRoute>
+    }
+  />
+
+  <Route
+    path="/quan-ly-chi-tiet/backend/chinh-sua/:backendId"
+    element={
+      <ProtectedRoute requiredRole={SHARED_ROLES}>
+        <Layout>
+          <ChinhSuaBackend />
+        </Layout>
+      </ProtectedRoute>
+    }
+  />
+
+  <Route
+    path="/quan-ly-chi-tiet/kiem-thu"
+    element={
+      <ProtectedRoute requiredRole={SHARED_ROLES}>
+        <Layout>
+          <BangKiemThu />
+        </Layout>
+      </ProtectedRoute>
+    }
+  />
+
+  <Route
+    path="/quan-ly-chi-tiet/kiem-thu/:kiemThuId"
+    element={
+      <ProtectedRoute requiredRole={SHARED_ROLES}>
+        <Layout>
+          <ChiTietKiemThu />
+        </Layout>
+      </ProtectedRoute>
+    }
+  />
+
+  <Route
+    path="/quan-ly-chi-tiet/kiem-thu/them-moi"
+    element={
+      <ProtectedRoute requiredRole={SHARED_ROLES}>
+        <Layout>
+          <ThemKiemThu />
+        </Layout>
+      </ProtectedRoute>
+    }
+  />
+
+  <Route
+    path="/quan-ly-chi-tiet/kiem-thu/chinh-sua/:kiemThuId"
+    element={
+      <ProtectedRoute requiredRole={SHARED_ROLES}>
+        <Layout>
+          <ChinhSuaKiemThu />
+        </Layout>
+      </ProtectedRoute>
+    }
+  />
+
+  <Route
+    path="/quan-ly-chi-tiet/thong-ke"
+    element={
+      <ProtectedRoute requiredRole={SHARED_ROLES}>
+        <Layout>
+          <BangThongKe />
+        </Layout>
+      </ProtectedRoute>
+    }
+  />
+
+  <Route
+    path="/quan-ly-chi-tiet/thong-ke/:id"
+    element={
+      <ProtectedRoute requiredRole={SHARED_ROLES}>
+        <Layout>
+          <ChiTietThongKe />
+        </Layout>
+      </ProtectedRoute>
+    }
+  />
+
+  <Route
+    path="/quan-ly-chi-tiet/thong-ke/bieu-do"
+    element={
+      <ProtectedRoute requiredRole={SHARED_ROLES}>
+        <Layout>
+          <BieuDoThongKe />
+        </Layout>
+      </ProtectedRoute>
+    }
+  />
+
+  <Route
+    path="/quan-ly-chi-tiet/thong-ke/bao-cao"
+    element={
+      <ProtectedRoute requiredRole={SHARED_ROLES}>
+        <Layout>
+          <BaoCaoThongKe />
+        </Layout>
+      </ProtectedRoute>
+    }
+  />
+
+  {/* Routes Báo cáo */}
+  <Route
+    path="/bao-cao-ngay"
+    element={
+      <ProtectedRoute requiredRole={SHARED_ROLES}>
+        <Layout>
+          <BaoCaoNgay />
+        </Layout>
+      </ProtectedRoute>
+    }
+  />
+
+  <Route
+    path="/bao-cao-ngay/:reportId"
+    element={
+      <ProtectedRoute requiredRole={SHARED_ROLES}>
+        <Layout>
+          <ChiTietBaoCao />
+        </Layout>
+      </ProtectedRoute>
+    }
+  />
+
+  <Route 
+    path="/bao-cao-theo-du-an"
+    element={
+      <ProtectedRoute requiredRole={SHARED_ROLES}>
+        <Layout>
+          <BaoCaoTheoDuAn />
+        </Layout>
+      </ProtectedRoute>
+    }
+  />
+
+  <Route
+    path="/bao-cao-theo-nhiem-vu"
+    element={
+      <ProtectedRoute requiredRole={SHARED_ROLES}>
+        <Layout>
+          <BaoCaoTheoNhiemVu />
+        </Layout>
+      </ProtectedRoute>
+    }
+  />
+
+  {/* Routes Quản lý lương */}
+  <Route
+    path="/quan-ly-luong"
+    element={
+      <ProtectedRoute requiredRole={SHARED_ROLES}>
+        <Layout>
+          <QuanLyLuongPage />
+        </Layout>
+      </ProtectedRoute>
+    }
+  />
+
+  <Route
+    path="/quan-ly-luong/:userId"
+    element={
+      <ProtectedRoute requiredRole={SHARED_ROLES}>
+        <Layout>
+          <ChiTietLuong />
+        </Layout>
+      </ProtectedRoute>
+    }
+  />
+
+  {/* Routes Nhiệm vụ hàng ngày */}
+  <Route
+    path="/nhiem-vu-hang-ngay"
+    element={
+      <ProtectedRoute requiredRole={SHARED_ROLES}>
+        <Layout>
+          <NhiemVuPage />
+        </Layout>
+      </ProtectedRoute>
+    }
+  />
+
+  {/* Routes Quản lý tài chính mới */}
+  <Route
+        path="/quan-ly-tai-chinh"
+        element={
           <ProtectedRoute requiredRole={SHARED_ROLES}>
             <Layout>
-              <TaskManagementPage />
+              <QuanLyTaiChinhPage />
             </Layout>
           </ProtectedRoute>
         }
       />
 
       <Route
-        path="/quan-ly-nghi-phep"
+        path="/quan-ly-tai-chinh/nguon-thu"
         element={
           <ProtectedRoute requiredRole={SHARED_ROLES}>
             <Layout>
-              <QuanLyNghiPhepPage />
+              <QuanLyNguonThuPage />
             </Layout>
           </ProtectedRoute>
         }
       />
 
       <Route
-        path="/quan-ly-nghi-phep/danh-sach"
+        path="/quan-ly-tai-chinh/nguon-thu/:id"
         element={
           <ProtectedRoute requiredRole={SHARED_ROLES}>
             <Layout>
-              <DanhSachDonNghiPhep />
+              <ChiTietNguonThu />
             </Layout>
           </ProtectedRoute>
         }
       />
 
       <Route
-        path="/quan-ly-nghi-phep/tao-don"
+        path="/quan-ly-tai-chinh/chi-tieu"
         element={
-          <ProtectedRoute requiredRole={[ROLES.MEMBER]}>
+          <ProtectedRoute requiredRole={SHARED_ROLES}>
             <Layout>
-              <FormTaoDonNghiPhep />
+              <QuanLyChiTieuPage />
             </Layout>
           </ProtectedRoute>
         }
       />
 
       <Route
-        path="/quan-ly-nghi-phep/:id"
+        path="/quan-ly-tai-chinh/chi-tieu/:id"
         element={
           <ProtectedRoute requiredRole={SHARED_ROLES}>
             <Layout>
-              <ChiTietDonNghiPhep />
+              <ChiTietChiTieu />
             </Layout>
           </ProtectedRoute>
         }
       />
 
       <Route
-        path="/quan-ly-chi-tiet"
+        path="/quan-ly-tai-chinh/bao-cao"
         element={
           <ProtectedRoute requiredRole={SHARED_ROLES}>
             <Layout>
-              <QuanLyChiTietPage />
+              <BaoCaoTaiChinhPage />
             </Layout>
           </ProtectedRoute>
         }
       />
 
-      <Route
-        path="/quan-ly-chi-tiet/backend"
-        element={
-          <ProtectedRoute requiredRole={SHARED_ROLES}>
-            <Layout>
-              <BangBackend />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
+  {/* Routes thành viên */}
+  {ThanhVienRoutes()}
 
-      <Route
-        path="/quan-ly-chi-tiet/backend/:backendId"
-        element={
-          <ProtectedRoute requiredRole={SHARED_ROLES}>
-            <Layout>
-              <ChiTietBackend />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/quan-ly-chi-tiet/backend/them-moi"
-        element={
-          <ProtectedRoute requiredRole={SHARED_ROLES}>
-            <Layout>
-              <ThemBackend />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/quan-ly-chi-tiet/backend/chinh-sua/:backendId"
-        element={
-          <ProtectedRoute requiredRole={SHARED_ROLES}>
-            <Layout>
-              <ChinhSuaBackend />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/quan-ly-chi-tiet/kiem-thu"
-        element={
-          <ProtectedRoute requiredRole={SHARED_ROLES}>
-            <Layout>
-              <BangKiemThu />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/quan-ly-chi-tiet/kiem-thu/:kiemThuId"
-        element={
-          <ProtectedRoute requiredRole={SHARED_ROLES}>
-            <Layout>
-              <ChiTietKiemThu />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/quan-ly-chi-tiet/kiem-thu/them-moi"
-        element={
-          <ProtectedRoute requiredRole={SHARED_ROLES}>
-            <Layout>
-              <ThemKiemThu />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/quan-ly-chi-tiet/kiem-thu/chinh-sua/:kiemThuId"
-        element={
-          <ProtectedRoute requiredRole={SHARED_ROLES}>
-            <Layout>
-              <ChinhSuaKiemThu />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/quan-ly-chi-tiet/thong-ke"
-        element={
-          <ProtectedRoute requiredRole={SHARED_ROLES}>
-            <Layout>
-              <BangThongKe />  
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/quan-ly-chi-tiet/thong-ke/:id"
-        element={
-          <ProtectedRoute requiredRole={SHARED_ROLES}>
-            <Layout>
-              <ChiTietThongKe />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/quan-ly-chi-tiet/thong-ke/bieu-do"
-        element={
-          <ProtectedRoute requiredRole={SHARED_ROLES}>
-            <Layout>
-              <BieuDoThongKe />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/quan-ly-chi-tiet/thong-ke/bao-cao"
-        element={
-          <ProtectedRoute requiredRole={SHARED_ROLES}>
-            <Layout>
-              <BaoCaoThongKe />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/bao-cao-ngay"
-        element={
-          <ProtectedRoute requiredRole={SHARED_ROLES}>
-            <Layout>
-              <BaoCaoNgay />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/bao-cao-ngay/:reportId"
-        element={
-          <ProtectedRoute requiredRole={SHARED_ROLES}>
-            <Layout>
-              <ChiTietBaoCao />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route 
-        path="/bao-cao-theo-du-an"
-        element={
-          <ProtectedRoute requiredRole={SHARED_ROLES}>
-            <Layout>
-              <BaoCaoTheoDuAn />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/bao-cao-theo-nhiem-vu"
-        element={
-          <ProtectedRoute requiredRole={SHARED_ROLES}>
-            <Layout>
-              <BaoCaoTheoNhiemVu />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-        {/* Quản lý lương */}
-        <Route
-        path="/quan-ly-luong"
-        element={
-          <ProtectedRoute requiredRole={SHARED_ROLES}>
-            <Layout>
-              <QuanLyLuongPage />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/quan-ly-luong/:userId"
-        element={
-          <ProtectedRoute requiredRole={SHARED_ROLES}>
-            <Layout>
-              <ChiTietLuong />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-
-
-      <Route
-        path="/nhiem-vu-hang-ngay"
-        element={
-          <ProtectedRoute requiredRole={SHARED_ROLES}>
-            <Layout>
-              <NhiemVuPage />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      {ThanhVienRoutes()}
-
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
-  );
+  {/* Route mặc định khi không tìm thấy đường dẫn */}
+  <Route path="*" element={<Navigate to="/" replace />} />
+</Routes>
+);
 };
 
 const App = () => {
-  return (
-    <Provider store={store}>
-      <ChakraProvider theme={theme}>
-        <AuthProvider>
-          <Router>
-            <AppRoutes />
-          </Router>
-        </AuthProvider>
-      </ChakraProvider>
-    </Provider>
-  );
+return (
+<Provider store={store}>
+  <ChakraProvider theme={theme}>
+    <AuthProvider>
+      <Router>
+        <AppRoutes />
+      </Router>
+    </AuthProvider>
+  </ChakraProvider>
+</Provider>
+);
 };
 
 export default App;

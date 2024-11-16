@@ -1,3 +1,7 @@
+// File: src/pages/dashboard/AdminTongDashboard.js
+// Link tham khảo: https://chakra-ui.com/docs/components
+// Nhánh: main
+
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -38,6 +42,7 @@ import {
   FaCheckSquare,
   FaBoxes,
   FaMoneyBillWave,
+  FaCashRegister,
 } from "react-icons/fa";
 import { useAuth } from "../../hooks/useAuth";
 import { getTasks } from "../../services/api/taskApi";
@@ -223,6 +228,12 @@ const AdminTongDashboard = () => {
       label: "Quản lý lương",
       path: "/quan-ly-luong",
       colorScheme: "linkedin",
+    },
+    {
+      icon: <FaCashRegister />,
+      label: "Quản lý tài chính",
+      path: "/quan-ly-tai-chinh",
+      colorScheme: "messenger",
     },
   ];
 
