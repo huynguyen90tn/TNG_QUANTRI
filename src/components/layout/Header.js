@@ -22,36 +22,36 @@ const ROLES = {
 };
 
 const QUOTES = [
-  "🌟 Hôm nay tôi chọn 🌺 trở thành phiên bản tốt nhất của chính mình",
-  "✨ Mỗi ngày là 🌅 một cơ hội mới để tạo nên điều phi thường",
-  "🚀 Thành công là hành trình, 🎯 không phải đích đến",
-  "🔥 Đam mê là động lực, kỷ luật là 🔑 chìa khóa",
-  "💪 Khó khăn là cơ hội 🛠️ để vươn lên mạnh mẽ hơn",
-  "🌈 Không gì là không thể 🏆 nếu bạn quyết tâm",
-  "🌼 Hãy tin vào bản thân mình, 🍀 mọi thứ sẽ đến đúng lúc",
-  "🛤️ Bước đi hôm nay sẽ mang lại 🌠 kết quả cho ngày mai",
-  "🔓 Sự kiên trì là chìa khóa mở 🌐 cánh cửa thành công",
-  "🌄 Thất bại chỉ là 🚧 bước đệm cho thành công lớn hơn",
-  "💫 Hãy mơ lớn, nhưng hành động còn 📈 lớn hơn",
-  "📚 Không ngừng học hỏi và 🛠️ cải thiện chính mình",
-  "🏅 Chỉ cần bạn không dừng bước, 🏃 bạn sẽ không bao giờ thua",
-  "🕰️ Tương lai được tạo nên từ 🛤️ những gì bạn làm hôm nay",
-  "🌻 Thái độ tích cực sẽ mang đến 🌞 những điều tốt đẹp",
-  "🔨 Đừng chờ đợi cơ hội, hãy 🌱 tạo ra nó",
-  "🗺️ Cuộc sống là hành trình khám phá, 🧳 không phải đích đến",
-  "🛫 Tự tin là bước đầu tiên 🌟 để biến ước mơ thành hiện thực",
-  "🛡️ Sự dũng cảm không phải là không sợ hãi, mà là vượt qua 🌪️ nó",
-  "🔥 Hãy sống với đam mê, thành công sẽ theo đuổi bạn 🌠",
-  "🌟 Thành công không đến từ may mắn, mà từ 🛠️ sự nỗ lực không ngừng",
-  "🎯 Hôm nay bạn làm tốt hơn hôm qua 📅 là đã thành công rồi",
-  "🧠 Thay đổi bắt đầu từ chính 💡 suy nghĩ của bạn",
-  "📖 Mỗi thất bại đều là 🧩 một bài học quý giá",
-  "🏋️ Đừng bao giờ từ bỏ khi bạn còn có thể cố gắng thêm một chút nữa ⏳",
-  "🚴‍♂️ Hạnh phúc không phải là 🏁 đích đến mà là hành trình",
-  "🌉 Lòng kiên nhẫn là cây cầu nối giữa ước mơ và hiện thực 🌈",
-  "🌅 Dù khó khăn đến đâu, chỉ cần bạn không dừng bước, bạn sẽ đến đích 🛤️",
-  "🧗 Người duy nhất bạn nên cố gắng vượt qua là chính mình ngày hôm qua 🏔️",
-  "🎈 Chỉ cần bạn dám ước mơ, bạn đã đi được 🛫 nửa chặng đường"
+  "🚀🌟 Tại TNG Company, chúng ta cùng nhau vươn tới đỉnh cao mới mỗi ngày! 💪",
+  "🌟🌺 Mỗi thành viên TNG đều là một ngôi sao sáng, hãy tỏa sáng theo cách của bạn! ✨",
+  "💪🔥 Sự kiên trì và nỗ lực không ngừng tại TNG sẽ tạo nên những điều phi thường 🌄",
+  "✨🎯 Hôm nay, chúng ta làm tốt hơn ngày hôm qua, để ngày mai tự hào hơn 🌈",
+  "🌱📈 TNG Company luôn khuyến khích thành viên phát triển và vượt qua giới hạn của mình 🚀",
+  "🔥❤️ Đam mê với công việc là chìa khóa dẫn đến thành công tại TNG 💼",
+  "🔑🤝 Thành công của TNG bắt đầu từ tinh thần đoàn kết và nỗ lực của từng thành viên 🏆",
+  "🌍💙 Chúng ta không chỉ làm việc, mà còn tạo ra giá trị cho cộng đồng 🌿",
+  "🎯💡 Tại TNG, không gì là không thể nếu bạn luôn sẵn lòng học hỏi và đổi mới 📚",
+  "🛤️🚶‍♂️ Hành trình của TNG được xây dựng từ những bước tiến nhỏ nhưng vững chắc 🌟",
+  "🌄🛡️ Khó khăn chỉ là một phần của hành trình, cùng nhau chúng ta sẽ vượt qua tất cả! 🌈",
+  "🏆🤩 TNG tin tưởng vào tiềm năng của mỗi thành viên, cùng nhau chinh phục mục tiêu 🎯",
+  "💼📅 Mỗi ngày làm việc tại TNG là một cơ hội để phát triển và thăng tiến 🚀",
+  "📚🛠️ Không ngừng học hỏi và cải tiến - đó là cách TNG luôn dẫn đầu 🌐",
+  "💡💬 Ý tưởng của bạn có thể thay đổi tương lai của TNG, hãy mạnh dạn chia sẻ 🌠",
+  "⚙️🔧 Mỗi nhiệm vụ tại TNG đều mang ý nghĩa đặc biệt, hãy hoàn thành với niềm đam mê ❤️",
+  "🌻🖌️ TNG luôn khuyến khích sự sáng tạo và đổi mới trong mọi công việc 🛠️",
+  "🛡️⚔️ Chúng ta không ngại khó khăn, tại TNG, thử thách chỉ là cơ hội để tỏa sáng 🌟",
+  "🚴‍♂️🏋️ Hãy tiến về phía trước, vì mỗi nỗ lực của bạn đều đóng góp vào thành công của TNG 🏆",
+  "🏅🎖️ Mỗi thành tích của bạn đều là niềm tự hào của TNG! 🌠",
+  "🧗‍♂️🚀 Chinh phục thử thách hôm nay để tạo nên thành công ngày mai tại TNG 🌈",
+  "🛠️⚡ Tại TNG, không có công việc nhỏ, chỉ có những nỗ lực lớn lao 💪",
+  "🌠🎨 Hãy biến mục tiêu của bạn thành hiện thực cùng TNG 🚀",
+  "🌟👏 TNG luôn đánh giá cao tinh thần làm việc chăm chỉ và nhiệt huyết của bạn 🌻",
+  "📈🔍 Chúng ta không ngừng phát triển để trở thành phiên bản tốt hơn mỗi ngày 📊",
+  "💪🤝 Thành công của TNG được xây dựng từ sự nỗ lực của từng nhân viên 🌅",
+  "🔄🌍 Thay đổi là cơ hội - hãy cùng TNG đón nhận và bứt phá 🌐",
+  "🧩🏡 TNG là ngôi nhà chung nơi mọi nhân viên cùng nhau hoàn thiện bức tranh thành công 🎨",
+  "🎈🛫 Tại TNG, mỗi ngày đều là một cuộc phiêu lưu mới để khám phá tiềm năng của chính bạn 🚀",
+  "🏆🎉 Chúng ta là một đội, cùng nhau chúng ta sẽ đạt được những đỉnh cao mới 🌄"
 ];
 
 
@@ -271,7 +271,7 @@ const Header = () => {
                   repeat: Infinity
                 }
               }}
-              color="white"
+              color="#FFD700"
               fontSize="2xl"
               fontWeight="medium"
               whiteSpace="nowrap"

@@ -1,350 +1,505 @@
-// src/components/bao_cao/components/danh_sach_chua_bao_cao.js
-import React, { useState, useEffect } from 'react';
+// File: src/components/bao_cao/components/danh_sach_chua_bao_cao.js
+// Link tham khảo: https://chakra-ui.com/docs/components
+// Nhánh: main
+
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Card,
-  CardBody,
-  CardHeader,
-  Heading,
+  Box,
   VStack,
   HStack,
   Text,
-  Flex,
-  Icon,
-  Badge,
   Avatar,
   Button,
-  useColorModeValue,
-  useToast,
   Spinner,
-  IconButton,
-  Tooltip,
-  Box,
+  useToast,
+  useColorModeValue,
+  Card,
+  CardBody,
+  Icon,
+  Input,
   Tabs,
   TabList,
-  Tab,
   TabPanels,
+  Tab,
   TabPanel,
-  Input,
-  Divider,
-  SimpleGrid
+  Select,
+  SimpleGrid,
+  Center,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+  Modal,
+  ModalOverlay,
+  ModalContent, 
+  ModalHeader,
+  ModalBody,
+  ModalCloseButton,
+  useDisclosure
 } from '@chakra-ui/react';
-import {
-  WarningIcon,
-  TimeIcon,
-  CalendarIcon,
-  CheckIcon,
-  BellIcon,
-  EmailIcon,
-} from '@chakra-ui/icons';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  FaUserClock, 
-  FaExclamationTriangle, 
-  FaRegCalendarCheck,
-  FaUserTimes,
-  FaRegClock,
-  FaUsers,
-  FaBuilding,
-  FaIdBadge,
-} from 'react-icons/fa';
+import { EmailIcon, CheckIcon, CalendarIcon, WarningIcon, InfoOutlineIcon } from '@chakra-ui/icons';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from 'date-fns';
 import { baoCaoApi } from '../../../services/api/bao_cao_api';
 
-const MotionCard = motion(Card);
-const MotionBox = motion(Box);
+const DEPARTMENTS = {
+  'thien-minh-duong': 'Thiên Minh Đường',
+  'tay-van-cac': 'Tây Vân Các', 
+  'hoa-tam-duong': 'Họa Tam Đường',
+  'ho-ly-son-trang': 'Hồ Ly Sơn trang',
+  'hoa-van-cac': 'Hoa Vân Các',
+  'tinh-van-cac': 'Tinh Vân Các'
+};
+
+const THU_TRONG_TUAN = [
+  'Chủ nhật',
+  'Thứ 2',
+  'Thứ 3',
+  'Thứ 4', 
+  'Thứ 5',
+  'Thứ 6',
+  'Thứ 7'
+];
+
+const DetailModal = ({ user, isOpen, onClose }) => {
+  const bgCard = useColorModeValue('white', 'gray.800');
+  const textColor = useColorModeValue('gray.600', 'gray.400');
+
+  if (!user) return null;
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} size="2xl">
+      <ModalOverlay />
+      <ModalContent bg={bgCard}>
+        <ModalHeader>
+          <HStack>
+            <Avatar name={user.fullName} src={user.avatar} size="sm" />
+            <VStack align="start" spacing={0}>
+              <Text>{user.fullName}</Text>
+              <Text fontSize="sm" color={textColor}>#{user.memberCode}</Text>
+            </VStack>
+          </HStack>
+        </ModalHeader>
+        <ModalCloseButton />
+        <ModalBody pb={6}>
+          <Table variant="simple">
+            <Thead>
+              <Tr>
+                <Th>Thứ</Th>
+                <Th>Ngày</Th>
+              </Tr>
+            </Thead>
+            <Tbody>
+              {user.missedDays.map((date, index) => {
+                const dateObj = new Date(date);
+                return (
+                  <Tr key={index}>
+                    <Td>{THU_TRONG_TUAN[getDay(dateObj)]}</Td>
+                    <Td>{format(dateObj, 'dd/MM/yyyy')}</Td>
+                  </Tr>
+                );
+              })}
+            </Tbody>
+          </Table>
+        </ModalBody>
+      </ModalContent>
+    </Modal>
+  );
+};
+
+const ReportFilters = ({ onFilterChange, selectedDate, selectedDepartment }) => {
+  const bgCard = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
+
+  return (
+    <Card bg={bgCard} borderColor={borderColor} mb={4}>
+      <CardBody>
+        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+          <HStack>
+            <Icon as={CalendarIcon} />
+            <Input
+              type="date"
+              value={format(selectedDate, 'yyyy-MM-dd')}
+              onChange={(e) => onFilterChange('date', new Date(e.target.value))}
+            />
+          </HStack>
+          
+          <HStack>
+            <Icon as={WarningIcon} />
+            <Select
+              placeholder="Chọn phân hệ"
+              value={selectedDepartment}
+              onChange={(e) => onFilterChange('department', e.target.value)}
+            >
+              <option value="all">Tất cả phân hệ</option>
+              {Object.entries(DEPARTMENTS).map(([key, value]) => (
+                <option key={key} value={key}>{value}</option>
+              ))}
+            </Select>
+          </HStack>
+        </SimpleGrid>
+      </CardBody>
+    </Card>
+  );
+};
+
+const UserCard = ({ user, onSendReminder, isReminding }) => {
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const textColor = useColorModeValue('gray.600', 'gray.400');
+  const cardBg = useColorModeValue('white', 'gray.800');
+
+  return (
+    <Card 
+      bg={cardBg}
+      borderWidth="1px"
+      borderColor={borderColor}
+      borderRadius="lg"
+      w="100%"
+    >
+      <CardBody>
+        <HStack spacing={4}>
+          <Avatar
+            size="md"
+            name={user.fullName}
+            src={user.avatar}
+            bg="red.500"
+          />
+          
+          <Box flex="1">
+            <Text fontWeight="bold">{user.fullName}</Text>
+            <Text fontSize="sm" color={textColor}>
+              #{user.memberCode}
+            </Text>
+            <Text fontSize="sm" color={textColor}>
+              {user.email}
+            </Text>
+            {user.department && (
+              <Text fontSize="sm" color={textColor}>
+                {DEPARTMENTS[user.department] || user.department}
+              </Text>
+            )}
+          </Box>
+
+          <Button
+            leftIcon={<EmailIcon />}
+            colorScheme="blue"
+            variant="ghost"
+            onClick={() => onSendReminder(user.id)}
+            isLoading={isReminding}
+            size="sm"
+          >
+            Nhắc nhở
+          </Button>
+        </HStack>
+      </CardBody>
+    </Card>
+  );
+};
+
+const MonthlyStatistics = ({ selectedDate, selectedDepartment }) => {
+  const [statistics, setStatistics] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const toast = useToast();
+  const bgCard = useColorModeValue('white', 'gray.800');
+
+  const loadStatistics = useCallback(async () => {
+    try {
+      setLoading(true);
+      const startDate = startOfMonth(selectedDate);
+      const endDate = endOfMonth(selectedDate);
+      const totalDays = eachDayOfInterval({ start: startDate, end: endDate });
+
+      let missedReports = [];
+      // Lấy dữ liệu cho từng ngày trong tháng
+      for (const date of totalDays) {
+        const unreportedUsers = await baoCaoApi.getNguoiChuaBaoCao({
+          date,
+          type: 'daily'
+        });
+        
+        unreportedUsers.forEach(user => {
+          const existingUser = missedReports.find(r => r.id === user.id);
+          if (existingUser) {
+            existingUser.missedDays.push(date);
+          } else {
+            missedReports.push({
+              ...user,
+              missedDays: [date]
+            });
+          }
+        });
+      }
+
+      // Lọc theo phân hệ nếu được chọn
+      if (selectedDepartment !== 'all') {
+        missedReports = missedReports.filter(user => user.department === selectedDepartment);
+      }
+
+      setStatistics(missedReports);
+    } catch (error) {
+      toast({
+        title: 'Lỗi tải thống kê',
+        description: error.message,
+        status: 'error',
+        duration: 3000
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedDate, selectedDepartment, toast]);
+
+  useEffect(() => {
+    loadStatistics();
+  }, [loadStatistics]);
+
+  const handleViewDetail = (user) => {
+    setSelectedUser(user);
+    onOpen();
+  };
+
+  if (loading) {
+    return (
+      <Center py={10}>
+        <Spinner size="xl" color="blue.500" />
+      </Center>
+    );
+  }
+
+  if (statistics.length === 0) {
+    return (
+      <Center py={8} px={4}>
+        <VStack spacing={3}>
+          <Icon as={CheckIcon} boxSize={8} color="green.500" />
+          <Text align="center">
+            Không có dữ liệu thiếu báo cáo trong tháng
+          </Text>
+        </VStack>
+      </Center>
+    );
+  }
+
+  return (
+    <Card bg={bgCard}>
+      <CardBody>
+        <Table variant="simple">
+          <Thead>
+            <Tr>
+              <Th>Thành viên</Th>
+              <Th>Phân hệ</Th>
+              <Th isNumeric>Số ngày thiếu</Th>
+              <Th>Chi tiết</Th>
+            </Tr>
+          </Thead>
+          <Tbody>
+            {statistics.map((user) => (
+              <Tr key={user.id}>
+                <Td>
+                  <HStack>
+                    <Avatar size="sm" name={user.fullName} src={user.avatar} />
+                    <Box>
+                      <Text fontWeight="bold">{user.fullName}</Text>
+                      <Text fontSize="sm" color="gray.500">#{user.memberCode}</Text>
+                    </Box>
+                  </HStack>
+                </Td>
+                <Td>{DEPARTMENTS[user.department] || user.department}</Td>
+                <Td isNumeric>{user.missedDays.length}</Td>
+                <Td>
+                  <Button
+                    leftIcon={<InfoOutlineIcon />}
+                    colorScheme="blue"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleViewDetail(user)}
+                  >
+                    Xem chi tiết
+                  </Button>
+                </Td>
+              </Tr>
+            ))}
+          </Tbody>
+        </Table>
+      </CardBody>
+
+      <DetailModal 
+        user={selectedUser}
+        isOpen={isOpen}
+        onClose={onClose}
+      />
+    </Card>
+  );
+};
 
 const DanhSachChuaBaoCao = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [tabIndex, setTabIndex] = useState(0);
-  const [danhSach, setDanhSach] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [dangGuiNhacNho, setDangGuiNhacNho] = useState(false);
+  const [selectedDepartment, setSelectedDepartment] = useState('all');
+  const [unreportedUsers, setUnreportedUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [isReminding, setIsReminding] = useState(false);
+  const [activeTab, setActiveTab] = useState(0);
   const toast = useToast();
 
-  // Theme colors
-  const bgColor = useColorModeValue('gray.800', 'gray.900');
-  const cardBg = useColorModeValue('gray.700', 'gray.800');
-  const borderColor = useColorModeValue('gray.600', 'gray.700');
-  const textColor = useColorModeValue('gray.100', 'gray.50');
-  const accentColor = useColorModeValue('red.400', 'red.300');
-  const warningColor = useColorModeValue('yellow.400', 'yellow.300');
-
-  const isAfterDeadline = () => {
-    const now = new Date();
-    return now.getHours() >= 18;
+  const handleFilterChange = (type, value) => {
+    if (type === 'date') setSelectedDate(value);
+    if (type === 'department') setSelectedDepartment(value);
   };
 
-  useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true);
-      try {
-        const result = await baoCaoApi.getNguoiChuaBaoCao({
-          date: selectedDate,
-          type: tabIndex === 0 ? 'daily' : 'monthly'
-        });
-        setDanhSach(result);
-      } catch (error) {
-        toast({
-          title: 'Lỗi tải dữ liệu',
-          description: error.message,
-          status: 'error',
-          duration: 3000,
-          isClosable: true
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadData();
-  }, [selectedDate, tabIndex, toast]);
-
-  const handleGuiNhacNho = async (userId) => {
-    setDangGuiNhacNho(true);
+  const loadUsers = useCallback(async () => {
     try {
-      await baoCaoApi.guiNhacNho([userId]);
+      setLoading(true);
+      const response = await baoCaoApi.getNguoiChuaBaoCao({
+        date: selectedDate,
+        type: 'daily'
+      });
+
+      // Lọc theo phân hệ nếu có chọn
+      const filteredUsers = selectedDepartment === 'all' 
+        ? response
+        : response.filter(user => user.department === selectedDepartment);
+
+      setUnreportedUsers(filteredUsers);
+    } catch (error) {
+      toast({
+        title: 'Lỗi tải dữ liệu',
+        description: error.message,
+        status: 'error',
+        duration: 3000
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedDate, selectedDepartment, toast]);
+
+  useEffect(() => {
+    loadUsers();
+  }, [loadUsers]);
+
+  const handleSendReminder = async (userId) => {
+    try {
+      setIsReminding(true);
+      const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+      
+      await baoCaoApi.guiNhacNho([userId], {
+        id: currentUser.id,
+        email: currentUser.email,
+        fullName: currentUser.displayName
+      });
+
       toast({
         title: 'Đã gửi nhắc nhở',
         status: 'success',
-        duration: 2000,
-        isClosable: true
+        duration: 2000
       });
     } catch (error) {
       toast({
         title: 'Lỗi gửi nhắc nhở',
         description: error.message,
         status: 'error',
-        duration: 3000,
-        isClosable: true
+        duration: 3000
       });
     } finally {
-      setDangGuiNhacNho(false);
+      setIsReminding(false);
     }
   };
 
-  const handleGuiNhacNhoTatCa = async () => {
-    setDangGuiNhacNho(true);
+  const handleSendReminderAll = async () => {
     try {
-      const userIds = danhSach.map(user => user.id);
-      await baoCaoApi.guiNhacNho(userIds);
+      setIsReminding(true);
+      const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+
+      await baoCaoApi.guiNhacNho(unreportedUsers.map(user => user.id), {
+        id: currentUser.id,
+        email: currentUser.email,
+        fullName: currentUser.displayName
+      });
+
       toast({
         title: 'Đã gửi nhắc nhở cho tất cả',
         status: 'success',
-        duration: 2000,
-        isClosable: true
+        duration: 2000
       });
     } catch (error) {
       toast({
         title: 'Lỗi gửi nhắc nhở',
         description: error.message,
         status: 'error',
-        duration: 3000,
-        isClosable: true
+        duration: 3000
       });
     } finally {
-      setDangGuiNhacNho(false);
+      setIsReminding(false);
     }
   };
 
-  const renderUserCard = (user) => (
-    <MotionCard
-      bg={cardBg}
-      borderColor={borderColor}
-      borderWidth="1px"
-      borderRadius="lg"
-      whileHover={{ scale: 1.02 }}
-      transition={{ duration: 0.2 }}
-    >
-      <CardBody>
-        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-          <HStack spacing={4}>
-            <Avatar 
-              name={user.fullName} 
-              src={user.avatar}
-              size="md"
-            />
-            <VStack align="start" spacing={1}>
-              <Text fontWeight="bold" color={textColor} fontSize="lg">
-                {user.fullName}
-              </Text>
-              <HStack spacing={2}>
-                <Icon as={FaBuilding} color={warningColor} />
-                <Text fontSize="sm" color={textColor}>
-                  {user.department}
-                </Text>
-              </HStack>
-              <HStack spacing={2}>
-                <Icon as={FaIdBadge} color={warningColor} />
-                <Text fontSize="sm" color={textColor}>
-                  {user.memberCode}
-                </Text>
-              </HStack>
-            </VStack>
-          </HStack>
-
-          <Flex justify="end" align="center">
-            <HStack spacing={3}>
-              <Tooltip label="Gửi email nhắc nhở">
-                <IconButton
-                  icon={<EmailIcon />}
-                  colorScheme="blue"
-                  variant="ghost"
-                  onClick={() => handleGuiNhacNho(user.id)}
-                  isLoading={dangGuiNhacNho}
-                  aria-label="Send reminder"
-                />
-              </Tooltip>
-              <Badge 
-                colorScheme="red"
-                p={2}
-                borderRadius="md"
-                display="flex"
-                alignItems="center"
-              >
-                <Icon as={FaRegClock} mr={2} />
-                Chưa báo cáo
-              </Badge>
-            </HStack>
-          </Flex>
-        </SimpleGrid>
-      </CardBody>
-    </MotionCard>
-  );
-
   return (
-    <MotionCard
-      bg={bgColor}
-      borderColor={borderColor}
-      borderWidth="1px"
-      borderRadius="xl"
-      overflow="hidden"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-      <CardHeader borderBottomWidth="1px" borderColor={borderColor}>
-        <HStack justify="space-between" wrap="wrap">
-          <HStack>
-            <Icon 
-              as={FaExclamationTriangle}
-              color={isAfterDeadline() ? accentColor : warningColor}
-              boxSize={6}
+    <Box p={4}>
+      <Tabs index={activeTab} onChange={setActiveTab}>
+        <TabList>
+        <Tab>Chưa báo cáo ngày</Tab>
+          <Tab>Thống kê tháng</Tab>
+        </TabList>
+
+        <TabPanels>
+          <TabPanel p={0} pt={4}>
+            <ReportFilters 
+              onFilterChange={handleFilterChange}
+              selectedDate={selectedDate}
+              selectedDepartment={selectedDepartment}
             />
-            <Heading size="md" color={textColor}>
-              Danh sách chưa báo cáo
-            </Heading>
-          </HStack>
 
-          {isAfterDeadline() && (
-            <Badge
-              colorScheme="red"
-              p={2}
-              display="flex"
-              alignItems="center"
-            >
-              <TimeIcon mr={2} />
-              Đã quá hạn báo cáo (18:00)
-            </Badge>
-          )}
-        </HStack>
-      </CardHeader>
-
-      <CardBody>
-        <VStack spacing={6} align="stretch">
-          <Tabs 
-            variant="soft-rounded" 
-            colorScheme="blue"
-            onChange={setTabIndex}
-            isFitted
-          >
-            <TabList>
-              <Tab>
-                <Icon as={FaUserClock} mr={2} />
-                Theo ngày
-              </Tab>
-              <Tab>
-                <Icon as={FaRegCalendarCheck} mr={2} />
-                Theo tháng
-              </Tab>
-            </TabList>
-
-            <TabPanels mt={4}>
-              <TabPanel p={0}>
-                <HStack spacing={4} mb={6}>
-                  <Input
-                    type="date"
-                    value={selectedDate.toISOString().split('T')[0]}
-                    onChange={(e) => setSelectedDate(new Date(e.target.value))}
-                    bg={cardBg}
-                    color={textColor}
-                    borderColor={borderColor}
-                    w="auto"
-                  />
-                  <Text color={textColor}>
-                    <Icon as={FaRegClock} mr={2} />
-                    Deadline: 18:00
+            {loading ? (
+              <Center py={10}>
+                <Spinner size="xl" color="blue.500" />
+              </Center>
+            ) : unreportedUsers.length === 0 ? (
+              <Center py={8} px={4}>
+                <VStack spacing={3}>
+                  <Icon as={CheckIcon} boxSize={8} color="green.500" />
+                  <Text align="center">
+                    Tất cả đã báo cáo!
                   </Text>
-                </HStack>
-              </TabPanel>
-
-              <TabPanel p={0}>
-                <HStack spacing={4} mb={6}>
-                  <Icon as={CalendarIcon} color={accentColor} />
-                  <Text color={textColor}>
-                    Tháng {selectedDate.getMonth() + 1}/{selectedDate.getFullYear()}
-                  </Text>
-                </HStack>
-              </TabPanel>
-            </TabPanels>
-          </Tabs>
-
-          {isLoading ? (
-            <Flex justify="center" py={8}>
-              <Spinner
-                thickness="4px"
-                speed="0.65s"
-                emptyColor="gray.600"
-                color={accentColor}
-                size="xl"
-              />
-            </Flex>
-          ) : danhSach.length === 0 ? (
-            <Flex direction="column" align="center" py={8} gap={4}>
-              <Icon as={CheckIcon} color="green.400" boxSize={10} />
-              <Text color={textColor} fontSize="lg">
-                Tất cả thành viên đã báo cáo
-              </Text>
-            </Flex>
-          ) : (
-            <AnimatePresence>
-              <VStack spacing={4}>
-                {danhSach.map((user) => (
-                  <MotionBox
-                    key={user.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                  >
-                    {renderUserCard(user)}
-                  </MotionBox>
-                ))}
-              </VStack>
-
-              <Flex justify="end" mt={6}>
-                <Button
-                  leftIcon={<BellIcon />}
-                  colorScheme="blue"
-                  onClick={handleGuiNhacNhoTatCa}
-                  isLoading={dangGuiNhacNho}
-                  loadingText="Đang gửi..."
+                </VStack>
+              </Center>
+            ) : (
+              <VStack spacing={4} align="stretch">
+                <VStack 
+                  spacing={2}
+                  maxH="calc(100vh - 300px)"
+                  overflowY="auto"
                 >
-                  Nhắc nhở tất cả ({danhSach.length})
+                  {unreportedUsers.map(user => (
+                    <UserCard
+                      key={user.id}
+                      user={user}
+                      onSendReminder={handleSendReminder}
+                      isReminding={isReminding}
+                    />
+                  ))}
+                </VStack>
+
+                <Button
+                  colorScheme="blue"
+                  width="full"
+                  onClick={handleSendReminderAll}
+                  isLoading={isReminding}
+                >
+                  Nhắc nhở tất cả ({unreportedUsers.length})
                 </Button>
-              </Flex>
-            </AnimatePresence>
-          )}
-        </VStack>
-      </CardBody>
-    </MotionCard>
+              </VStack>
+            )}
+          </TabPanel>
+
+          <TabPanel>
+            <MonthlyStatistics 
+              selectedDate={selectedDate}
+              selectedDepartment={selectedDepartment}
+            />
+          </TabPanel>
+        </TabPanels>
+      </Tabs>
+    </Box>
   );
 };
 

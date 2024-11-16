@@ -1,12 +1,16 @@
-// src/components/bao_cao/components/danh_sach_bao_cao.js
-import React from 'react';
+
+// File: src/components/bao_cao/components/danh_sach_bao_cao.js 
+// Link tham khảo: https://chakra-ui.com/docs/components
+// Nhánh: main
+
+import React, { useState, useCallback } from 'react';
 import {
   VStack,
   Text,
   Spinner,
   Center,
   Button,
-  HStack,
+  HStack, 
   Select,
   Box,
   useColorModeValue,
@@ -17,31 +21,151 @@ import {
   Tooltip,
   Badge,
   Grid,
-  GridItem
+  GridItem,
+  Tabs,
+  TabList,
+  Tab,
+  TabPanels,
+  TabPanel,
+  Avatar
 } from '@chakra-ui/react';
-import { 
-  ChevronLeftIcon, 
-  ChevronRightIcon,
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon, 
   CalendarIcon,
   TimeIcon,
   ArrowUpDownIcon,
   CheckIcon,
-  StarIcon
+  StarIcon,
+  EmailIcon
 } from '@chakra-ui/icons';
-import { 
-  FaSort, 
-  FaSortAmountDown, 
-  FaSortAmountUp,
+import {
+  FaSort,
+  FaSortAmountDown,
+  FaSortAmountUp, 
   FaCalendarCheck,
   FaClock,
   FaListUl,
-  FaChartBar
+  FaChartBar,
+  FaCheckCircle
 } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
+import { format } from 'date-fns';
+import { vi } from 'date-fns/locale';
+import { baoCaoApi } from '../../../services/api/bao_cao_api';
 import ItemBaoCao from './item_bao_cao';
 
+// Motion components
 const MotionBox = motion(Box);
 const MotionCard = motion(Card);
+
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      duration: 0.6,
+      ease: "easeOut"
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.4,
+      ease: "easeOut"
+    }
+  }
+};
+
+const UserCard = ({ user, isReported = false, onSendReminder, isReminding }) => {
+  const bgHover = useColorModeValue('gray.50', 'gray.700'); 
+  const textColor = useColorModeValue('gray.600', 'gray.300');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
+
+  return (
+    <MotionCard
+      variants={itemVariants}
+      bg="transparent"
+      borderWidth="1px"
+      borderColor={borderColor}
+      _hover={{ bg: bgHover }}
+      transition={{ duration: 0.2 }}
+    >
+      <CardBody>
+        <HStack spacing={4}>
+          <Avatar
+            size="md"
+            name={user.fullName}
+            src={user.avatar} 
+            bg={isReported ? 'green.500' : 'red.500'}
+          />
+
+          <Box flex="1">
+            <Text fontWeight="bold">
+              {user.fullName}
+            </Text>
+            <Text fontSize="sm" color={textColor}>
+              #{user.memberCode}
+            </Text>
+            <Text fontSize="sm" color={textColor}>
+              {user.email}
+            </Text>
+            {user.department && (
+              <Text fontSize="sm" color={textColor}>
+                {user.department}
+              </Text>
+            )}
+          </Box>
+
+          {!isReported && (
+            <Button
+              leftIcon={<EmailIcon />}
+              colorScheme="blue"
+              variant="ghost"
+              size="sm"
+              onClick={() => onSendReminder(user.id)}
+              isLoading={isReminding}
+            >
+              Nhắc nhở
+            </Button>
+          )}
+
+          <Badge
+            colorScheme={isReported ? 'green' : 'red'}
+            display="flex"
+            alignItems="center"
+            px={2}
+            py={1}
+          >
+            <Icon
+              as={isReported ? FaCheckCircle : FaClock}
+              mr={1}
+            />
+            {isReported ? 'Đã báo cáo' : 'Chưa báo cáo'}
+          </Badge>
+        </HStack>
+        
+        {isReported && user.approveInfo && (
+          <HStack mt={3} fontSize="sm" color={textColor}>
+            <Text>
+              Duyệt bởi: {user.approveInfo.fullName}
+            </Text>
+            <Text>
+              {format(new Date(user.approveInfo.time), 'HH:mm', { locale: vi })}  
+            </Text>
+          </HStack>
+        )}
+      </CardBody>
+    </MotionCard>
+  );
+};
 
 const DanhSachBaoCao = ({
   danhSachBaoCao = [],
@@ -63,56 +187,32 @@ const DanhSachBaoCao = ({
   },
   onChangeSapXep
 }) => {
+  const [tabIndex, setTabIndex] = useState(0);
+
+  // Theme colors
   const bgColor = useColorModeValue('gray.800', 'gray.900');
   const cardBg = useColorModeValue('gray.700', 'gray.800');
   const borderColor = useColorModeValue('gray.600', 'gray.700');
-  const textColor = useColorModeValue('gray.100', 'gray.50');
+  const textColor = useColorModeValue('gray.100', 'gray.50'); 
   const accentColor = useColorModeValue('blue.400', 'blue.300');
   const subtleColor = useColorModeValue('gray.400', 'gray.500');
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-        duration: 0.6,
-        ease: "easeOut"
-      }
+  // Handle reminder
+  const handleSendReminder = useCallback(async (userId) => {
+    try {
+      const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+      
+      await baoCaoApi.guiNhacNho([userId], {
+        id: currentUser.id,
+        email: currentUser.email,
+        fullName: currentUser.displayName
+      });
+    } catch (error) {
+      console.error('Lỗi gửi nhắc nhở:', error);
     }
-  };
+  }, []);
 
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.4,
-        ease: "easeOut"
-      }
-    }
-  };
-
-  if (dangTai) {
-    return (
-      <Center py={12}>
-        <VStack spacing={4}>
-          <Spinner
-            thickness="4px"
-            speed="0.65s"
-            emptyColor="gray.600"
-            color={accentColor}
-            size="xl"
-          />
-          <Text color={textColor} fontSize="lg">
-            Đang tải dữ liệu...
-          </Text>
-        </VStack>
-      </Center>
-    );
-  }
-
+  // Render sort options
   const renderSortOptions = () => (
     <MotionCard
       variants={itemVariants}
@@ -126,15 +226,15 @@ const DanhSachBaoCao = ({
       transition={{ duration: 0.2 }}
     >
       <CardBody>
-        <Grid 
+        <Grid
           templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }}
           gap={4}
         >
           <GridItem>
             <HStack spacing={3}>
-              <Icon 
-                as={sapXep.huong === 'asc' ? FaSortAmountUp : FaSortAmountDown} 
-                color={accentColor}
+              <Icon
+                as={sapXep.huong === 'asc' ? FaSortAmountUp : FaSortAmountDown}
+                color={accentColor} 
                 boxSize={5}
               />
               <Select
@@ -157,7 +257,7 @@ const DanhSachBaoCao = ({
           <GridItem>
             <HStack spacing={3}>
               <Icon as={ArrowUpDownIcon} color={accentColor} boxSize={5} />
-              <Select
+              <Select  
                 size="md"
                 value={sapXep.huong}
                 onChange={(e) => onChangeSapXep({ ...sapXep, huong: e.target.value })}
@@ -176,6 +276,7 @@ const DanhSachBaoCao = ({
     </MotionCard>
   );
 
+  // Render pagination
   const renderPagination = () => (
     <MotionCard
       variants={itemVariants}
@@ -197,7 +298,7 @@ const DanhSachBaoCao = ({
           <HStack spacing={4}>
             <Tooltip label="Trang trước">
               <Button
-                leftIcon={<ChevronLeftIcon />}
+                leftIcon={<ChevronLeftIcon />} 
                 onClick={() => onChangeTrang(trangHienTai - 1)}
                 isDisabled={trangHienTai === 1}
                 size="md"
@@ -241,7 +342,7 @@ const DanhSachBaoCao = ({
           <Box>
             <Select
               width="auto"
-              size="md"
+              size="md" 
               value={soBanGhiMoiTrang}
               onChange={(e) => onChangeSoBanGhi(Number(e.target.value))}
               bg={bgColor}
@@ -261,6 +362,26 @@ const DanhSachBaoCao = ({
     </MotionCard>
   );
 
+  if (dangTai) {
+    return (
+      <Center py={12}>
+        <VStack spacing={4}>
+          <Spinner
+            thickness="4px"
+            speed="0.65s"
+            emptyColor="gray.600"
+            color={accentColor}
+            size="xl"
+          />
+          <Text color={textColor} fontSize="lg">
+            Đang tải dữ liệu...
+          </Text>
+        </VStack>
+      </Center>
+    );
+  }
+
+  // Empty state
   if (danhSachBaoCao.length === 0) {
     return (
       <MotionCard
@@ -287,19 +408,19 @@ const DanhSachBaoCao = ({
     <AnimatePresence>
       <MotionBox
         variants={containerVariants}
-        initial="hidden"
+        initial="hidden" 
         animate="visible"
         layout
       >
         {renderSortOptions()}
-        
+
         <VStack spacing={4} align="stretch">
           {danhSachBaoCao.map((baoCao, index) => (
             <MotionBox
               key={baoCao.id}
               variants={itemVariants}
               custom={index}
-              layoutId={baoCao.id}
+              layoutId={baoCao.id} 
               whileHover={{ scale: 1.01 }}
               transition={{ duration: 0.2 }}
             >

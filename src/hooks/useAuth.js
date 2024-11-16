@@ -1,4 +1,4 @@
-// File: src/hooks/use_auth.js
+// File: src/hooks/useAuth.js
 // Link tham khảo: https://firebase.google.com/docs/auth
 // Link tham khảo: https://firebase.google.com/docs/firestore
 

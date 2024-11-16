@@ -1,13 +1,14 @@
- 
-// src/components/bao_cao/bao_cao_ngay.js
-import React, { useState, useCallback, useEffect } from 'react';
+// File: src/components/bao_cao/bao_cao_ngay.js
+// Link tham khảo: https://chakra-ui.com/docs/components
+// Nhánh: main
+
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   Container,
   Button,
   useDisclosure,
-  useToast,
+  useToast, 
   VStack,
-  Heading,
   Text,
   Card,
   useColorModeValue,
@@ -16,26 +17,43 @@ import {
   ModalOverlay,
   ModalContent,
   ModalHeader,
-  ModalBody,
   ModalFooter,
-  Textarea
+  ModalBody,
+  ModalCloseButton,
+  Textarea,
+  ButtonGroup,
+  Tabs,
+  TabList,
+  Tab, 
+  TabPanels,
+  TabPanel,
+  Icon,
+  Box,
 } from '@chakra-ui/react';
-import { AddIcon } from '@chakra-ui/icons';
+import { 
+  AddIcon, 
+  ViewIcon,
+  CheckCircleIcon,
+  WarningIcon 
+} from '@chakra-ui/icons';
 import { useAuth } from '../../hooks/useAuth';
 import { baoCaoApi } from '../../services/api/bao_cao_api';
-import { QUYEN } from './constants/loai_bao_cao';
+import { ROLES } from '../../constants/roles';
 
 import BoLocBaoCao from './components/bo_loc_bao_cao';
 import DanhSachBaoCao from './components/danh_sach_bao_cao';
 import FormBaoCao from './components/form_bao_cao';
 import HienThiBaoCao from './components/hien_thi_bao_cao';
+import DanhSachChuaBaoCao from './components/danh_sach_chua_bao_cao';
+import DanhSachDaBaoCao from './components/danh_sach_da_bao_cao';
 
 const BaoCaoNgay = () => {
   const { user } = useAuth();
   const toast = useToast();
+
   const {
     isOpen: isFormOpen,
-    onOpen: onFormOpen,
+    onOpen: onFormOpen, 
     onClose: onFormClose
   } = useDisclosure();
 
@@ -51,12 +69,20 @@ const BaoCaoNgay = () => {
     onClose: onRefuseClose
   } = useDisclosure();
 
+  const {
+    isOpen: isUnreportedOpen,
+    onOpen: onUnreportedOpen,
+    onClose: onUnreportedClose
+  } = useDisclosure();
+
+  // State declarations
   const [danhSachBaoCao, setDanhSachBaoCao] = useState([]);
   const [dangTai, setDangTai] = useState(false);
   const [baoCaoHienTai, setBaoCaoHienTai] = useState(null);
   const [ghiChuTuChoi, setGhiChuTuChoi] = useState('');
+  const [dangXuLy, setDangXuLy] = useState(false);
 
-  // State cho phân trang và sắp xếp
+  // Filtering, pagination and sorting states
   const [boLoc, setBoLoc] = useState({
     tuKhoa: '',
     loaiBaoCao: '',
@@ -75,19 +101,23 @@ const BaoCaoNgay = () => {
     huong: 'desc'
   });
 
-  // Xác định quyền của user
-  const quyen = {
+  // User permissions
+  const quyen = useMemo(() => ({
     taoBaoCao: true,
-    suaBaoCao: user.role !== QUYEN.THANH_VIEN,
-    xoaBaoCao: user.role === QUYEN.ADMIN_TONG,
-    duyetBaoCao: user.role !== QUYEN.THANH_VIEN
-  };
+    suaBaoCao: user?.role !== ROLES.MEMBER,
+    xoaBaoCao: user?.role === ROLES.ADMIN_TONG,
+    duyetBaoCao: user?.role !== ROLES.MEMBER
+  }), [user?.role]);
 
-  // Load danh sách báo cáo
+  // Load reports list
   const loadDanhSachBaoCao = useCallback(async () => {
     try {
       setDangTai(true);
-      const response = await baoCaoApi.layDanhSach(boLoc, sapXep, {
+      
+      const response = await baoCaoApi.layDanhSach({
+        ...boLoc,
+        loaiBaoCao: 'bao-cao-ngay'
+      }, sapXep, {
         trang: phanTrang.trang,
         soLuong: phanTrang.soLuong
       });
@@ -114,14 +144,27 @@ const BaoCaoNgay = () => {
     loadDanhSachBaoCao();
   }, [loadDanhSachBaoCao]);
 
-  // Xử lý các hành động
+  // Handle report submission
   const handleSubmitBaoCao = async (data) => {
     try {
-      setDangTai(true);
+      setDangXuLy(true);
+
+      const baoCaoData = {
+        ...data,
+        loaiBaoCao: 'bao-cao-ngay',
+        nguoiTaoInfo: {
+          ...data.nguoiTaoInfo,
+          userId: user.id,
+          email: user.email,
+          department: user.department,
+          memberCode: user.memberCode
+        }
+      };
+
       if (baoCaoHienTai) {
-        await baoCaoApi.capNhat(baoCaoHienTai.id, data);
+        await baoCaoApi.capNhat(baoCaoHienTai.id, baoCaoData);
       } else {
-        await baoCaoApi.taoMoi(data);
+        await baoCaoApi.taoMoi(baoCaoData);
       }
 
       toast({
@@ -132,7 +175,8 @@ const BaoCaoNgay = () => {
 
       onFormClose();
       setBaoCaoHienTai(null);
-      loadDanhSachBaoCao();
+      await loadDanhSachBaoCao();
+
     } catch (error) {
       toast({
         title: 'Lỗi',
@@ -141,20 +185,30 @@ const BaoCaoNgay = () => {
         duration: 3000,
       });
     } finally {
-      setDangTai(false);
+      setDangXuLy(false);
     }
   };
 
+  // Handle report approval
   const handleDuyetBaoCao = async (baoCao) => {
     try {
-      await baoCaoApi.duyetBaoCao(baoCao.id, '', user.uid);
+      setDangXuLy(true);
+      await baoCaoApi.duyetBaoCao(baoCao.id, '', {
+        id: user.id,
+        email: user.email,
+        fullName: user.displayName,
+        memberCode: user.memberCode
+      });
+      
       toast({
         title: 'Duyệt báo cáo thành công',
         status: 'success',
         duration: 3000,
       });
-      loadDanhSachBaoCao();
+      
+      await loadDanhSachBaoCao();
       onDetailClose();
+      
     } catch (error) {
       toast({
         title: 'Lỗi',
@@ -162,9 +216,12 @@ const BaoCaoNgay = () => {
         status: 'error',
         duration: 3000,
       });
+    } finally {
+      setDangXuLy(false);
     }
   };
 
+  // Handle report rejection
   const handleTuChoiBaoCao = async () => {
     if (!ghiChuTuChoi.trim()) {
       toast({
@@ -176,15 +233,28 @@ const BaoCaoNgay = () => {
     }
 
     try {
-      await baoCaoApi.tuChoiBaoCao(baoCaoHienTai.id, ghiChuTuChoi, user.uid);
+      setDangXuLy(true);
+      await baoCaoApi.tuChoiBaoCao(
+        baoCaoHienTai.id,
+        ghiChuTuChoi,
+        {
+          id: user.id,
+          email: user.email,
+          fullName: user.displayName,
+          memberCode: user.memberCode
+        }
+      );
+      
       toast({
         title: 'Từ chối báo cáo thành công',
         status: 'success',
         duration: 3000,
       });
+      
       onRefuseClose();
       onDetailClose();
-      loadDanhSachBaoCao();
+      await loadDanhSachBaoCao();
+      
     } catch (error) {
       toast({
         title: 'Lỗi',
@@ -192,20 +262,27 @@ const BaoCaoNgay = () => {
         status: 'error',
         duration: 3000,
       });
+    } finally {
+      setDangXuLy(false);
     }
   };
 
+  // Handle report deletion
   const handleXoaBaoCao = async (baoCao) => {
     if (!window.confirm('Bạn có chắc chắn muốn xóa báo cáo này?')) return;
 
     try {
+      setDangXuLy(true);
       await baoCaoApi.xoa(baoCao.id);
+      
       toast({
         title: 'Xóa báo cáo thành công',
         status: 'success',
         duration: 3000,
       });
-      loadDanhSachBaoCao();
+      
+      await loadDanhSachBaoCao();
+      
     } catch (error) {
       toast({
         title: 'Lỗi',
@@ -213,6 +290,8 @@ const BaoCaoNgay = () => {
         status: 'error',
         duration: 3000,
       });
+    } finally {
+      setDangXuLy(false);
     }
   };
 
@@ -222,24 +301,35 @@ const BaoCaoNgay = () => {
         <Card p={6}>
           <HStack justify="space-between" mb={6}>
             <VStack align="start" spacing={1}>
-              <Heading size="lg">Báo Cáo Ngày</Heading>
+              <Text fontSize="xl" fontWeight="bold">Báo Cáo Ngày</Text>
               <Text color="gray.600">
                 Quản lý và theo dõi các báo cáo công việc
               </Text>
             </VStack>
             
-            {quyen.taoBaoCao && (
+            <ButtonGroup spacing={4}>
+              {quyen.taoBaoCao && (
+                <Button
+                  leftIcon={<AddIcon />}
+                  colorScheme="blue"
+                  onClick={() => {
+                    setBaoCaoHienTai(null);
+                    onFormOpen();
+                  }}
+                  isDisabled={dangXuLy}
+                >
+                  Tạo Báo Cáo
+                </Button>
+              )}
               <Button
-                leftIcon={<AddIcon />}
-                colorScheme="blue"
-                onClick={() => {
-                  setBaoCaoHienTai(null);
-                  onFormOpen();
-                }}
+                leftIcon={<ViewIcon />}
+                colorScheme="teal"
+                onClick={onUnreportedOpen}
+                isDisabled={dangXuLy}
               >
-                Tạo Báo Cáo
+                Danh sách báo cáo
               </Button>
-            )}
+            </ButtonGroup>
           </HStack>
 
           <BoLocBaoCao
@@ -288,7 +378,7 @@ const BaoCaoNgay = () => {
         </Card>
       </VStack>
 
-      {/* Modal Form Tạo/Sửa */}
+      {/* Modals */}
       {isFormOpen && (
         <FormBaoCao
           initialData={baoCaoHienTai}
@@ -298,11 +388,14 @@ const BaoCaoNgay = () => {
             setBaoCaoHienTai(null);
           }}
           onSubmit={handleSubmitBaoCao}
-          isSubmitting={dangTai}
+          isSubmitting={dangXuLy}
+          userId={user.id}
+          userEmail={user.email}
+          department={user.department}
+          memberCode={user.memberCode}
         />
       )}
 
-      {/* Modal Xem Chi Tiết */}
       {isDetailOpen && baoCaoHienTai && (
         <HienThiBaoCao
           baoCao={baoCaoHienTai}
@@ -332,7 +425,7 @@ const BaoCaoNgay = () => {
           <ModalBody>
             <Textarea
               value={ghiChuTuChoi}
-              onChange={(e) => setGhiChuTuChoi(e.target.value)}
+              onChange={(e) => setGhiChuTuChoi(e.target.value)} 
               placeholder="Nhập lý do từ chối..."
               rows={4}
             />
@@ -341,14 +434,83 @@ const BaoCaoNgay = () => {
             <Button variant="ghost" mr={3} onClick={onRefuseClose}>
               Hủy
             </Button>
-            <Button colorScheme="red" onClick={handleTuChoiBaoCao}>
+            <Button
+              colorScheme="red"
+              onClick={handleTuChoiBaoCao}
+              isLoading={dangXuLy}
+            >
               Xác nhận từ chối
             </Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
-    </Container>
-  );
+
+     {/* Modal Danh sách báo cáo */}     
+     <Modal         
+        isOpen={isUnreportedOpen}         
+        onClose={onUnreportedClose}        
+        size="6xl"        
+        scrollBehavior="inside"      
+      >         
+        <ModalOverlay backdropFilter="blur(10px)" />         
+        <ModalContent           
+          bg={useColorModeValue('gray.50', 'gray.800')}           
+          maxH="90vh"         
+        >           
+          <ModalHeader borderBottomWidth="1px" py={4}>             
+            <Text fontSize="lg" fontWeight="bold">               
+              Danh sách báo cáo ngày          
+            </Text>           
+          </ModalHeader>           
+          <ModalCloseButton />                     
+          
+          <ModalBody p={0}>             
+            <Tabs variant="enclosed" colorScheme="blue" isLazy>
+              <TabList px={4} pt={4}>
+                <Tab>
+                  <HStack spacing={2}>
+                    <Icon as={WarningIcon} color="red.500" />
+                    <Text>Chưa báo cáo</Text>
+                  </HStack>
+                </Tab>
+                <Tab>
+                  <HStack spacing={2}> 
+                    <Icon as={CheckCircleIcon} color="green.500" />
+                    <Text>Đã báo cáo</Text>
+                  </HStack>
+                </Tab>
+              </TabList>
+
+              <TabPanels>
+                {/* Panel chưa báo cáo */}
+                <TabPanel p={0}>
+                  <DanhSachChuaBaoCao 
+                    isOpen={isUnreportedOpen}
+                    onClose={onUnreportedClose}
+                  />
+                </TabPanel>
+
+                {/* Panel đã báo cáo */}
+                <TabPanel p={0}>
+                  <Box p={4}>
+                    <DanhSachDaBaoCao 
+                      ngayBaoCao={new Date()} 
+                    />
+                  </Box>
+                </TabPanel>
+              </TabPanels>
+            </Tabs>
+          </ModalBody>           
+
+          <ModalFooter borderTopWidth="1px">             
+            <Button onClick={onUnreportedClose}>              
+              Đóng             
+            </Button>           
+          </ModalFooter>         
+        </ModalContent>       
+      </Modal>     
+    </Container>   
+  ); 
 };
 
 export default BaoCaoNgay;
