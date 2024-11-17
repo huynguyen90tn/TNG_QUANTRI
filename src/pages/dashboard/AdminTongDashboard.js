@@ -38,6 +38,7 @@ import {
   FaCheckSquare,
   FaBoxes,
   FaMoneyBillWave,
+  FaVideo,
 } from "react-icons/fa";
 import { useAuth } from "../../hooks/useAuth";
 import { getTasks } from "../../services/api/taskApi";
@@ -229,6 +230,12 @@ const AdminTongDashboard = () => {
       label: "Quản lý tài chính",
       path: "/quan-ly-thu-chi",
       colorScheme: "green",
+    },
+    {
+      icon: <FaVideo />,
+      label: "Review sự kiện",
+      path: "/review-su-kien",
+      colorScheme: "facebook", 
     }
   ];
 

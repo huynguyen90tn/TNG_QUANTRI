@@ -1,8 +1,8 @@
 // File: src/store/index.js
 // Link tham khảo: https://redux-toolkit.js.org/tutorials/quick-start
 // Nhánh: main
-
 import { configureStore } from '@reduxjs/toolkit';
+import suKienReducer from '../components/su_kien_review/store/su_kien_slice';
 
 // Import các reducer core
 import attendanceReducer from './slices/attendanceSlice';
@@ -29,7 +29,8 @@ const rootReducer = {
   taiSan: taiSanReducer,
   baoCao: baoCaoReducer,
   nghiPhep: nghiPhepReducer,
-  luong: luongReducer // Thêm reducer lương
+  luong: luongReducer,
+  suKien: suKienReducer // Thêm reducer sự kiện
 };
 
 // Cấu hình serialization
@@ -40,17 +41,20 @@ const serializationOptions = {
     'auth/loginSuccess',
     'thanhVien/themThanhVien',
     'taiSan/capNhat',
-    'taiSan/taoBaoTri', 
-    'taiSan/taoKiemKe',
+    'taiSan/taoBaoTri',
+    'taiSan/taoKiemKe', 
     'taiSan/layLichSuBaoTri',
     'taiSan/layLichSuKiemKe',
     'baoCao/themBaoCao',
     'nghiPhep/themDonNghiPhep',
-    // Thêm actions lương cần bỏ qua serialization check
     'luong/taoMoiBangLuong',
     'luong/capNhatBangLuong',
     'luong/layDanhSachLuong',
-    'luong/layLuongNhanVien'
+    'luong/layLuongNhanVien',
+    // Thêm actions sự kiện
+    'suKien/themSuKien',
+    'suKien/capNhatSuKien',
+    'suKien/xoaSuKien'
   ],
   ignoredPaths: [
     'attendance.attendanceRecords.timestamp',
@@ -59,13 +63,15 @@ const serializationOptions = {
     'thanhVien.danhSach',
     'taiSan.danhSachTaiSan',
     'taiSan.lichSuBaoTri',
-    'taiSan.lichSuKiemKe', 
-    'baoCao.danhSachBaoCao',
+    'taiSan.lichSuKiemKe',
+    'baoCao.danhSachBaoCao', 
     'nghiPhep.danhSachDonNghiPhep',
-    // Thêm paths lương cần bỏ qua serialization check
     'luong.danhSachLuong',
     'luong.luongHienTai',
-    'luong.kyLuong'
+    'luong.kyLuong',
+    // Thêm paths sự kiện
+    'suKien.danhSach',
+    'suKien.suKienHienTai'
   ]
 };
 
@@ -83,15 +89,8 @@ const store = configureStore({
   devTools: process.env.NODE_ENV !== 'production'
 });
 
-// Khởi tạo object lưu trữ các reducer không đồng bộ 
 store.asyncReducers = {};
 
-/**
- * Hàm thêm reducer không đồng bộ vào store
- * @param {string} key - Khóa của reducer trong store
- * @param {Function} reducer - Hàm reducer cần thêm
- * @returns {boolean} - Kết quả thêm reducer
- */
 export const injectReducer = (key, reducer) => {
   if (store.asyncReducers[key]) {
     return false;

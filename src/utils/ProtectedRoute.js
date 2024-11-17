@@ -1,9 +1,12 @@
-// File: src/components/routing/ProtectedRoute.js
+// File: src/utils/ProtectedRoute.js
+// Link tham khảo: https://reactrouter.com/web/guides/quick-start
+// Nhánh: main
+
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Navigate, useLocation } from 'react-router-dom';
 import { Center, Spinner } from '@chakra-ui/react';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../hooks/useAuth';
 
 const LoadingSpinner = () => (
   <Center h="100vh">

@@ -49,7 +49,8 @@ import {
   FaCog,
   FaSignOutAlt,
   FaThumbsUp,
-  FaBoxes
+  FaBoxes,
+  FaVideo 
 } from "react-icons/fa";
 import { useAuth } from "../../hooks/useAuth";
 import { getTasks } from "../../services/api/taskApi";
@@ -284,6 +285,12 @@ const AdminConDashboard = () => {
       label: "Tạo tài khoản thành viên", 
       path: "/admin-con/tao-thanh-vien",
       colorScheme: "yellow"
+    },
+    {
+      icon: <FaVideo />,
+      label: "Review sự kiện",
+      path: "/review-su-kien",
+      colorScheme: "facebook"
     }
   ];
 

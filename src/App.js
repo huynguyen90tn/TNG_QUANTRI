@@ -93,6 +93,9 @@ import ChiTietLuong from './modules/quan_ly_luong/components/chi_tiet_luong';
 // Thu chi 
 import { ThuChiRoutes } from './routes/thu_chi_routes';
 
+// Review sự kiện
+import { SuKienReviewRoutes } from './routes/su_kien_review_routes';
+
 const ROLES = {
   ADMIN_TONG: 'admin-tong',
   ADMIN_CON: 'admin-con',
@@ -647,6 +650,7 @@ const AppRoutes = () => {
       />
       {ThuChiRoutes()}
       {ThanhVienRoutes()}
+      {SuKienReviewRoutes()}
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

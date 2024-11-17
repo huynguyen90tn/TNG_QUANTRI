@@ -51,7 +51,8 @@ import {
   FaBoxOpen,
   FaThumbsUp,
   FaUserFriends,
-  FaMoneyCheckAlt
+  FaMoneyCheckAlt,
+  FaVideo
 } from "react-icons/fa";
 import { useAuth } from "../../hooks/useAuth";
 import AttendanceForm from "../../components/attendance/AttendanceForm";
@@ -281,7 +282,15 @@ const hoverVariants = {
       colorScheme: "yellow",
       description: "Quản lý lương nhân viên",
       gradient: "linear-gradient(135deg, #FDE047 0%, #EAB308 100%)"
-    }
+    },
+    {
+      icon: FaVideo,
+      label: "Review sự kiện",
+      path: "/review-su-kien",
+      colorScheme: "facebook",
+      description: "Xem và quản lý các sự kiện",
+      gradient: "linear-gradient(135deg, #60A5FA 0%, #3B82F6 100%)"
+    },
   ], []);
 
   const FeatureCard = useCallback(({ icon, label, description, onClick, colorScheme, gradient, index }) => (
