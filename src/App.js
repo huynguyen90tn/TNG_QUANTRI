@@ -95,6 +95,8 @@ import { ThuChiRoutes } from './routes/thu_chi_routes';
 
 // Review sự kiện
 import { SuKienReviewRoutes } from './routes/su_kien_review_routes';
+import ChiTietSuKien from './components/su_kien_review/components/chi_tiet_su_kien';
+import CapNhatSuKien from './components/su_kien_review/components/cap_nhat_su_kien';
 
 const ROLES = {
   ADMIN_TONG: 'admin-tong',
