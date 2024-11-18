@@ -1,5 +1,3 @@
-// File: src/components/su_kien_review/hooks/use_su_kien.js
-
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   collection, 
@@ -9,10 +7,15 @@ import {
   doc,
   getDoc,
   updateDoc,
-  serverTimestamp,
-  deleteDoc
+  addDoc,
+  deleteDoc,
+  serverTimestamp
 } from 'firebase/firestore';
-import { db } from '../../../services/firebase.js'; // Sửa lại đúng đường dẫn
+import { getAuth } from 'firebase/auth';
+import { useToast } from '@chakra-ui/react';
+import { db } from '../../../services/firebase.js';
+
+const auth = getAuth();
 
 export const useSuKien = () => {
   const [suKiens, setSuKiens] = useState([]);
@@ -20,6 +23,7 @@ export const useSuKien = () => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [trangThai, setTrangThai] = useState('TAT_CA');
+  const toast = useToast();
 
   // Memoize query setup
   const suKienQuery = useMemo(() => {
@@ -35,10 +39,10 @@ export const useSuKien = () => {
       ...data,
       ngayTao: data.ngayTao?.toDate?.() || data.ngayTao,
       ngayCapNhat: data.ngayCapNhat?.toDate?.() || data.ngayCapNhat,
-      ngayToChuc: data.ngayToChuc,
-      ngayKetThuc: data.ngayKetThuc,
-      gioToChuc: data.gioToChuc,
-      gioKetThuc: data.gioKetThuc,
+      ngayToChuc: data.ngayToChuc || '',
+      ngayKetThuc: data.ngayKetThuc || '',
+      gioToChuc: data.gioToChuc || '',
+      gioKetThuc: data.gioKetThuc || '',
       thanhVienThamGia: data.thanhVienThamGia || [],
       nguoiLienHe: data.nguoiLienHe || [],
       links: data.links || [],
@@ -46,52 +50,99 @@ export const useSuKien = () => {
       tenSuKien: data.tenSuKien || '',
       donViToChuc: data.donViToChuc || '',
       diaDiem: data.diaDiem || '',
-      trangThai: data.trangThai || 'CHUA_DIEN_RA'
+      trangThai: data.trangThai || 'CHUA_DIEN_RA',
+      ghiChu: data.ghiChu || ''
     };
   }, []);
 
-  // Firestore subscription
+  // Firestore subscription với error handling tốt hơn
   useEffect(() => {
     let unsubscribe;
-    try {
-      console.log('Initializing Firestore connection...');
-      
-      unsubscribe = onSnapshot(suKienQuery, 
-        (snapshot) => {
-          console.log(`Received ${snapshot.docs.length} documents`);
-          const suKienList = snapshot.docs.map(transformSuKienData);
-          setSuKiens(suKienList);
-          setLoading(false);
-          setError(null);
-        },
-        (error) => {
-          console.error("Firestore listener error:", error);
-          setError(error);
-          setLoading(false);
-        }
-      );
-    } catch (err) {
-      console.error("Hook initialization error:", err);
-      setError(err);
-      setLoading(false);
-    }
+    const initializeFirestore = async () => {
+      try {
+        console.log('Khởi tạo kết nối Firestore...');
+        
+        unsubscribe = onSnapshot(
+          suKienQuery, 
+          (snapshot) => {
+            console.log(`Nhận ${snapshot.docs.length} documents`);
+            const suKienList = snapshot.docs.map(transformSuKienData);
+            setSuKiens(suKienList);
+            setLoading(false);
+            setError(null);
+          },
+          (error) => {
+            console.error("Lỗi Firestore listener:", error);
+            setError(error);
+            setLoading(false);
+            toast({
+              title: "Lỗi kết nối",
+              description: "Không thể tải dữ liệu sự kiện",
+              status: "error",
+              duration: 5000,
+              isClosable: true
+            });
+          }
+        );
+      } catch (err) {
+        console.error("Lỗi khởi tạo hook:", err);
+        setError(err);
+        setLoading(false);
+        toast({
+          title: "Lỗi khởi tạo",
+          description: err.message,
+          status: "error",
+          duration: 5000,
+          isClosable: true
+        });
+      }
+    };
+
+    initializeFirestore();
 
     return () => {
-      console.log('Cleaning up Firestore listener...');
+      console.log('Dọn dẹp Firestore listener...');
       if (unsubscribe) {
         unsubscribe();
       }
     };
-  }, [suKienQuery, transformSuKienData]);
+  }, [suKienQuery, transformSuKienData, toast]);
 
-  // Memoized handlers
+  // Thêm sự kiện mới
+  const themSuKien = useCallback(async (suKienData) => {
+    if (!auth.currentUser) {
+      throw new Error('Người dùng chưa đăng nhập');
+    }
+
+    try {
+      const docRef = await addDoc(collection(db, 'su_kien_review'), {
+        ...suKienData,
+        ngayTao: serverTimestamp(),
+        ngayCapNhat: serverTimestamp(),
+        nguoiTao: {
+          uid: auth.currentUser.uid,
+          email: auth.currentUser.email,
+          displayName: auth.currentUser.displayName || '',
+          photoURL: auth.currentUser.photoURL || ''
+        },
+        trangThai: suKienData.trangThai || 'CHUA_DIEN_RA'
+      });
+      
+      return { id: docRef.id, ...suKienData };
+    } catch (error) {
+      console.error('Lỗi khi thêm sự kiện:', error);
+      throw error;
+    }
+  }, []);
+
+  // Handlers được memoized
   const searchSuKien = useCallback((term) => {
-    console.log('Searching for:', term);
+    console.log('Tìm kiếm:', term);
     setSearchTerm(term);
   }, []);
 
   const filterTrangThai = useCallback((status) => {
-    console.log('Filtering by status:', status);
+    console.log('Lọc theo trạng thái:', status);
     setTrangThai(status);
   }, []);
 
@@ -110,11 +161,21 @@ export const useSuKien = () => {
   }, [transformSuKienData]);
 
   const capNhatSuKien = useCallback(async (id, data) => {
+    if (!auth.currentUser) {
+      throw new Error('Người dùng chưa đăng nhập');
+    }
+
     try {
       const docRef = doc(db, 'su_kien_review', id);
       await updateDoc(docRef, {
         ...data,
-        ngayCapNhat: serverTimestamp()
+        ngayCapNhat: serverTimestamp(),
+        nguoiCapNhat: {
+          uid: auth.currentUser.uid,
+          email: auth.currentUser.email,
+          displayName: auth.currentUser.displayName || '',
+          photoURL: auth.currentUser.photoURL || ''
+        }
       });
       return true;
     } catch (error) {
@@ -135,7 +196,7 @@ export const useSuKien = () => {
     }
   }, []);
 
-  // Filtered data
+  // Filtered data được memoized
   const filteredSuKiens = useMemo(() => {
     return suKiens.filter(suKien => {
       const matchSearch = suKien.tenSuKien.toLowerCase().includes(searchTerm.toLowerCase());
@@ -143,17 +204,6 @@ export const useSuKien = () => {
       return matchSearch && matchTrangThai;
     });
   }, [suKiens, searchTerm, trangThai]);
-
-  // Debug state changes
-  useEffect(() => {
-    console.log('Current state:', {
-      suKiensCount: filteredSuKiens.length,
-      loading,
-      error,
-      searchTerm,
-      trangThai
-    });
-  }, [filteredSuKiens, loading, error, searchTerm, trangThai]);
 
   return {
     suKiens: filteredSuKiens,
@@ -165,7 +215,8 @@ export const useSuKien = () => {
     filterTrangThai,
     layChiTietSuKien,
     capNhatSuKien,
-    xoaSuKien
+    xoaSuKien,
+    themSuKien // Đảm bảo export function này
   };
 };
 

@@ -23,13 +23,12 @@ import {
   ModalHeader,
   ModalBody,
   ModalCloseButton,
-  Select,
-  Image,
-  AspectRatio,
-  FormHelperText,
 } from '@chakra-ui/react';
 import { Plus, Trash2, Link as LinkIcon } from 'lucide-react';
 import { useSuKien } from '../hooks/use_su_kien';
+import { getAuth } from 'firebase/auth';
+
+const auth = getAuth();
 
 // Constants
 const INITIAL_FORM_STATE = {
@@ -51,11 +50,6 @@ const INITIAL_FORM_STATE = {
     url: '',
     ghiChu: ''
   }],
-  media: [{
-    type: 'image',
-    url: '',
-    caption: ''
-  }],
   ghiChu: ''
 };
 
@@ -70,15 +64,6 @@ const REQUIRED_FIELDS = [
 ];
 
 // Utility functions
-const getYoutubeEmbedUrl = (url) => {
-  try {
-    const videoId = url.match(/(?:youtube\.com\/watch\?v=|youtu.be\/)([^&\s]+)/)?.[1];
-    return videoId ? `https://www.youtube.com/embed/${videoId}` : '';
-  } catch {
-    return '';
-  }
-};
-
 const isValidDateTime = (ngayToChuc, gioToChuc, ngayKetThuc, gioKetThuc) => {
   const startDateTime = new Date(`${ngayToChuc}T${gioToChuc}`);
   const endDateTime = new Date(`${ngayKetThuc}T${gioKetThuc}`);
@@ -105,11 +90,6 @@ const prepareFormData = (data) => {
       url: link.url.trim(),
       ghiChu: link.ghiChu.trim()
     })).filter(link => link.url),
-    media: data.media.map(item => ({
-      ...item,
-      url: item.url.trim(),
-      caption: item.caption.trim()
-    })).filter(item => item.url)
   };
 };
 
@@ -152,8 +132,7 @@ const FormSuKien = memo(() => {
       const templates = {
         thanhVienThamGia: '',
         nguoiLienHe: { hoTen: '', chucVu: '', soDienThoai: '', ghiChu: '' },
-        links: { url: '', ghiChu: '' },
-        media: { type: 'image', url: '', caption: '' }
+        links: { url: '', ghiChu: '' }
       };
 
       return {
@@ -183,16 +162,7 @@ const FormSuKien = memo(() => {
       return false;
     }
 
-    // Kiểm tra media
-    const invalidMedia = data.media.some(item => {
-      if (!item.url.trim()) return false;
-      if (item.type === 'youtube' && !getYoutubeEmbedUrl(item.url.trim())) {
-        return true;
-      }
-      return false;
-    });
-
-    return !invalidMedia;
+    return true;
   }, []);
 
   const isFormValid = useMemo(() => validateForm(formData), [formData, validateForm]);
@@ -201,6 +171,17 @@ const FormSuKien = memo(() => {
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     
+    if (!auth.currentUser) {
+      toast({
+        title: "Lỗi xác thực",
+        description: "Vui lòng đăng nhập để thực hiện chức năng này",
+        status: "error",
+        duration: 3000,
+        isClosable: true
+      });
+      return;
+    }
+
     if (!isFormValid) {
       toast({
         title: "Vui lòng kiểm tra lại thông tin",
@@ -236,36 +217,6 @@ const FormSuKien = memo(() => {
       });
     }
   }, [formData, isFormValid, themSuKien, toast, handleClose]);
-
-  // Render Media Preview
-  const renderMediaPreview = useMemo(() => (item) => {
-    if (!item.url.trim()) return null;
-
-    if (item.type === 'image') {
-      return (
-        <Image 
-          src={item.url} 
-          alt={item.caption} 
-          maxH="200px"
-          objectFit="contain"
-          fallback={<Box p={4} bg="gray.100" textAlign="center">Không thể tải ảnh</Box>}
-        />
-      );
-    }
-
-    const embedUrl = getYoutubeEmbedUrl(item.url.trim());
-    if (!embedUrl) return null;
-
-    return (
-      <AspectRatio ratio={16/9}>
-        <iframe
-          src={embedUrl}
-          title={item.caption}
-          allowFullScreen
-        />
-      </AspectRatio>
-    );
-  }, []);
 
   return (
     <Box>
@@ -381,80 +332,6 @@ const FormSuKien = memo(() => {
                   </GridItem>
                 </Grid>
 
-                {/* Media Section */}
-                <Box w="full">
-                  <FormLabel>Ảnh/Video sự kiện</FormLabel>
-                  {formData.media.map((item, index) => (
-                    <VStack key={`media-${index}`} w="full" p={4} borderWidth={1} borderRadius="md" mb={4}>
-                      <Grid templateColumns="repeat(2, 1fr)" gap={4} w="full">
-                        <FormControl>
-                          <FormLabel>Loại</FormLabel>
-                          <Select
-                            value={item.type}
-                            onChange={(e) => handleChange(e, index, 'type', 'media')}
-                            disabled={loading}
-                          >
-                            <option value="image">Ảnh</option>
-                            <option value="youtube">Youtube</option>
-                          </Select>
-                        </FormControl>
-
-                        <FormControl>
-                          <FormLabel>
-                            {item.type === 'image' ? 'Link ảnh' : 'Link Youtube'}
-                          </FormLabel>
-                          <Input
-                            value={item.url}
-                            onChange={(e) => handleChange(e, index, 'url', 'media')}
-                            placeholder={item.type === 'image' ? 'Nhập link ảnh' : 'Nhập link Youtube'}
-                            disabled={loading}
-                          />
-                          {item.type === 'youtube' && (
-                            <FormHelperText>
-                              Hỗ trợ link dạng: https://youtube.com/watch?v=... hoặc https://youtu.be/...
-                            </FormHelperText>
-                          )}
-                        </FormControl>
-
-                        <FormControl gridColumn="span 2">
-                          <FormLabel>Mô tả</FormLabel>
-                          <Input
-                            value={item.caption}
-                            onChange={(e) => handleChange(e, index, 'caption', 'media')}
-                            placeholder="Nhập mô tả cho ảnh/video"
-                            disabled={loading}
-                          />
-                        </FormControl>
-
-                        <Box gridColumn="span 2">
-                          {renderMediaPreview(item)}
-                        </Box>
-                      </Grid>
-                      
-                      {index > 0 && (
-                        <Button
-                          leftIcon={<Trash2 />}
-                          onClick={() => removeField(index, 'media')}
-                          colorScheme="red"
-                          size="sm"
-                          isDisabled={loading}
-                        >
-                          Xóa
-                        </Button>
-                      )}
-                    </VStack>
-                  ))}
-                  <Button
-                    leftIcon={<Plus />}
-                    onClick={() => addField('media')}
-                    size="sm"
-                    mt={2}
-                    isDisabled={loading}
-                  >
-                    Thêm ảnh/video
-                  </Button>
-                </Box>
-
                 {/* Thành viên tham gia */}
                 <Box w="full">
                   <FormLabel>Thành viên tham gia</FormLabel>
@@ -537,97 +414,97 @@ const FormSuKien = memo(() => {
 
                       {index > 0 && (
                         <Button
-                          leftIcon={<Trash2 />}
-                          onClick={() => removeField(index, 'nguoiLienHe')}
-                          colorScheme="red"
-                          size="sm"
-                          isDisabled={loading}
-                        >
-                          Xóa
-                        </Button>
-                      )}
-                    </VStack>
-                  ))}
-                  <Button
-                    leftIcon={<Plus />}
-                    onClick={() => addField('nguoiLienHe')}
-                    size="sm"
-                    mt={2}
-                    isDisabled={loading}
-                  >
-                    Thêm người liên hệ
-                  </Button>
-                </Box>
-
-                {/* Links */}
-                <Box w="full">
-                  <FormLabel>Links</FormLabel>
-                  {formData.links.map((link, index) => (
-                    <HStack key={`link-${index}`} mb={2}>
-                      <Input
-                        value={link.url}
-                        onChange={(e) => handleChange(e, index, 'url', 'links')}
-                        placeholder="Nhập URL"
-                        disabled={loading}
-                      />
-                      <Input
-                        value={link.ghiChu}
-                        onChange={(e) => handleChange(e, index, 'ghiChu', 'links')}
-                        placeholder="Nhập ghi chú"
-                        disabled={loading}
-                      />
-                      {index > 0 && (
-                        <IconButton
-                          icon={<Trash2 />}
-                          onClick={() => removeField(index, 'links')}
-                          colorScheme="red"
-                          isDisabled={loading}
-                          aria-label="Xóa link"
-                        />
-                      )}
-                    </HStack>
-                  ))}
-                  <Button
-                    leftIcon={<LinkIcon />}
-                    onClick={() => addField('links')}
-                    size="sm"
-                    mt={2}
-                    isDisabled={loading}
-                  >
-                    Thêm link
-                  </Button>
-                </Box>
-
-                {/* Ghi chú */}
-                <FormControl>
-                  <FormLabel>Ghi chú</FormLabel>
-                  <Textarea
-                    name="ghiChu"
-                    value={formData.ghiChu}
-                    onChange={handleChange}
-                    placeholder="Nhập ghi chú"
-                    resize="vertical"
-                    disabled={loading}
-                  />
-                </FormControl>
-
-                {/* Submit Button */}
+                        leftIcon={<Trash2 />}
+                        onClick={() => removeField(index, 'nguoiLienHe')}
+                        colorScheme="red"
+                        size="sm"
+                        isDisabled={loading}
+                      >
+                        Xóa
+                      </Button>
+                    )}
+                  </VStack>
+                ))}
                 <Button
-                  type="submit"
-                  colorScheme="blue"
-                  isDisabled={!isFormValid || loading}
-                  width="full"
-                  size="lg"
+                  leftIcon={<Plus />}
+                  onClick={() => addField('nguoiLienHe')}
+                  size="sm"
+                  mt={2}
+                  isDisabled={loading}
                 >
-                  {loading ? <Spinner size="sm" /> : 'Thêm sự kiện'}
+                  Thêm người liên hệ
                 </Button>
-              </VStack>
-            </form>
-          </ModalBody>
-        </ModalContent>
-      </Modal>
-    </Box>
-  );
+              </Box>
+
+              {/* Links */}
+              <Box w="full">
+                <FormLabel>Links</FormLabel>
+                {formData.links.map((link, index) => (
+                  <HStack key={`link-${index}`} mb={2}>
+                    <Input
+                      value={link.url}
+                      onChange={(e) => handleChange(e, index, 'url', 'links')}
+                      placeholder="Nhập URL"
+                      disabled={loading}
+                    />
+                    <Input
+                      value={link.ghiChu}
+                      onChange={(e) => handleChange(e, index, 'ghiChu', 'links')}
+                      placeholder="Nhập ghi chú"
+                      disabled={loading}
+                    />
+                    {index > 0 && (
+                      <IconButton
+                        icon={<Trash2 />}
+                        onClick={() => removeField(index, 'links')}
+                        colorScheme="red"
+                        isDisabled={loading}
+                        aria-label="Xóa link"
+                      />
+                    )}
+                  </HStack>
+                ))}
+                <Button
+                  leftIcon={<LinkIcon />}
+                  onClick={() => addField('links')}
+                  size="sm"
+                  mt={2}
+                  isDisabled={loading}
+                >
+                  Thêm link
+                </Button>
+              </Box>
+
+              {/* Ghi chú */}
+              <FormControl>
+                <FormLabel>Ghi chú</FormLabel>
+                <Textarea
+                  name="ghiChu"
+                  value={formData.ghiChu}
+                  onChange={handleChange}
+                  placeholder="Nhập ghi chú"
+                  resize="vertical"
+                  disabled={loading}
+                />
+              </FormControl>
+
+              {/* Submit Button */}
+              <Button
+                type="submit"
+                colorScheme="blue"
+                isDisabled={!isFormValid || loading}
+                width="full"
+                size="lg"
+              >
+                {loading ? <Spinner size="sm" /> : 'Thêm sự kiện'}
+              </Button>
+            </VStack>
+          </form>
+        </ModalBody>
+      </ModalContent>
+    </Modal>
+  </Box>
+);
 });
 
 FormSuKien.displayName = 'FormSuKien';
