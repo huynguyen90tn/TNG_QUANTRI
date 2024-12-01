@@ -498,6 +498,20 @@ const DanhSachTaiSan = () => {
                 </Tr>
               ))}
             </Tbody>
+            <Tbody>
+              <Tr fontWeight="bold" bg="whiteAlpha.100">
+                <Td colSpan={6} textAlign="right">
+                  Tổng giá trị tài sản:
+                </Td>
+                <Td isNumeric>
+                  {formatCurrency(
+                    danhSachTaiSan.reduce((sum, item) => sum + (item.giaTriMua || 0), 0)
+                  )}
+                </Td>
+                <Td></Td>
+                {(isAdmin || isKyThuat) && <Td></Td>}
+              </Tr>
+            </Tbody>
           </Table>
         </Box>
 

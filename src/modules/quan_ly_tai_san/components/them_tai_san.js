@@ -1,6 +1,8 @@
 // File: src/modules/quan_ly_tai_san/components/them_tai_san.js
+// Link tham khảo: https://chakra-ui.com/docs 
+// Nhánh: main
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   VStack,
   Grid,
@@ -59,13 +61,27 @@ const initialFormData = {
 const ThemTaiSan = ({ data, onSuccess }) => {
   const { themTaiSan, capNhatTaiSan } = useTaiSan();
   const toast = useToast();
-
   const [formData, setFormData] = useState(initialFormData);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [userList, setUserList] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
+
+  const formatGiaTriMua = useCallback((value) => {
+    if (!value) return '0';
+    const number = parseInt(value.toString().replace(/[^\d]/g, ''), 10);
+    return isNaN(number) ? '0' : number.toLocaleString('vi-VN');
+  }, []);
+
+  const handleGiaTriMuaChange = useCallback((e) => {
+    const value = e.target.value;
+    const numericValue = parseInt(value.replace(/[^\d]/g, ''), 10) || 0;
+    setFormData(prev => ({
+      ...prev,
+      giaTriMua: numericValue
+    }));
+  }, []);
 
   const giaTriBangChu = useMemo(() => {
     return numberToVietnameseWords(formData.giaTriMua) + ' đồng';
@@ -116,7 +132,7 @@ const ThemTaiSan = ({ data, onSuccess }) => {
     };
   }, [selectedFiles]);
 
-  const validate = () => {
+  const validate = useCallback(() => {
     const newErrors = {};
 
     if (!formData.ma) newErrors.ma = 'Mã tài sản là bắt buộc';
@@ -140,9 +156,9 @@ const ThemTaiSan = ({ data, onSuccess }) => {
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };
+  }, [formData]);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
 
     if (!validate()) return;
@@ -152,7 +168,7 @@ const ThemTaiSan = ({ data, onSuccess }) => {
       const formDataToSubmit = {
         ...formData,
         giaTriMua: Number(formData.giaTriMua),
-        giaTriBangChu: giaTriBangChu,
+        giaTriBangChu,
       };
 
       if (data) {
@@ -167,7 +183,7 @@ const ThemTaiSan = ({ data, onSuccess }) => {
       } else {
         await themTaiSan(formDataToSubmit);
         toast({
-          title: 'Thành công',
+          title: 'Thành công', 
           description: 'Đã thêm tài sản mới',
           status: 'success',
           duration: 3000,
@@ -189,57 +205,49 @@ const ThemTaiSan = ({ data, onSuccess }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [validate, formData, data, capNhatTaiSan, themTaiSan, toast, onSuccess, giaTriBangChu]);
 
-  const handleUserChange = (email) => {
+  const handleUserChange = useCallback((email) => {
     const selectedUser = userList.find((user) => user.email === email);
     if (selectedUser) {
-      setFormData({
-        ...formData,
+      setFormData(prev => ({
+        ...prev,
         emailNguoiQuanLy: selectedUser.email,
         nguoiQuanLy: selectedUser.fullName,
         maSoNguoiQuanLy: selectedUser.memberCode || '',
-      });
+      }));
     }
-  };
+  }, [userList]);
 
-  const handleImageUpload = (e) => {
+  const handleImageUpload = useCallback((e) => {
     const files = Array.from(e.target.files);
-
     const newFiles = files.map((file) => ({
       file,
       preview: URL.createObjectURL(file),
     }));
+    setSelectedFiles(prev => [...prev, ...newFiles]);
+  }, []);
 
-    setSelectedFiles([...selectedFiles, ...newFiles]);
-  };
-
-  const removeImage = (index) => {
-    const newFiles = [...selectedFiles];
-    URL.revokeObjectURL(newFiles[index].preview);
-    newFiles.splice(index, 1);
-    setSelectedFiles(newFiles);
-  };
-
-  const handleGiaTriMuaChange = (value) => {
-    const numericValue = Number(value.replace(/[^0-9]/g, ''));
-    setFormData({
-      ...formData,
-      giaTriMua: numericValue,
+  const removeImage = useCallback((index) => {
+    setSelectedFiles(prev => {
+      const newFiles = [...prev];
+      URL.revokeObjectURL(newFiles[index].preview);
+      newFiles.splice(index, 1);
+      return newFiles;
     });
-  };
+  }, []);
 
-  const handleThongSoChange = (field, value) => {
-    setFormData({
-      ...formData,
+  const handleThongSoChange = useCallback((field, value) => {
+    setFormData(prev => ({
+      ...prev,
       thongSoKyThuat: {
-        ...formData.thongSoKyThuat,
+        ...prev.thongSoKyThuat,
         [field]: value,
       },
-    });
-  };
+    }));
+  }, []);
 
-  const renderThongSoKyThuat = () => {
+  const renderThongSoKyThuat = useCallback(() => {
     if (formData.loaiTaiSan === LOAI_TAI_SAN.THIET_BI) {
       return (
         <Grid templateColumns="repeat(2, 1fr)" gap={4} mt={4}>
@@ -372,7 +380,7 @@ const ThemTaiSan = ({ data, onSuccess }) => {
     }
 
     return null;
-  };
+  }, [formData.loaiTaiSan, formData.thongSoKyThuat, handleThongSoChange]);
 
   return (
     <form onSubmit={handleSubmit}>
@@ -383,7 +391,7 @@ const ThemTaiSan = ({ data, onSuccess }) => {
               <FormLabel>Mã tài sản</FormLabel>
               <Input
                 value={formData.ma}
-                onChange={(e) => setFormData({ ...formData, ma: e.target.value })}
+                onChange={(e) => setFormData(prev => ({ ...prev, ma: e.target.value }))}
                 placeholder="Nhập mã tài sản"
                 bg="whiteAlpha.100"
               />
@@ -396,9 +404,7 @@ const ThemTaiSan = ({ data, onSuccess }) => {
               <FormLabel>Tên tài sản</FormLabel>
               <Input
                 value={formData.ten}
-                onChange={(e) =>
-                  setFormData({ ...formData, ten: e.target.value })
-                }
+                onChange={(e) => setFormData(prev => ({ ...prev, ten: e.target.value }))}
                 placeholder="Nhập tên tài sản"
                 bg="whiteAlpha.100"
               />
@@ -411,9 +417,7 @@ const ThemTaiSan = ({ data, onSuccess }) => {
               <FormLabel>Loại tài sản</FormLabel>
               <Select
                 value={formData.loaiTaiSan}
-                onChange={(e) =>
-                  setFormData({ ...formData, loaiTaiSan: e.target.value })
-                }
+                onChange={(e) => setFormData(prev => ({ ...prev, loaiTaiSan: e.target.value }))}
                 bg="whiteAlpha.100"
               >
                 <option value="">Chọn loại tài sản</option>
@@ -427,18 +431,13 @@ const ThemTaiSan = ({ data, onSuccess }) => {
           <GridItem>
             <FormControl isRequired isInvalid={!!errors.giaTriMua}>
               <FormLabel>Giá trị mua</FormLabel>
-              <NumberInput
-                value={formatCurrency(formData.giaTriMua)}
+              <Input
+                value={formatGiaTriMua(formData.giaTriMua)}
                 onChange={handleGiaTriMuaChange}
-                min={0}
-                step={100000}
-              >
-                <NumberInputField bg="whiteAlpha.100" />
-                <NumberInputStepper>
-                  <NumberIncrementStepper />
-                  <NumberDecrementStepper />
-                </NumberInputStepper>
-              </NumberInput>
+                placeholder="Nhập giá trị mua"
+                bg="whiteAlpha.100"
+                textAlign="right"
+              />
               <FormHelperText color="gray.500">
                 Bằng chữ: {giaTriBangChu}
               </FormHelperText>
@@ -484,9 +483,7 @@ const ThemTaiSan = ({ data, onSuccess }) => {
               <FormLabel>Phòng ban</FormLabel>
               <Select
                 value={formData.phongBan}
-                onChange={(e) =>
-                  setFormData({ ...formData, phongBan: e.target.value })
-                }
+                onChange={(e) => setFormData(prev => ({ ...prev, phongBan: e.target.value }))}
                 bg="whiteAlpha.100"
               >
                 <option value="">Chọn phòng ban</option>
@@ -507,9 +504,7 @@ const ThemTaiSan = ({ data, onSuccess }) => {
               <Input
                 type="date"
                 value={formData.ngayMua}
-                onChange={(e) =>
-                  setFormData({ ...formData, ngayMua: e.target.value })
-                }
+                onChange={(e) => setFormData(prev => ({ ...prev, ngayMua: e.target.value }))}
                 bg="whiteAlpha.100"
               />
               <FormErrorMessage>{errors.ngayMua}</FormErrorMessage>
@@ -522,9 +517,7 @@ const ThemTaiSan = ({ data, onSuccess }) => {
               <Input
                 type="date"
                 value={formData.hanBaoHanh}
-                onChange={(e) =>
-                  setFormData({ ...formData, hanBaoHanh: e.target.value })
-                }
+                onChange={(e) => setFormData(prev => ({ ...prev, hanBaoHanh: e.target.value }))}
                 min={formData.ngayMua}
                 bg="whiteAlpha.100"
               />
@@ -537,9 +530,7 @@ const ThemTaiSan = ({ data, onSuccess }) => {
           <FormLabel>Mô tả</FormLabel>
           <Textarea
             value={formData.moTa}
-            onChange={(e) =>
-              setFormData({ ...formData, moTa: e.target.value })
-            }
+            onChange={(e) => setFormData(prev => ({ ...prev, moTa: e.target.value }))}
             placeholder="Nhập mô tả tài sản"
             minH="100px"
             bg="whiteAlpha.100"
@@ -577,10 +568,7 @@ const ThemTaiSan = ({ data, onSuccess }) => {
             Thêm ảnh
           </Button>
 
-          <Grid
-            templateColumns="repeat(auto-fill, minmax(150px, 1fr))"
-            gap={4}
-          >
+          <Grid templateColumns="repeat(auto-fill, minmax(150px, 1fr))" gap={4}>
             {selectedFiles.map((file, index) => (
               <GridItem key={index}>
                 <Box position="relative">
