@@ -101,13 +101,13 @@ function AttendanceForm({ onClose }) {
   const getCurrentShift = useCallback(() => {
     const now = new Date();
     const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
 
-    if (
-      currentHour < WORKING_HOURS.MORNING.END.hour ||
-      (currentHour === WORKING_HOURS.MORNING.END.hour &&
-        currentMinute <= WORKING_HOURS.MORNING.END.minute)
-    ) {
+    // Nếu thời gian sau 18:00, vẫn tính là ca chiều để tính toàn bộ thời gian muộn
+    if (currentHour >= WORKING_HOURS.AFTERNOON.END.hour) {
+      return "AFTERNOON";
+    }
+    // Nếu thời gian trước 12:00 hoặc trong giờ nghỉ trưa
+    if (currentHour < WORKING_HOURS.AFTERNOON.START.hour) {
       return "MORNING";
     }
     return "AFTERNOON";
@@ -119,45 +119,65 @@ function AttendanceForm({ onClose }) {
     const currentMinute = now.getMinutes();
     const currentShift = getCurrentShift();
 
-    const shiftStart = WORKING_HOURS[currentShift].START;
-
-    if (
-      currentHour > shiftStart.hour ||
-      (currentHour === shiftStart.hour && currentMinute > shiftStart.minute)
-    ) {
+    // Luôn đi muộn nếu điểm danh sau giờ làm việc (18:00)
+    if (currentHour >= WORKING_HOURS.AFTERNOON.END.hour) {
       return true;
     }
-    return false;
+
+    if (currentShift === "MORNING") {
+      return currentHour > WORKING_HOURS.MORNING.START.hour || 
+             (currentHour === WORKING_HOURS.MORNING.START.hour && currentMinute > WORKING_HOURS.MORNING.START.minute);
+    }
+
+    // Nếu là ca chiều, luôn tính là đi muộn vì đã bỏ lỡ ca sáng
+    return true;
   }, [getCurrentShift]);
 
   const calculateLateDuration = useCallback(() => {
     const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+
+    // Nếu điểm danh sau giờ làm việc (18:00)
+    if (currentHour >= WORKING_HOURS.AFTERNOON.END.hour) {
+      // Tính tổng thời gian của cả ngày làm việc
+      const morningMinutes = (WORKING_HOURS.MORNING.END.hour - WORKING_HOURS.MORNING.START.hour) * 60 + 
+                            (WORKING_HOURS.MORNING.END.minute - WORKING_HOURS.MORNING.START.minute);
+      const afternoonMinutes = (WORKING_HOURS.AFTERNOON.END.hour - WORKING_HOURS.AFTERNOON.START.hour) * 60;
+      const totalLateMinutes = morningMinutes + afternoonMinutes;
+
+      return {
+        hours: Math.floor(totalLateMinutes / 60),
+        minutes: totalLateMinutes % 60,
+      };
+    }
+
     const currentShift = getCurrentShift();
-    const shiftStart = WORKING_HOURS[currentShift].START;
-
-    let deadline = new Date();
-    deadline.setHours(shiftStart.hour, shiftStart.minute, 0);
-
-    if (now <= deadline) {
-      return { hours: 0, minutes: 0 };
+    
+    if (currentShift === "MORNING") {
+      const lateMinutes = (currentHour - WORKING_HOURS.MORNING.START.hour) * 60 + 
+                         (currentMinute - WORKING_HOURS.MORNING.START.minute);
+      return {
+        hours: Math.floor(lateMinutes / 60),
+        minutes: lateMinutes % 60,
+      };
     }
 
-    let diffMs = now.getTime() - deadline.getTime();
-
+    // Nếu là ca chiều, tính tổng thời gian muộn bao gồm cả ca sáng
     if (currentShift === "AFTERNOON") {
-      const lunchBreakMs =
-        (WORKING_HOURS.AFTERNOON.START.hour - WORKING_HOURS.MORNING.END.hour) *
-        60 *
-        60 *
-        1000;
-      diffMs -= lunchBreakMs;
+      const morningMinutes = (WORKING_HOURS.MORNING.END.hour - WORKING_HOURS.MORNING.START.hour) * 60 + 
+                            (WORKING_HOURS.MORNING.END.minute - WORKING_HOURS.MORNING.START.minute);
+      const afternoonMinutes = (currentHour - WORKING_HOURS.AFTERNOON.START.hour) * 60 + 
+                              (currentMinute - WORKING_HOURS.AFTERNOON.START.minute);
+      const totalLateMinutes = morningMinutes + afternoonMinutes;
+
+      return {
+        hours: Math.floor(totalLateMinutes / 60),
+        minutes: totalLateMinutes % 60,
+      };
     }
 
-    const diffMins = Math.floor(diffMs / 60000);
-    const hours = Math.floor(diffMins / 60);
-    const minutes = diffMins % 60;
-
-    return { hours, minutes };
+    return { hours: 0, minutes: 0 };
   }, [getCurrentShift]);
 
   const handleSubmit = async (e) => {

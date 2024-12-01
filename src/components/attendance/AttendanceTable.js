@@ -97,6 +97,13 @@ const formatDate = (date) => {
   }).format(date);
 };
 
+const formatLateTime = (hours, minutes) => {
+  if (hours === 0 && minutes === 0) return "-";
+  if (hours === 0) return `${minutes}p`;
+  if (minutes === 0) return `${hours}h`;
+  return `${hours}h${minutes}p`;
+};
+
 const getMonthRange = (month, year) => {
   const start = new Date(year, month - 1, 1);
   const end = new Date(year, month, 0);
@@ -163,7 +170,7 @@ const TableContent = React.memo(({ isLoading, records }) => {
   if (isLoading) {
     return (
       <Tr>
-        <Td colSpan={8}>
+        <Td colSpan={9}>
           <Center py={4}>
             <Spinner size="lg" color="blue.500" />
           </Center>
@@ -175,7 +182,7 @@ const TableContent = React.memo(({ isLoading, records }) => {
   if (records.length === 0) {
     return (
       <Tr>
-        <Td colSpan={8}>
+        <Td colSpan={9}>
           <Center py={4}>
             <Text color="gray.500">Không có dữ liệu</Text>
           </Center>
@@ -196,11 +203,14 @@ const TableContent = React.memo(({ isLoading, records }) => {
       <Td>
         <WorkLocationBadge location={record.workLocation} />
       </Td>
+      <Td color={record.isLate ? "red.500" : "inherit"}>
+        {formatLateTime(record.lateHours, record.lateMinutes)}
+      </Td>
       <Td>{record.isLate ? record.lateReason : "-"}</Td>
       <Td>
         {record.isLate && record.hasReported && (
           <Text color="green.500" fontSize="sm">
-            Đã báo cáo ({record.reportedTo?.fullName})
+            Đã báo cáo ({record.reportedTo?.adminName})
           </Text>
         )}
       </Td>
@@ -385,6 +395,7 @@ function AttendanceTable({ userRole, userId, department }) {
               <Th>Thời gian</Th>
               <Th>Trạng thái</Th>
               <Th>Địa điểm</Th>
+              <Th>Số giờ muộn</Th>
               <Th>Lý do</Th>
               <Th>Báo cáo</Th>
             </Tr>
