@@ -1,0 +1,72 @@
+{
+  "short_name": "TNG Company",
+  "name": "TNG Company - Hệ thống Quản lý Doanh nghiệp",
+  "description": "Nền tảng quản lý doanh nghiệp toàn diện: nhân sự, dự án, tài sản, báo cáo và nhiều tính năng khác.",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "logo192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "logo512.png",
+      "type": "image/png", 
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "theme_color": "#1A365D",
+  "background_color": "#ffffff",
+  "orientation": "portrait-primary",
+  "categories": ["business", "productivity", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Điểm Danh",
+      "short_name": "Điểm Danh",
+      "description": "Điểm danh nhanh",
+      "url": "/diem-danh",
+      "icons": [{ "src": "shortcuts/diem-danh.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Nhiệm Vụ",
+      "short_name": "Nhiệm Vụ",
+      "description": "Xem nhiệm vụ hằng ngày",
+      "url": "/nhiem-vu",
+      "icons": [{ "src": "shortcuts/nhiem-vu.png", "sizes": "192x192" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "screenshots/dashboard.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "platform": "wide",
+      "label": "Dashboard của TNG Company"
+    }
+  ],
+  "prefer_related_applications": false,
+  "related_applications": [],
+  "handle_links": "preferred",
+  "launch_handler": {
+    "client_mode": ["navigate-existing", "auto"]
+  },
+  "edge_side_panel": {
+    "preferred_width": 400
+  }
+}

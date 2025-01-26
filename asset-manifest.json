@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/TNG_QUANTRI/static/css/main.952b1ec8.css",
+    "main.js": "/TNG_QUANTRI/static/js/main.817ebf9a.js",
+    "index.html": "/TNG_QUANTRI/index.html",
+    "main.952b1ec8.css.map": "/TNG_QUANTRI/static/css/main.952b1ec8.css.map",
+    "main.817ebf9a.js.map": "/TNG_QUANTRI/static/js/main.817ebf9a.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.952b1ec8.css",
+    "static/js/main.817ebf9a.js"
+  ]
+}
